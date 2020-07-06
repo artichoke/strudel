@@ -6,7 +6,7 @@ use core::mem::size_of;
 use core::slice;
 use std::ffi::CStr;
 
-use crate::{st_data_t, st_hash_t, st_hash_type, st_index_t, StHasher};
+use crate::{st_data_t, st_hash_t, st_hash_type, st_index_t, StHash, StHasher};
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
@@ -45,16 +45,40 @@ struct __st_table {
     entries: *mut st_table_entry,
 }
 
+// ensure that `StdHash` fits in `st_table` for an opaque FFI container.
+const _: () = [()][!(size_of::<__st_table>() >= size_of::<StHash>()) as usize];
+const ST_TABLE_PADDING_LEN: usize = size_of::<__st_table>() - size_of::<*mut StHash>();
+
 #[repr(C)]
 pub struct st_table {
-    table: *mut c_void,
-    padding: [u8; size_of::<__st_table>() - size_of::<*mut c_void>()],
+    table: StHash,
+    padding: [u8; ST_TABLE_PADDING_LEN],
+}
+
+impl From<StHash> for st_table {
+    fn from(table: StHash) -> Self {
+        Self {
+            table,
+            padding: [0; ST_TABLE_PADDING_LEN],
+        }
+    }
+}
+
+impl From<Box<StHash>> for st_table {
+    fn from(table: Box<StHash>) -> Self {
+        let table = *table;
+        Self {
+            table,
+            padding: [0; ST_TABLE_PADDING_LEN],
+        }
+    }
 }
 
 // st_table *st_init_table(const struct st_hash_type *);
 #[no_mangle]
 pub unsafe extern "C" fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
-    todo!();
+    let map = StHash::with_hash_type(hash_type);
+    let table = todo!();
 }
 
 // st_table *st_init_table_with_size(const struct st_hash_type *, st_index_t);

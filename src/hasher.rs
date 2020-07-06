@@ -25,6 +25,11 @@ fn default_compare(x: st_data_t, y: st_data_t) -> i32 {
     x.cmp(&y) as _
 }
 
+static default_hash_type: st_hash_type = st_hash_type {
+    compare: default_compare,
+    hash: convert::identity,
+};
+
 impl Default for st_hash_type {
     #[inline]
     fn default() -> Self {
@@ -35,14 +40,22 @@ impl Default for st_hash_type {
     }
 }
 
-#[derive(Default)]
 pub struct StHasher {
     hash: st_hash_t,
-    hash_type: st_hash_type,
+    hash_type: *const st_hash_type,
 }
 
-impl From<st_hash_type> for StHasher {
-    fn from(hash_type: st_hash_type) -> Self {
+impl Default for StHasher {
+    fn default() -> Self {
+        Self {
+            hash: 0,
+            hash_type: &default_hash_type as *const _,
+        }
+    }
+}
+
+impl From<*const st_hash_type> for StHasher {
+    fn from(hash_type: *const st_hash_type) -> Self {
         let mut buf = [0_u8; size_of::<st_hash_t>()];
         let seed = if getrandom::getrandom(&mut buf).is_ok() {
             st_hash_t::from_ne_bytes(buf)
@@ -75,7 +88,8 @@ impl Clone for StHasher {
 impl StHasher {
     #[inline]
     fn add_to_hash(&mut self, i: st_hash_t) {
-        let i = (self.hash_type.hash)(i);
+        let hash = unsafe { (*self.hash_type).hash };
+        let i = (hash)(i);
         self.hash = self.hash.rotate_left(5).bitxor(i).wrapping_mul(K);
     }
 }

@@ -126,7 +126,7 @@ pub struct StHash {
 impl StHash {
     #[inline]
     #[must_use]
-    pub fn with_hash_type(hash_type: st_hash_type) -> Self {
+    pub fn with_hash_type(hash_type: *const st_hash_type) -> Self {
         let hasher = StHasher::from(hash_type);
         Self {
             map: HashMap::with_hasher(hasher),
@@ -135,7 +135,7 @@ impl StHash {
 
     #[inline]
     #[must_use]
-    pub fn with_capacity_and_hash_type(capacity: usize, hash_type: st_hash_type) -> Self {
+    pub fn with_capacity_and_hash_type(capacity: usize, hash_type: *const st_hash_type) -> Self {
         let hasher = StHasher::from(hash_type);
         Self {
             map: HashMap::with_capacity_and_hasher(capacity, hasher),
