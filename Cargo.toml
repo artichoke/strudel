@@ -6,7 +6,8 @@ edition = "2018"
 
 [dependencies]
 libc = { version = "0.2", optional = true }
+rustc-hash = { version = "1.1", default-features = false, optional = true }
 
 [features]
 default = ["capi"]
-capi = ["libc"]
+capi = ["libc", "rustc-hash"]

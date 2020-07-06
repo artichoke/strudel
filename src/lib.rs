@@ -99,3 +99,6 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
    average by more 40% on Intel Haswell CPU.
 
 */
+
+#[cfg(feature = "capi")]
+pub mod capi;
