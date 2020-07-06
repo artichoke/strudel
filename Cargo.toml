@@ -1,0 +1,12 @@
+[package]
+name = "st_hash"
+version = "0.1.0"
+authors = ["Ryan Lopopolo <rjl@hyperbo.la>"]
+edition = "2018"
+
+[dependencies]
+libc = { version = "0.2", optional = true }
+
+[features]
+default = ["capi"]
+capi = ["libc"]
