@@ -4,17 +4,9 @@ use core::ffi::c_void;
 use core::hash::Hasher;
 use core::mem::size_of;
 use core::slice;
-use rustc_hash::FxHasher;
 use std::ffi::CStr;
 
-#[cfg(target_pointer_width = "64")]
-pub type st_data_t = u64;
-#[cfg(target_pointer_width = "32")]
-pub type st_data_t = u32;
-
-pub type st_index_t = st_data_t;
-
-pub type st_hash_t = st_index_t;
+use crate::{st_data_t, st_hash_t, st_hash_type, st_index_t, StHasher};
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
@@ -57,15 +49,6 @@ struct __st_table {
 pub struct st_table {
     table: *mut c_void,
     padding: [u8; size_of::<__st_table>() - size_of::<*mut c_void>()],
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(C)]
-pub struct st_hash_type {
-    // (*compare)(ANYARGS /*st_data_t, st_data_t*/); /* st_compare_func* */
-    compare: fn(st_data_t, st_data_t) -> libc::c_int,
-    // st_index_t (*hash)(ANYARGS /*st_data_t*/);        /* st_hash_func* */
-    hash: fn(st_data_t) -> st_index_t,
 }
 
 // st_table *st_init_table(const struct st_hash_type *);
@@ -313,7 +296,7 @@ pub unsafe extern "C" fn st_numcmp(x: st_data_t, y: st_data_t) -> libc::c_int {
 #[no_mangle]
 #[allow(trivial_casts)]
 pub unsafe extern "C" fn st_numhash(n: st_data_t) -> st_index_t {
-    let mut hasher = FxHasher::default();
+    let mut hasher = StHasher::default();
     hasher.write_u64(n as st_index_t);
     hasher.finish() as st_index_t
 }

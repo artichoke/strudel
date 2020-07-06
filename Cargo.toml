@@ -5,9 +5,9 @@ authors = ["Ryan Lopopolo <rjl@hyperbo.la>"]
 edition = "2018"
 
 [dependencies]
+getrandom = "0.1"
 libc = { version = "0.2", optional = true }
-rustc-hash = { version = "1.1", default-features = false, optional = true }
 
 [features]
 default = ["capi"]
-capi = ["libc", "rustc-hash"]
+capi = ["libc"]
