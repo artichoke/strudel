@@ -3,7 +3,7 @@
 
 use core::ffi::c_void;
 use core::hash::Hasher;
-use core::mem::{self, size_of, MaybeUninit};
+use core::mem::{self, size_of};
 use core::ptr;
 use core::slice;
 use std::ffi::CStr;

@@ -105,7 +105,10 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 use core::borrow::Borrow;
 use core::hash::{Hash, Hasher};
 use core::iter::{FromIterator, FusedIterator};
-use std::collections::{btree_map, hash_map, BTreeMap, HashMap};
+use std::collections::hash_map::{
+    Entry as HashEntry, OccupiedEntry as OccupiedHashEntry, VacantEntry as VacantHashEntry,
+};
+use std::collections::{btree_map, BTreeMap, HashMap};
 
 #[cfg(feature = "capi")]
 pub mod capi;
@@ -333,8 +336,8 @@ impl StHash {
         };
         self.insert_counter += 1;
         match self.map.entry(key) {
-            hash_map::Entry::Occupied(base) => Entry::Occupied(OccupiedEntry(base)),
-            hash_map::Entry::Vacant(base) => Entry::Vacant(VacantEntry(base)),
+            HashEntry::Occupied(base) => Entry::Occupied(OccupiedEntry(base)),
+            HashEntry::Vacant(base) => Entry::Vacant(VacantEntry(base)),
         }
     }
 
@@ -354,11 +357,11 @@ impl StHash {
             insert_counter,
         };
         let (counter, old_value) = match self.map.entry(key) {
-            hash_map::Entry::Occupied(base) => {
+            HashEntry::Occupied(base) => {
                 let old_value = base.insert(value);
                 (base.key().insert_counter(), Some(old_value))
             }
-            hash_map::Entry::Vacant(base) => {
+            HashEntry::Vacant(base) => {
                 base.insert(value);
                 (insert_counter, None)
             }
@@ -397,19 +400,19 @@ impl StHash {
     #[inline]
     #[must_use]
     pub fn iter(&self) -> Iter<'_> {
-        Iter(self.map.iter())
+        Iter(self.ordered.values())
     }
 
     #[inline]
     #[must_use]
     pub fn iter_mut(&mut self) -> IterMut<'_> {
-        IterMut(self.map.iter_mut())
+        IterMut(self.ordered.values_mut())
     }
 
     #[inline]
     #[must_use]
     pub fn keys(&self) -> Keys<'_> {
-        Keys(self.map.keys())
+        Keys(self.iter())
     }
 
     #[inline]
@@ -430,26 +433,14 @@ impl StHash {
 }
 
 #[derive(Debug, Clone)]
-pub struct Iter<'a>(hash_map::Iter<'a, Key, st_data_t>);
-
-impl<'a> Iter<'a> {
-    pub fn ordered(self) -> Vec<(&'a st_data_t, &'a st_data_t)> {
-        let mut pairs = self.0.collect::<Vec<_>>();
-        pairs.sort_by(|(left, _), (right, _)| left.insert_counter.cmp(&right.insert_counter));
-        pairs
-            .into_iter()
-            .map(|(key, value)| (key.record(), value))
-            .collect()
-    }
-}
+pub struct Iter<'a>(btree_map::Values<'a, st_index_t, (st_data_t, st_data_t)>);
 
 impl<'a> Iterator for Iter<'a> {
     type Item = (&'a st_data_t, &'a st_data_t);
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        let (key, value) = self.0.next()?;
-        Some((key.record(), value))
+        self.0.next().map(|(key, value)| (key, value))
     }
 
     #[inline]
@@ -464,19 +455,17 @@ impl<'a> Iterator for Iter<'a> {
 
     #[inline]
     fn last(self) -> Option<Self::Item> {
-        let (key, value) = self.0.last()?;
-        Some((key.record(), value))
+        self.0.last().map(|(key, value)| (key, value))
     }
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        let (key, value) = self.0.nth(n)?;
-        Some((key.record(), value))
+        self.0.nth(n).map(|(key, value)| (key, value))
     }
 
     #[inline]
     fn collect<B: FromIterator<Self::Item>>(self) -> B {
-        self.0.map(|(key, value)| (key.record(), value)).collect()
+        self.0.map(|(key, value)| (key, value)).collect()
     }
 }
 
@@ -485,26 +474,14 @@ impl<'a> FusedIterator for Iter<'a> {}
 impl<'a> ExactSizeIterator for Iter<'a> {}
 
 #[derive(Debug)]
-pub struct IterMut<'a>(hash_map::IterMut<'a, Key, st_data_t>);
-
-impl<'a> IterMut<'a> {
-    pub fn ordered(self) -> Vec<(&'a st_data_t, &'a mut st_data_t)> {
-        let mut pairs = self.0.collect::<Vec<_>>();
-        pairs.sort_by(|(left, _), (right, _)| left.insert_counter.cmp(&right.insert_counter));
-        pairs
-            .into_iter()
-            .map(|(key, value)| (key.record(), value))
-            .collect()
-    }
-}
+pub struct IterMut<'a>(btree_map::ValuesMut<'a, st_index_t, (st_data_t, st_data_t)>);
 
 impl<'a> Iterator for IterMut<'a> {
     type Item = (&'a st_data_t, &'a mut st_data_t);
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        let (key, value) = self.0.next()?;
-        Some((key.record(), value))
+        self.0.next().map(|(key, value)| (&*key, value))
     }
 
     #[inline]
@@ -519,19 +496,17 @@ impl<'a> Iterator for IterMut<'a> {
 
     #[inline]
     fn last(self) -> Option<Self::Item> {
-        let (key, value) = self.0.last()?;
-        Some((key.record(), value))
+        self.0.last().map(|(key, value)| (&*key, value))
     }
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        let (key, value) = self.0.nth(n)?;
-        Some((key.record(), value))
+        self.0.nth(n).map(|(key, value)| (&*key, value))
     }
 
     #[inline]
     fn collect<B: FromIterator<Self::Item>>(self) -> B {
-        self.0.map(|(key, value)| (key.record(), value)).collect()
+        self.0.map(|(key, value)| (&*key, value)).collect()
     }
 }
 
@@ -540,23 +515,14 @@ impl<'a> FusedIterator for IterMut<'a> {}
 impl<'a> ExactSizeIterator for IterMut<'a> {}
 
 #[derive(Debug)]
-pub struct Keys<'a>(hash_map::Keys<'a, Key, st_data_t>);
-
-impl<'a> Keys<'a> {
-    pub fn ordered(self) -> Vec<&'a st_data_t> {
-        let mut pairs = self.0.collect::<Vec<_>>();
-        pairs.sort_by(|left, right| left.insert_counter.cmp(&right.insert_counter));
-        pairs.into_iter().map(|key| key.record()).collect()
-    }
-}
+pub struct Keys<'a>(Iter<'a>);
 
 impl<'a> Iterator for Keys<'a> {
     type Item = &'a st_data_t;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        let key = self.0.next()?;
-        Some(key.record())
+        self.0.next().map(|(key, _)| key)
     }
 
     #[inline]
@@ -571,19 +537,17 @@ impl<'a> Iterator for Keys<'a> {
 
     #[inline]
     fn last(self) -> Option<Self::Item> {
-        let key = self.0.last()?;
-        Some(key.record())
+        self.0.last().map(|(key, _)| key)
     }
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        let key = self.0.nth(n)?;
-        Some(key.record())
+        self.0.nth(n).map(|(key, _)| key)
     }
 
     #[inline]
     fn collect<B: FromIterator<Self::Item>>(self) -> B {
-        self.0.map(|key| key.record()).collect()
+        self.0.map(|(key, _)| key).collect()
     }
 }
 
@@ -594,20 +558,12 @@ impl<'a> ExactSizeIterator for Keys<'a> {}
 #[derive(Debug)]
 pub struct Values<'a>(Iter<'a>);
 
-impl<'a> Values<'a> {
-    pub fn ordered(self) -> Vec<&'a st_data_t> {
-        let pairs = self.0.ordered();
-        pairs.into_iter().map(|(_, value)| value).collect()
-    }
-}
-
 impl<'a> Iterator for Values<'a> {
     type Item = &'a st_data_t;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        let (_, value) = self.0.next()?;
-        Some(value)
+        self.0.next().map(|(_, value)| value)
     }
 
     #[inline]
@@ -622,14 +578,12 @@ impl<'a> Iterator for Values<'a> {
 
     #[inline]
     fn last(self) -> Option<Self::Item> {
-        let (_, value) = self.0.last()?;
-        Some(value)
+        self.0.last().map(|(_, value)| value)
     }
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        let (_, value) = self.0.nth(n)?;
-        Some(value)
+        self.0.nth(n).map(|(_, value)| value)
     }
 
     #[inline]
@@ -662,10 +616,10 @@ pub enum Entry<'a> {
 }
 
 #[derive(Debug)]
-pub struct OccupiedEntry<'a>(hash_map::OccupiedEntry<'a, Key, st_data_t>);
+pub struct OccupiedEntry<'a>(OccupiedHashEntry<'a, Key, st_data_t>);
 
 #[derive(Debug)]
-pub struct VacantEntry<'a>(hash_map::VacantEntry<'a, Key, st_data_t>);
+pub struct VacantEntry<'a>(VacantHashEntry<'a, Key, st_data_t>);
 
 impl<'a> Entry<'a> {
     /// Ensures a value is in the entry by inserting the default if empty, and
