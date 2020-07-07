@@ -126,6 +126,7 @@ use std::vec;
 #[cfg(feature = "capi")]
 pub mod capi;
 mod entry;
+#[cfg(feature = "capi")]
 mod fnv;
 mod hasher;
 mod typedefs;
