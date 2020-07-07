@@ -17,18 +17,22 @@ pub type st_hash_t = st_index_t;
 #[repr(C)]
 pub struct st_hash_type {
     // (*compare)(ANYARGS /*st_data_t, st_data_t*/); /* st_compare_func* */
-    pub compare: fn(st_data_t, st_data_t) -> i32,
+    pub compare: unsafe extern "C" fn(st_data_t, st_data_t) -> i32,
     // st_index_t (*hash)(ANYARGS /*st_data_t*/);        /* st_hash_func* */
-    pub hash: fn(st_data_t) -> st_index_t,
+    pub hash: unsafe extern "C" fn(st_data_t) -> st_index_t,
 }
 
-pub fn default_compare(x: st_data_t, y: st_data_t) -> i32 {
+pub unsafe extern "C" fn default_compare(x: st_data_t, y: st_data_t) -> i32 {
     x.cmp(&y) as _
+}
+
+pub unsafe extern "C" fn default_hash(value: st_data_t) -> st_index_t {
+    convert::identity(value)
 }
 
 static default_hash_type: st_hash_type = st_hash_type {
     compare: default_compare,
-    hash: convert::identity,
+    hash: default_hash,
 };
 
 impl Default for st_hash_type {
@@ -36,21 +40,19 @@ impl Default for st_hash_type {
     fn default() -> Self {
         Self {
             compare: default_compare,
-            hash: convert::identity,
+            hash: default_hash,
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StBuildHasher {
-    hash: fn(st_data_t) -> st_index_t,
+    hash: unsafe extern "C" fn(st_data_t) -> st_index_t,
 }
 
 impl Default for StBuildHasher {
     fn default() -> Self {
-        Self {
-            hash: convert::identity,
-        }
+        Self { hash: default_hash }
     }
 }
 
@@ -78,14 +80,14 @@ impl BuildHasher for StBuildHasher {
 
 pub struct StHasher {
     state: st_hash_t,
-    hash: fn(st_data_t) -> st_index_t,
+    hash: unsafe extern "C" fn(st_data_t) -> st_index_t,
 }
 
 impl Default for StHasher {
     fn default() -> Self {
         Self {
             state: 0,
-            hash: convert::identity,
+            hash: default_hash,
         }
     }
 }
@@ -106,7 +108,7 @@ impl fmt::Debug for StHasher {
 impl StHasher {
     #[inline]
     fn add_to_hash(&mut self, i: st_hash_t) {
-        let i = (self.hash)(i);
+        let i = unsafe { (self.hash)(i) };
         self.state = self.state.rotate_left(5).bitxor(i).wrapping_mul(K);
     }
 }

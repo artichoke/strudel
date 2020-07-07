@@ -108,6 +108,7 @@ use std::collections::{hash_map, HashMap};
 
 #[cfg(feature = "capi")]
 pub mod capi;
+mod fnv;
 mod hasher;
 
 pub use hasher::{st_hash_t, st_hash_type, StBuildHasher, StHasher};
@@ -122,13 +123,13 @@ pub type st_index_t = st_data_t;
 #[derive(Debug, Clone)]
 struct Key {
     record: st_data_t,
-    eq: fn(st_data_t, st_data_t) -> i32,
+    eq: unsafe extern "C" fn(st_data_t, st_data_t) -> i32,
 }
 
 impl PartialEq for Key {
     fn eq(&self, other: &Key) -> bool {
         let cmp = self.eq;
-        (cmp)(self.record, other.record) == 0
+        unsafe { (cmp)(self.record, other.record) == 0 }
     }
 }
 
@@ -143,7 +144,7 @@ impl Hash for Key {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StHash {
     map: HashMap<Key, st_data_t, StBuildHasher>,
-    eq: fn(st_data_t, st_data_t) -> i32,
+    eq: unsafe extern "C" fn(st_data_t, st_data_t) -> i32,
 }
 
 impl Default for StHash {
