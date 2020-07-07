@@ -1,4 +1,5 @@
 use core::convert;
+use core::fmt;
 use core::hash::{BuildHasher, Hasher};
 use core::mem::size_of;
 use core::ops::BitXor;
@@ -16,12 +17,12 @@ pub type st_hash_t = st_index_t;
 #[repr(C)]
 pub struct st_hash_type {
     // (*compare)(ANYARGS /*st_data_t, st_data_t*/); /* st_compare_func* */
-    compare: fn(st_data_t, st_data_t) -> i32,
+    pub compare: fn(st_data_t, st_data_t) -> i32,
     // st_index_t (*hash)(ANYARGS /*st_data_t*/);        /* st_hash_func* */
-    hash: fn(st_data_t) -> st_index_t,
+    pub hash: fn(st_data_t) -> st_index_t,
 }
 
-fn default_compare(x: st_data_t, y: st_data_t) -> i32 {
+pub fn default_compare(x: st_data_t, y: st_data_t) -> i32 {
     x.cmp(&y) as _
 }
 
@@ -40,57 +41,73 @@ impl Default for st_hash_type {
     }
 }
 
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct StBuildHasher {
+    hash: fn(st_data_t) -> st_index_t,
+}
+
+impl Default for StBuildHasher {
+    fn default() -> Self {
+        Self {
+            hash: convert::identity,
+        }
+    }
+}
+
+impl From<*const st_hash_type> for StBuildHasher {
+    fn from(hash_type: *const st_hash_type) -> Self {
+        let hash = unsafe { (*hash_type).hash };
+        Self { hash }
+    }
+}
+
+impl BuildHasher for StBuildHasher {
+    type Hasher = StHasher;
+
+    #[inline]
+    fn build_hasher(&self) -> Self::Hasher {
+        let mut buf = [0_u8; size_of::<st_hash_t>()];
+        let _ = getrandom::getrandom(&mut buf);
+        let seed = st_hash_t::from_ne_bytes(buf);
+        Self::Hasher {
+            state: seed,
+            hash: self.hash,
+        }
+    }
+}
+
 pub struct StHasher {
-    hash: st_hash_t,
-    hash_type: *const st_hash_type,
+    state: st_hash_t,
+    hash: fn(st_data_t) -> st_index_t,
 }
 
 impl Default for StHasher {
     fn default() -> Self {
         Self {
-            hash: 0,
-            hash_type: &default_hash_type as *const _,
+            state: 0,
+            hash: convert::identity,
         }
     }
 }
 
-impl From<*const st_hash_type> for StHasher {
-    fn from(hash_type: *const st_hash_type) -> Self {
-        let mut buf = [0_u8; size_of::<st_hash_t>()];
-        let seed = if getrandom::getrandom(&mut buf).is_ok() {
-            st_hash_t::from_ne_bytes(buf)
-        } else {
-            0
-        };
-        Self {
-            hash: seed,
-            hash_type,
-        }
+impl From<&StBuildHasher> for StHasher {
+    #[inline]
+    fn from(build_hasher: &StBuildHasher) -> Self {
+        build_hasher.build_hasher()
     }
 }
 
-impl BuildHasher for StHasher {
-    type Hasher = Self;
-
-    #[inline]
-    fn build_hasher(&self) -> Self::Hasher {
-        Self::from(self.hash_type)
-    }
-}
-
-impl Clone for StHasher {
-    #[inline]
-    fn clone(&self) -> Self {
-        self.build_hasher()
+impl fmt::Debug for StHasher {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "StHasher {{}}")
     }
 }
 
 impl StHasher {
     #[inline]
     fn add_to_hash(&mut self, i: st_hash_t) {
-        let hash = unsafe { (*self.hash_type).hash };
-        let i = (hash)(i);
-        self.hash = self.hash.rotate_left(5).bitxor(i).wrapping_mul(K);
+        let i = (self.hash)(i);
+        self.state = self.state.rotate_left(5).bitxor(i).wrapping_mul(K);
     }
 }
 
@@ -196,6 +213,6 @@ impl Hasher for StHasher {
 
     #[inline]
     fn finish(&self) -> u64 {
-        self.hash as u64
+        self.state as u64
     }
 }

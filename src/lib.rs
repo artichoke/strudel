@@ -102,6 +102,7 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 
 #![allow(non_camel_case_types)]
 
+use core::hash::{Hash, Hasher};
 use core::iter::{FromIterator, FusedIterator};
 use std::collections::{hash_map, HashMap};
 
@@ -109,7 +110,7 @@ use std::collections::{hash_map, HashMap};
 pub mod capi;
 mod hasher;
 
-pub use hasher::{st_hash_t, st_hash_type, StHasher};
+pub use hasher::{st_hash_t, st_hash_type, StBuildHasher, StHasher};
 
 #[cfg(target_pointer_width = "64")]
 pub type st_data_t = u64;
@@ -118,27 +119,62 @@ pub type st_data_t = u32;
 
 pub type st_index_t = st_data_t;
 
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
+struct Key {
+    record: st_data_t,
+    eq: fn(st_data_t, st_data_t) -> i32,
+}
+
+impl PartialEq for Key {
+    fn eq(&self, other: &Key) -> bool {
+        let cmp = self.eq;
+        (cmp)(self.record, other.record) == 0
+    }
+}
+
+impl Eq for Key {}
+
+impl Hash for Key {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.record.hash(state)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StHash {
-    map: HashMap<st_data_t, st_data_t, StHasher>,
+    map: HashMap<Key, st_data_t, StBuildHasher>,
+    eq: fn(st_data_t, st_data_t) -> i32,
+}
+
+impl Default for StHash {
+    fn default() -> Self {
+        Self {
+            map: HashMap::default(),
+            eq: hasher::default_compare,
+        }
+    }
 }
 
 impl StHash {
     #[inline]
     #[must_use]
     pub fn with_hash_type(hash_type: *const st_hash_type) -> Self {
-        let hasher = StHasher::from(hash_type);
+        let hasher = StBuildHasher::from(hash_type);
+        let map = HashMap::with_hasher(hasher);
         Self {
-            map: HashMap::with_hasher(hasher),
+            map,
+            eq: unsafe { (*hash_type).compare },
         }
     }
 
     #[inline]
     #[must_use]
     pub fn with_capacity_and_hash_type(capacity: usize, hash_type: *const st_hash_type) -> Self {
-        let hasher = StHasher::from(hash_type);
+        let hasher = StBuildHasher::from(hash_type);
+        let map = HashMap::with_capacity_and_hasher(capacity, hasher);
         Self {
-            map: HashMap::with_capacity_and_hasher(capacity, hasher),
+            map,
+            eq: unsafe { (*hash_type).compare },
         }
     }
 
@@ -168,30 +204,46 @@ impl StHash {
     #[inline]
     #[must_use]
     pub fn contains_key(&self, key: st_data_t) -> bool {
+        let key = Key {
+            record: key,
+            eq: self.eq,
+        };
         self.map.contains_key(&key)
     }
 
     #[inline]
     #[must_use]
     pub fn get(&self, key: st_data_t) -> Option<&st_data_t> {
+        let key = Key {
+            record: key,
+            eq: self.eq,
+        };
         self.map.get(&key)
     }
 
     #[inline]
     #[must_use]
     pub fn insert(&mut self, key: st_data_t, value: st_data_t) -> Option<st_data_t> {
+        let key = Key {
+            record: key,
+            eq: self.eq,
+        };
         self.map.insert(key, value)
     }
 
     #[inline]
     #[must_use]
     pub fn remove(&mut self, key: st_data_t) -> Option<st_data_t> {
+        let key = Key {
+            record: key,
+            eq: self.eq,
+        };
         self.map.remove(&key)
     }
 
     #[inline]
     #[must_use]
-    pub fn hasher(&self) -> &StHasher {
+    pub fn hasher(&self) -> &StBuildHasher {
         self.map.hasher()
     }
 
@@ -231,14 +283,15 @@ impl StHash {
 }
 
 #[derive(Debug, Clone)]
-pub struct Iter<'a>(hash_map::Iter<'a, st_data_t, st_data_t>);
+pub struct Iter<'a>(hash_map::Iter<'a, Key, st_data_t>);
 
 impl<'a> Iterator for Iter<'a> {
     type Item = (&'a st_data_t, &'a st_data_t);
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        let (Key { record, .. }, value) = self.0.next()?;
+        Some((record, value))
     }
 
     #[inline]
@@ -253,17 +306,21 @@ impl<'a> Iterator for Iter<'a> {
 
     #[inline]
     fn last(self) -> Option<Self::Item> {
-        self.0.last()
+        let (Key { record, .. }, value) = self.0.last()?;
+        Some((record, value))
     }
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        self.0.nth(n)
+        let (Key { record, .. }, value) = self.0.nth(n)?;
+        Some((record, value))
     }
 
     #[inline]
     fn collect<B: FromIterator<Self::Item>>(self) -> B {
-        self.0.collect()
+        self.0
+            .map(|(Key { record, .. }, value)| (record, value))
+            .collect()
     }
 }
 
@@ -272,14 +329,15 @@ impl<'a> FusedIterator for Iter<'a> {}
 impl<'a> ExactSizeIterator for Iter<'a> {}
 
 #[derive(Debug)]
-pub struct IterMut<'a>(hash_map::IterMut<'a, st_data_t, st_data_t>);
+pub struct IterMut<'a>(hash_map::IterMut<'a, Key, st_data_t>);
 
 impl<'a> Iterator for IterMut<'a> {
     type Item = (&'a st_data_t, &'a mut st_data_t);
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        let (key, value) = self.0.next()?;
+        Some((&key.record, value))
     }
 
     #[inline]
@@ -294,17 +352,19 @@ impl<'a> Iterator for IterMut<'a> {
 
     #[inline]
     fn last(self) -> Option<Self::Item> {
-        self.0.last()
+        let (key, value) = self.0.last()?;
+        Some((&key.record, value))
     }
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        self.0.nth(n)
+        let (key, value) = self.0.nth(n)?;
+        Some((&key.record, value))
     }
 
     #[inline]
     fn collect<B: FromIterator<Self::Item>>(self) -> B {
-        self.0.collect()
+        self.0.map(|(key, value)| (&key.record, value)).collect()
     }
 }
 
@@ -313,14 +373,15 @@ impl<'a> FusedIterator for IterMut<'a> {}
 impl<'a> ExactSizeIterator for IterMut<'a> {}
 
 #[derive(Debug)]
-pub struct Keys<'a>(hash_map::Keys<'a, st_data_t, st_data_t>);
+pub struct Keys<'a>(hash_map::Keys<'a, Key, st_data_t>);
 
 impl<'a> Iterator for Keys<'a> {
     type Item = &'a st_data_t;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        let Key { record, .. } = self.0.next()?;
+        Some(record)
     }
 
     #[inline]
@@ -335,17 +396,19 @@ impl<'a> Iterator for Keys<'a> {
 
     #[inline]
     fn last(self) -> Option<Self::Item> {
-        self.0.last()
+        let Key { record, .. } = self.0.last()?;
+        Some(record)
     }
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        self.0.nth(n)
+        let Key { record, .. } = self.0.nth(n)?;
+        Some(record)
     }
 
     #[inline]
     fn collect<B: FromIterator<Self::Item>>(self) -> B {
-        self.0.collect()
+        self.0.map(|Key { record, .. }| record).collect()
     }
 }
 
@@ -354,7 +417,7 @@ impl<'a> FusedIterator for Keys<'a> {}
 impl<'a> ExactSizeIterator for Keys<'a> {}
 
 #[derive(Debug)]
-pub struct Values<'a>(hash_map::Values<'a, st_data_t, st_data_t>);
+pub struct Values<'a>(hash_map::Values<'a, Key, st_data_t>);
 
 impl<'a> Iterator for Values<'a> {
     type Item = &'a st_data_t;
