@@ -102,6 +102,7 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 
 #![allow(non_camel_case_types)]
 
+use core::borrow::Borrow;
 use core::hash::{Hash, Hasher};
 use core::iter::{FromIterator, FusedIterator};
 use std::collections::{hash_map, HashMap};
@@ -123,25 +124,92 @@ pub type st_index_t = st_data_t;
 #[derive(Debug, Clone)]
 struct Key {
     insert_counter: st_index_t,
-    record: st_data_t,
-    eq: unsafe extern "C" fn(st_data_t, st_data_t) -> i32,
+    lookup: LookupKey,
+}
+
+impl Key {
+    #[inline]
+    fn lookup_key(&self) -> &LookupKey {
+        &self.lookup
+    }
+
+    #[inline]
+    fn record(&self) -> &st_data_t {
+        &self.lookup.record
+    }
+
+    #[inline]
+    fn into_record(self) -> st_data_t {
+        self.lookup.record
+    }
 }
 
 impl PartialEq for Key {
+    #[inline]
     fn eq(&self, other: &Key) -> bool {
-        let cmp = self.eq;
-        unsafe { (cmp)(self.record, other.record) == 0 }
+        let cmp = self.lookup.eq;
+        unsafe { (cmp)(self.lookup.record, other.lookup.record) == 0 }
+    }
+}
+
+impl PartialEq<LookupKey> for Key {
+    #[inline]
+    fn eq(&self, other: &LookupKey) -> bool {
+        let cmp = self.lookup.eq;
+        unsafe { (cmp)(self.lookup.record, other.record) == 0 }
     }
 }
 
 impl Eq for Key {}
 
 impl Hash for Key {
+    #[inline]
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        #[cfg(target_pointer_width = "32")]
+        state.write_u32(self.lookup.record);
+        #[cfg(target_pointer_width = "64")]
+        state.write_u64(self.lookup.record);
+    }
+}
+
+#[derive(Debug, Clone)]
+struct LookupKey {
+    record: st_data_t,
+    eq: unsafe extern "C" fn(st_data_t, st_data_t) -> i32,
+}
+
+impl PartialEq for LookupKey {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        let cmp = self.eq;
+        unsafe { (cmp)(self.record, other.record) == 0 }
+    }
+}
+
+impl PartialEq<Key> for LookupKey {
+    #[inline]
+    fn eq(&self, other: &Key) -> bool {
+        let cmp = self.eq;
+        unsafe { (cmp)(self.record, other.lookup.record) == 0 }
+    }
+}
+
+impl Eq for LookupKey {}
+
+impl Hash for LookupKey {
+    #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
         #[cfg(target_pointer_width = "32")]
         state.write_u32(self.record);
         #[cfg(target_pointer_width = "64")]
         state.write_u64(self.record);
+    }
+}
+
+impl Borrow<LookupKey> for Key {
+    #[inline]
+    fn borrow(&self) -> &LookupKey {
+        self.lookup_key()
     }
 }
 
@@ -153,6 +221,7 @@ pub struct StHash {
 }
 
 impl Default for StHash {
+    #[inline]
     fn default() -> Self {
         Self {
             map: HashMap::default(),
@@ -213,10 +282,9 @@ impl StHash {
     #[inline]
     #[must_use]
     pub fn contains_key(&self, key: st_data_t) -> bool {
-        let key = Key {
+        let key = LookupKey {
             record: key,
             eq: self.eq,
-            insert_counter: self.insert_counter,
         };
         self.map.contains_key(&key)
     }
@@ -224,19 +292,32 @@ impl StHash {
     #[inline]
     #[must_use]
     pub fn get(&self, key: st_data_t) -> Option<&st_data_t> {
-        let key = Key {
+        let key = LookupKey {
             record: key,
             eq: self.eq,
-            insert_counter: self.insert_counter,
         };
         self.map.get(&key)
     }
 
     #[inline]
-    pub fn entry(&mut self, key: st_data_t) -> Entry<'_> {
-        let key = Key {
+    #[must_use]
+    pub fn get_key_value(&self, key: st_data_t) -> Option<(&st_data_t, &st_data_t)> {
+        let key = LookupKey {
             record: key,
             eq: self.eq,
+        };
+        let (key, value) = self.map.get_key_value(&key)?;
+        Some((key.record(), value))
+    }
+
+    #[inline]
+    pub fn entry(&mut self, key: st_data_t) -> Entry<'_> {
+        let key = LookupKey {
+            record: key,
+            eq: self.eq,
+        };
+        let key = Key {
+            lookup: key,
             insert_counter: self.insert_counter,
         };
         self.insert_counter += 1;
@@ -249,9 +330,12 @@ impl StHash {
     #[inline]
     #[must_use]
     pub fn insert(&mut self, key: st_data_t, value: st_data_t) -> Option<st_data_t> {
-        let key = Key {
+        let key = LookupKey {
             record: key,
             eq: self.eq,
+        };
+        let key = Key {
+            lookup: key,
             insert_counter: self.insert_counter,
         };
         self.insert_counter += 1;
@@ -261,22 +345,20 @@ impl StHash {
     #[inline]
     #[must_use]
     pub fn delete(&mut self, key: st_data_t) -> Option<(st_data_t, st_data_t)> {
-        let key = Key {
+        let key = LookupKey {
             record: key,
             eq: self.eq,
-            insert_counter: self.insert_counter,
         };
-        let (Key { record, .. }, value) = self.map.remove_entry(&key)?;
-        Some((record, value))
+        let (key, value) = self.map.remove_entry(&key)?;
+        Some((key.into_record(), value))
     }
 
     #[inline]
     #[must_use]
     pub fn remove(&mut self, key: st_data_t) -> Option<st_data_t> {
-        let key = Key {
+        let key = LookupKey {
             record: key,
             eq: self.eq,
-            insert_counter: self.insert_counter,
         };
         self.map.remove(&key)
     }
@@ -331,7 +413,7 @@ impl<'a> Iter<'a> {
         pairs.sort_by(|(left, _), (right, _)| left.insert_counter.cmp(&right.insert_counter));
         pairs
             .into_iter()
-            .map(|(Key { record, .. }, value)| (record, value))
+            .map(|(key, value)| (key.record(), value))
             .collect()
     }
 }
@@ -341,8 +423,8 @@ impl<'a> Iterator for Iter<'a> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        let (Key { record, .. }, value) = self.0.next()?;
-        Some((record, value))
+        let (key, value) = self.0.next()?;
+        Some((key.record(), value))
     }
 
     #[inline]
@@ -357,21 +439,19 @@ impl<'a> Iterator for Iter<'a> {
 
     #[inline]
     fn last(self) -> Option<Self::Item> {
-        let (Key { record, .. }, value) = self.0.last()?;
-        Some((record, value))
+        let (key, value) = self.0.last()?;
+        Some((key.record(), value))
     }
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        let (Key { record, .. }, value) = self.0.nth(n)?;
-        Some((record, value))
+        let (key, value) = self.0.nth(n)?;
+        Some((key.record(), value))
     }
 
     #[inline]
     fn collect<B: FromIterator<Self::Item>>(self) -> B {
-        self.0
-            .map(|(Key { record, .. }, value)| (record, value))
-            .collect()
+        self.0.map(|(key, value)| (key.record(), value)).collect()
     }
 }
 
@@ -388,7 +468,7 @@ impl<'a> IterMut<'a> {
         pairs.sort_by(|(left, _), (right, _)| left.insert_counter.cmp(&right.insert_counter));
         pairs
             .into_iter()
-            .map(|(key, value)| (&key.record, value))
+            .map(|(key, value)| (key.record(), value))
             .collect()
     }
 }
@@ -399,7 +479,7 @@ impl<'a> Iterator for IterMut<'a> {
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let (key, value) = self.0.next()?;
-        Some((&key.record, value))
+        Some((key.record(), value))
     }
 
     #[inline]
@@ -415,18 +495,18 @@ impl<'a> Iterator for IterMut<'a> {
     #[inline]
     fn last(self) -> Option<Self::Item> {
         let (key, value) = self.0.last()?;
-        Some((&key.record, value))
+        Some((key.record(), value))
     }
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
         let (key, value) = self.0.nth(n)?;
-        Some((&key.record, value))
+        Some((key.record(), value))
     }
 
     #[inline]
     fn collect<B: FromIterator<Self::Item>>(self) -> B {
-        self.0.map(|(key, value)| (&key.record, value)).collect()
+        self.0.map(|(key, value)| (key.record(), value)).collect()
     }
 }
 
@@ -441,7 +521,7 @@ impl<'a> Keys<'a> {
     pub fn ordered(self) -> Vec<&'a st_data_t> {
         let mut pairs = self.0.collect::<Vec<_>>();
         pairs.sort_by(|left, right| left.insert_counter.cmp(&right.insert_counter));
-        pairs.into_iter().map(|Key { record, .. }| record).collect()
+        pairs.into_iter().map(|key| key.record()).collect()
     }
 }
 
@@ -450,8 +530,8 @@ impl<'a> Iterator for Keys<'a> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        let Key { record, .. } = self.0.next()?;
-        Some(record)
+        let key = self.0.next()?;
+        Some(key.record())
     }
 
     #[inline]
@@ -466,19 +546,19 @@ impl<'a> Iterator for Keys<'a> {
 
     #[inline]
     fn last(self) -> Option<Self::Item> {
-        let Key { record, .. } = self.0.last()?;
-        Some(record)
+        let key = self.0.last()?;
+        Some(key.record())
     }
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        let Key { record, .. } = self.0.nth(n)?;
-        Some(record)
+        let key = self.0.nth(n)?;
+        Some(key.record())
     }
 
     #[inline]
     fn collect<B: FromIterator<Self::Item>>(self) -> B {
-        self.0.map(|Key { record, .. }| record).collect()
+        self.0.map(|key| key.record()).collect()
     }
 }
 
@@ -595,7 +675,7 @@ impl<'a> Entry<'a> {
         match self {
             Self::Occupied(entry) => entry.0.into_mut(),
             Self::Vacant(entry) => {
-                let value = default(&entry.0.key().record);
+                let value = default(entry.0.key().record());
                 entry.insert(value)
             }
         }
@@ -605,8 +685,8 @@ impl<'a> Entry<'a> {
     #[inline]
     pub fn key(&self) -> &st_data_t {
         match self {
-            Self::Occupied(entry) => &entry.0.key().record,
-            Self::Vacant(entry) => &entry.0.key().record,
+            Self::Occupied(entry) => entry.0.key().record(),
+            Self::Vacant(entry) => entry.0.key().record(),
         }
     }
 
@@ -631,14 +711,14 @@ impl<'a> OccupiedEntry<'a> {
     /// Gets a reference to the key in the entry.
     #[inline]
     pub fn key(&self) -> &st_data_t {
-        &self.0.key().record
+        self.0.key().record()
     }
 
     /// Take the ownership of the key and value from the map.
     #[inline]
     pub fn remove_entry(self) -> (st_data_t, st_data_t) {
-        let (Key { record, .. }, value) = self.0.remove_entry();
-        (record, value)
+        let (key, value) = self.0.remove_entry();
+        (key.into_record(), value)
     }
 
     /// Gets a reference to the value in the entry.
@@ -687,13 +767,13 @@ impl<'a> VacantEntry<'a> {
     /// through the `VacantEntry`.
     #[inline]
     pub fn key(&self) -> &st_data_t {
-        &self.0.key().record
+        self.0.key().record()
     }
 
     /// Take ownership of the key.
     #[inline]
     pub fn into_key(self) -> st_data_t {
-        self.0.into_key().record
+        self.0.into_key().into_record()
     }
 
     /// Sets the value of the entry with the VacantEntry's key, and returns a

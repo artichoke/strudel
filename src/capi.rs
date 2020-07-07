@@ -3,13 +3,34 @@
 
 use core::ffi::c_void;
 use core::hash::Hasher;
-use core::mem::{self, size_of};
+use core::mem::{self, size_of, MaybeUninit};
 use core::ptr;
 use core::slice;
 use std::ffi::CStr;
 
 use crate::fnv::{self, Fnv1a32};
 use crate::{st_data_t, st_hash_t, st_hash_type, st_index_t, StHash};
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub enum st_retval {
+    ST_CONTINUE,
+    ST_STOP,
+    ST_DELETE,
+    ST_CHECK,
+}
+
+impl PartialEq<libc::c_int> for st_retval {
+    fn eq(&self, other: &libc::c_int) -> bool {
+        *self as libc::c_int == *other
+    }
+}
+
+impl PartialEq<st_retval> for libc::c_int {
+    fn eq(&self, other: &st_retval) -> bool {
+        *self == *other as libc::c_int
+    }
+}
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
@@ -50,17 +71,28 @@ struct __st_table {
 
 pub struct st_table(StHash);
 
+impl st_table {
+    #[inline]
+    pub fn into_raw(table: Self) -> *mut Self {
+        let table = Box::new(table);
+        Box::into_raw(table)
+    }
+
+    #[inline]
+    pub fn boxed_into_raw(table: Box<Self>) -> *mut Self {
+        Box::into_raw(table)
+    }
+
+    #[inline]
+    pub unsafe fn from_raw(table: *mut Self) -> Box<Self> {
+        Box::from_raw(table)
+    }
+}
+
 impl From<StHash> for st_table {
     #[inline]
     fn from(table: StHash) -> Self {
         Self(table)
-    }
-}
-
-impl From<Box<StHash>> for st_table {
-    #[inline]
-    fn from(table: Box<StHash>) -> Self {
-        Self(*table)
     }
 }
 
@@ -72,7 +104,6 @@ pub unsafe extern "C" fn st_numcmp(x: st_data_t, y: st_data_t) -> libc::c_int {
 
 // CONSTFUNC(st_index_t st_numhash(st_data_t));
 #[no_mangle]
-#[allow(trivial_casts)]
 pub unsafe extern "C" fn st_numhash(n: st_data_t) -> st_index_t {
     let s1 = 11;
     let s2 = 3;
@@ -115,8 +146,7 @@ static type_strcasehash: st_hash_type = st_hash_type {
 #[no_mangle]
 pub unsafe extern "C" fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
     let table = StHash::with_hash_type(hash_type);
-    let table = Box::new(table.into());
-    Box::into_raw(table)
+    st_table::into_raw(table.into())
 }
 
 // st_table *st_init_table_with_size(const struct st_hash_type *, st_index_t);
@@ -126,44 +156,49 @@ pub unsafe extern "C" fn st_init_table_with_size(
     size: st_index_t,
 ) -> *mut st_table {
     let table = StHash::with_capacity_and_hash_type(size as usize, hash_type);
-    let table = Box::new(table.into());
-    Box::into_raw(table)
+    st_table::into_raw(table.into())
 }
 
 // st_table *st_init_numtable(void);
 #[no_mangle]
 pub unsafe extern "C" fn st_init_numtable() -> *mut st_table {
-    st_init_table(&st_hashtype_num as *const _)
+    let table = StHash::with_hash_type(&st_hashtype_num as *const _);
+    st_table::into_raw(table.into())
 }
 
 // st_table *st_init_numtable_with_size(st_index_t);
 #[no_mangle]
 pub unsafe extern "C" fn st_init_numtable_with_size(size: st_index_t) -> *mut st_table {
-    st_init_table_with_size(&st_hashtype_num as *const _, size)
+    let table = StHash::with_capacity_and_hash_type(size as usize, &st_hashtype_num as *const _);
+    st_table::into_raw(table.into())
 }
 
 // st_table *st_init_strtable(void);
 #[no_mangle]
 pub unsafe extern "C" fn st_init_strtable() -> *mut st_table {
-    st_init_table(&type_strhash as *const _)
+    let table = StHash::with_hash_type(&type_strhash as *const _);
+    st_table::into_raw(table.into())
 }
 
 // st_table *st_init_strtable_with_size(st_index_t);
 #[no_mangle]
 pub unsafe extern "C" fn st_init_strtable_with_size(size: st_index_t) -> *mut st_table {
-    st_init_table_with_size(&type_strhash as *const _, size)
+    let table = StHash::with_capacity_and_hash_type(size as usize, &type_strhash as *const _);
+    st_table::into_raw(table.into())
 }
 
 // st_table *st_init_strcasetable(void);
 #[no_mangle]
 pub unsafe extern "C" fn st_init_strcasetable() -> *mut st_table {
-    st_init_table(&type_strcasehash as *const _)
+    let table = StHash::with_hash_type(&type_strcasehash as *const _);
+    st_table::into_raw(table.into())
 }
 
 // st_table *st_init_strcasetable_with_size(st_index_t);
 #[no_mangle]
 pub unsafe extern "C" fn st_init_strcasetable_with_size(size: st_index_t) -> *mut st_table {
-    st_init_table_with_size(&type_strcasehash as *const _, size)
+    let table = StHash::with_capacity_and_hash_type(size as usize, &type_strcasehash as *const _);
+    st_table::into_raw(table.into())
 }
 
 /// Delete entry with `key` from table `table`.
@@ -183,11 +218,11 @@ pub unsafe extern "C" fn st_delete(
     key: *mut st_data_t,
     value: *mut st_data_t,
 ) -> libc::c_int {
-    let mut table = Box::from_raw(table);
-    let ret = if let Some((original_key, original_value)) = table.0.delete(*key) {
-        ptr::write(key, original_key);
+    let mut table = st_table::from_raw(table);
+    let ret = if let Some((entry_key, entry_value)) = table.0.delete(*key) {
+        ptr::write(key, entry_key);
         if !value.is_null() {
-            ptr::write(value, original_value);
+            ptr::write(value, entry_value);
         }
         1
     } else {
@@ -200,7 +235,21 @@ pub unsafe extern "C" fn st_delete(
     ret
 }
 
-// int st_delete_safe(st_table *, st_data_t *, st_data_t *, st_data_t);
+/// The function and other functions with suffix '_safe' or '_check' are
+/// originated from the previous implementation of the hash tables.
+///
+/// It was necessary for correct deleting entries during traversing tables. The
+/// current implementation permits deletion during traversing without a specific
+/// way to do this.
+///
+/// This function has an identical implementation to `st_delete`. The
+/// implementation is inlined.
+///
+/// # Header declaration
+///
+/// ```c
+/// int st_delete_safe(st_table *, st_data_t *, st_data_t *, st_data_t);
+/// ```
 #[no_mangle]
 pub unsafe extern "C" fn st_delete_safe(
     table: *mut st_table,
@@ -208,7 +257,27 @@ pub unsafe extern "C" fn st_delete_safe(
     value: *mut st_data_t,
     _never: *const st_data_t,
 ) -> libc::c_int {
-    st_delete(table, key, value)
+    // This impl should be identical to `st_delete`.
+    // ```c
+    // st_delete(table, key, value)
+    // ```
+    //
+    // The implementation is inlined below.
+    let mut table = st_table::from_raw(table);
+    let ret = if let Some((entry_key, entry_value)) = table.0.delete(*key) {
+        ptr::write(key, entry_key);
+        if !value.is_null() {
+            ptr::write(value, entry_value);
+        }
+        1
+    } else {
+        if !value.is_null() {
+            ptr::write(value, 0);
+        }
+        0
+    };
+    mem::forget(table);
+    ret
 }
 
 /// If table `table` is empty, clear `*VALUE` (unless `VALUE` is zero), and
@@ -226,12 +295,13 @@ pub unsafe extern "C" fn st_shift(
     key: *mut st_data_t,
     value: *mut st_data_t,
 ) -> libc::c_int {
-    let mut table = Box::from_raw(table);
-    if let Some(&&first_key) = table.0.keys().ordered().first() {
-        if let Some((first_key, first_value)) = table.0.delete(first_key) {
-            ptr::write(key, first_key);
+    let mut table = st_table::from_raw(table);
+    // The `StHash::keys` iterator returns keys in insertion order.
+    if let Some(&first_key) = table.0.keys().next() {
+        if let Some((entry_key, entry_value)) = table.0.delete(first_key) {
+            ptr::write(key, entry_key);
             if !value.is_null() {
-                ptr::write(value, first_value);
+                ptr::write(value, entry_value);
             }
             return 1;
         }
@@ -257,7 +327,7 @@ pub unsafe extern "C" fn st_insert(
     key: st_data_t,
     value: st_data_t,
 ) -> libc::c_int {
-    let mut table = Box::from_raw(table);
+    let mut table = st_table::from_raw(table);
     let ret = table.0.insert(key, value).is_some() as libc::c_int;
     mem::forget(table);
     ret
@@ -279,7 +349,7 @@ pub unsafe extern "C" fn st_insert2(
     value: st_data_t,
     func: unsafe extern "C" fn(st_data_t) -> st_data_t,
 ) -> libc::c_int {
-    let mut table = Box::from_raw(table);
+    let mut table = st_table::from_raw(table);
     let ret = if table.0.get(key).is_some() {
         let _ = table.0.insert(key, value);
         1
@@ -315,10 +385,27 @@ pub unsafe extern "C" fn st_get_key(
 pub type st_update_callback_func =
     fn(*mut st_data_t, *mut st_data_t, st_data_t, libc::c_int) -> libc::c_int;
 
-// /* *key may be altered, but must equal to the old key, i.e., the
-//  * results of hash() are same and compare() returns 0, otherwise the
-//  * behavior is undefined */
-// int st_update(st_table *table, st_data_t key, st_update_callback_func *func, st_data_t arg);
+/// Find entry with `key` in table `table`, call `func` with the key and the
+/// value of the found entry, and non-zero as the 3rd argument. If the entry is
+/// not found, call `func` with `key`, and 2 zero arguments.
+///
+/// If the call returns `ST_CONTINUE`, the table will have an entry with key and
+/// value returned by `func` through the 1st and 2nd parameters.  If the call of
+/// `func` returns `ST_DELETE`, the table will not have entry with `key`. The
+/// function returns flag of that the entry with `key` was in the table before
+/// the call.
+///
+/// # Notes
+///
+/// `*key` may be altered, but must equal to the old key, i.e., the results of
+/// `hash()` are same and `compare()` returns 0, otherwise the behavior is
+/// undefined.
+///
+/// # Header declaration
+///
+/// ```c
+/// int st_update(st_table *table, st_data_t key, st_update_callback_func *func, st_data_t arg);
+/// ```
 #[no_mangle]
 pub unsafe extern "C" fn st_update(
     table: *mut st_table,
@@ -326,7 +413,35 @@ pub unsafe extern "C" fn st_update(
     func: st_update_callback_func,
     arg: st_data_t,
 ) -> libc::c_int {
-    todo!();
+    use st_retval::*;
+
+    let mut table = st_table::from_raw(table);
+    let (existing, mut key, mut value) =
+        if let Some((&entry_key, &entry_value)) = table.0.get_key_value(key) {
+            (true, entry_key, entry_value)
+        } else {
+            (false, key, 0)
+        };
+    let old_key = key;
+    let update = func(&mut key, &mut value, arg, 1);
+    match update {
+        ret if ret == ST_CONTINUE && !existing => {
+            st_add_direct_with_hash(table, key, value, hash);
+        }
+        ret if ret == ST_CONTINUE => {
+            if old_key == key {
+                table.0.insert(key, value);
+            } else {
+                table.0.update(key, value);
+            }
+        }
+        ret if ret == ST_DELETE && existing => {
+            let _ = table.0.remove(old_key);
+        }
+        _ => {}
+    };
+    mem::forget(table);
+    existing as libc::c_int
 }
 
 // int (*)(ANYARGS)
