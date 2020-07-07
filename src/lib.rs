@@ -108,6 +108,7 @@ use core::iter::{FromIterator, FusedIterator};
 use core::mem::size_of;
 use std::collections::hash_map::Entry as HashEntry;
 use std::collections::{btree_map, BTreeMap, HashMap};
+use std::vec;
 
 #[cfg(feature = "capi")]
 pub mod capi;
@@ -346,6 +347,24 @@ impl StHash {
     }
 
     #[inline]
+    #[must_use]
+    pub fn get_nth(&self, n: st_index_t) -> Option<(&st_data_t, &st_data_t)> {
+        self.ordered.get(&n).map(|(key, value)| (key, value))
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn max_insert_rank(&self) -> st_index_t {
+        self.ordered.keys().last().copied().unwrap_or_default()
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn min_insert_rank(&self) -> st_index_t {
+        self.ordered.keys().next().copied().unwrap_or_default()
+    }
+
+    #[inline]
     pub fn entry(&mut self, key: st_data_t) -> Entry<'_> {
         let key = LookupKey {
             record: key,
@@ -439,6 +458,17 @@ impl StHash {
 
     #[inline]
     #[must_use]
+    pub fn insert_ranks_from(&self, rank: st_index_t) -> InsertRanks {
+        let ranks = self
+            .ordered
+            .range(rank..)
+            .map(|(&rank, _)| rank)
+            .collect::<Vec<_>>();
+        InsertRanks(ranks.into_iter())
+    }
+
+    #[inline]
+    #[must_use]
     pub fn iter(&self) -> Iter<'_> {
         Iter(self.ordered.values())
     }
@@ -520,6 +550,16 @@ impl<'a> FusedIterator for Iter<'a> {}
 
 impl<'a> ExactSizeIterator for Iter<'a> {}
 
+impl<'a> DoubleEndedIterator for Iter<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back().map(|(key, value)| (key, value))
+    }
+
+    fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
+        self.0.nth_back(n).map(|(key, value)| (key, value))
+    }
+}
+
 #[derive(Debug)]
 pub struct IterMut<'a>(btree_map::ValuesMut<'a, st_index_t, (st_data_t, st_data_t)>);
 
@@ -560,6 +600,16 @@ impl<'a> Iterator for IterMut<'a> {
 impl<'a> FusedIterator for IterMut<'a> {}
 
 impl<'a> ExactSizeIterator for IterMut<'a> {}
+
+impl<'a> DoubleEndedIterator for IterMut<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back().map(|(key, value)| (&*key, value))
+    }
+
+    fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
+        self.0.nth_back(n).map(|(key, value)| (&*key, value))
+    }
+}
 
 #[derive(Debug)]
 pub struct Keys<'a>(Iter<'a>);
@@ -602,6 +652,16 @@ impl<'a> FusedIterator for Keys<'a> {}
 
 impl<'a> ExactSizeIterator for Keys<'a> {}
 
+impl<'a> DoubleEndedIterator for Keys<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back().map(|(key, _)| key)
+    }
+
+    fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
+        self.0.nth_back(n).map(|(key, _)| key)
+    }
+}
+
 #[derive(Debug)]
 pub struct Values<'a>(Iter<'a>);
 
@@ -642,6 +702,67 @@ impl<'a> Iterator for Values<'a> {
 impl<'a> FusedIterator for Values<'a> {}
 
 impl<'a> ExactSizeIterator for Values<'a> {}
+
+impl<'a> DoubleEndedIterator for Values<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back().map(|(_, value)| value)
+    }
+
+    fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
+        self.0.nth_back(n).map(|(_, value)| value)
+    }
+}
+
+#[derive(Debug)]
+pub struct InsertRanks(vec::IntoIter<st_index_t>);
+
+impl<'a> Iterator for InsertRanks {
+    type Item = st_index_t;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.size_hint()
+    }
+
+    #[inline]
+    fn count(self) -> usize {
+        self.0.count()
+    }
+
+    #[inline]
+    fn last(self) -> Option<Self::Item> {
+        self.0.last()
+    }
+
+    #[inline]
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        self.0.nth(n)
+    }
+
+    #[inline]
+    fn collect<B: FromIterator<Self::Item>>(self) -> B {
+        self.0.collect()
+    }
+}
+
+impl<'a> FusedIterator for InsertRanks {}
+
+impl<'a> ExactSizeIterator for InsertRanks {}
+
+impl<'a> DoubleEndedIterator for InsertRanks {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back()
+    }
+
+    fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
+        self.0.nth_back(n)
+    }
+}
 
 impl<'a> IntoIterator for &'a StHash {
     type Item = (&'a st_data_t, &'a st_data_t);

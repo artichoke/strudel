@@ -503,7 +503,46 @@ pub unsafe extern "C" fn st_foreach(
     func: st_foreach_callback_func,
     arg: st_data_t,
 ) -> libc::c_int {
-    todo!();
+    use st_retval::*;
+
+    let table_ptr = table;
+    let table = st_table::from_raw(table_ptr);
+    let mut insertion_ranks = table.0.insert_ranks_from(0);
+    let mut max = table.0.max_insert_rank();
+    st_table::boxed_into_raw(table);
+
+    loop {
+        if let Some(rank) = insertion_ranks.next() {
+            let table = st_table::from_raw(table_ptr);
+            let nth = table.0.get_nth(rank);
+
+            if let Some((&key, &value)) = nth {
+                st_table::boxed_into_raw(table);
+                match func(key, value, arg, 0) {
+                    retval if ST_CONTINUE == retval => {}
+                    retval if ST_CHECK == retval || ST_STOP == retval => return 0,
+                    retval if ST_DELETE == retval => {
+                        let mut table = st_table::from_raw(table_ptr);
+                        let _ = table.0.remove(key);
+                        st_table::boxed_into_raw(table);
+                    }
+                    _ => {}
+                }
+            } else {
+                st_table::boxed_into_raw(table);
+            }
+        } else {
+            let table = st_table::from_raw(table_ptr);
+            let current_max = table.0.max_insert_rank();
+            if current_max == max {
+                break;
+            }
+            max = current_max;
+            insertion_ranks = table.0.insert_ranks_from(max);
+            st_table::boxed_into_raw(table);
+        }
+    }
+    0
 }
 
 // int st_foreach_check(st_table *, int (*)(ANYARGS), st_data_t, st_data_t);
@@ -513,7 +552,46 @@ pub unsafe extern "C" fn st_foreach_check(
     arg: st_data_t,
     _never: st_data_t,
 ) -> libc::c_int {
-    todo!();
+    use st_retval::*;
+
+    let table_ptr = table;
+    let table = st_table::from_raw(table_ptr);
+    let mut insertion_ranks = table.0.insert_ranks_from(0);
+    let mut max = table.0.max_insert_rank();
+    st_table::boxed_into_raw(table);
+
+    loop {
+        if let Some(rank) = insertion_ranks.next() {
+            let table = st_table::from_raw(table_ptr);
+            let nth = table.0.get_nth(rank);
+
+            if let Some((&key, &value)) = nth {
+                st_table::boxed_into_raw(table);
+                match func(key, value, arg, 0) {
+                    retval if ST_CONTINUE == retval || ST_CHECK == retval => {}
+                    retval if ST_STOP == retval => return 0,
+                    retval if ST_DELETE == retval => {
+                        let mut table = st_table::from_raw(table_ptr);
+                        let _ = table.0.remove(key);
+                        st_table::boxed_into_raw(table);
+                    }
+                    _ => {}
+                }
+            } else {
+                st_table::boxed_into_raw(table);
+            }
+        } else {
+            let table = st_table::from_raw(table_ptr);
+            let current_max = table.0.max_insert_rank();
+            if current_max == max {
+                break;
+            }
+            max = current_max;
+            insertion_ranks = table.0.insert_ranks_from(max);
+            st_table::boxed_into_raw(table);
+        }
+    }
+    0
 }
 
 /// Set up array `keys` by at most `size` keys of head table `table` entries.
