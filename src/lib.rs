@@ -122,6 +122,7 @@ pub type st_index_t = st_data_t;
 
 #[derive(Debug, Clone)]
 struct Key {
+    insert_counter: st_index_t,
     record: st_data_t,
     eq: unsafe extern "C" fn(st_data_t, st_data_t) -> i32,
 }
@@ -146,8 +147,9 @@ impl Hash for Key {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StHash {
-    map: HashMap<Key, st_data_t, Box<StBuildHasher>>,
+    map: HashMap<Key, st_data_t, StBuildHasher>,
     eq: unsafe extern "C" fn(st_data_t, st_data_t) -> i32,
+    insert_counter: st_index_t,
 }
 
 impl Default for StHash {
@@ -155,6 +157,7 @@ impl Default for StHash {
         Self {
             map: HashMap::default(),
             eq: hasher::default_compare,
+            insert_counter: 0,
         }
     }
 }
@@ -164,10 +167,11 @@ impl StHash {
     #[must_use]
     pub fn with_hash_type(hash_type: *const st_hash_type) -> Self {
         let hasher = StBuildHasher::from(hash_type);
-        let map = HashMap::with_hasher(hasher.into_boxed());
+        let map = HashMap::with_hasher(hasher);
         Self {
             map,
             eq: unsafe { (*hash_type).compare },
+            insert_counter: 0,
         }
     }
 
@@ -175,10 +179,11 @@ impl StHash {
     #[must_use]
     pub fn with_capacity_and_hash_type(capacity: usize, hash_type: *const st_hash_type) -> Self {
         let hasher = StBuildHasher::from(hash_type);
-        let map = HashMap::with_capacity_and_hasher(capacity, hasher.into_boxed());
+        let map = HashMap::with_capacity_and_hasher(capacity, hasher);
         Self {
             map,
             eq: unsafe { (*hash_type).compare },
+            insert_counter: 0,
         }
     }
 
@@ -211,6 +216,7 @@ impl StHash {
         let key = Key {
             record: key,
             eq: self.eq,
+            insert_counter: self.insert_counter,
         };
         self.map.contains_key(&key)
     }
@@ -221,6 +227,7 @@ impl StHash {
         let key = Key {
             record: key,
             eq: self.eq,
+            insert_counter: self.insert_counter,
         };
         self.map.get(&key)
     }
@@ -230,7 +237,9 @@ impl StHash {
         let key = Key {
             record: key,
             eq: self.eq,
+            insert_counter: self.insert_counter,
         };
+        self.insert_counter += 1;
         match self.map.entry(key) {
             hash_map::Entry::Occupied(base) => Entry::Occupied(OccupiedEntry(base)),
             hash_map::Entry::Vacant(base) => Entry::Vacant(VacantEntry(base)),
@@ -243,7 +252,9 @@ impl StHash {
         let key = Key {
             record: key,
             eq: self.eq,
+            insert_counter: self.insert_counter,
         };
+        self.insert_counter += 1;
         self.map.insert(key, value)
     }
 
@@ -253,6 +264,7 @@ impl StHash {
         let key = Key {
             record: key,
             eq: self.eq,
+            insert_counter: self.insert_counter,
         };
         let (Key { record, .. }, value) = self.map.remove_entry(&key)?;
         Some((record, value))
@@ -264,6 +276,7 @@ impl StHash {
         let key = Key {
             record: key,
             eq: self.eq,
+            insert_counter: self.insert_counter,
         };
         self.map.remove(&key)
     }
@@ -295,7 +308,7 @@ impl StHash {
     #[inline]
     #[must_use]
     pub fn values(&mut self) -> Values<'_> {
-        Values(self.map.values())
+        Values(self.iter())
     }
 
     #[inline]
@@ -311,6 +324,17 @@ impl StHash {
 
 #[derive(Debug, Clone)]
 pub struct Iter<'a>(hash_map::Iter<'a, Key, st_data_t>);
+
+impl<'a> Iter<'a> {
+    pub fn ordered(self) -> Vec<(&'a st_data_t, &'a st_data_t)> {
+        let mut pairs = self.0.collect::<Vec<_>>();
+        pairs.sort_by(|(left, _), (right, _)| left.insert_counter.cmp(&right.insert_counter));
+        pairs
+            .into_iter()
+            .map(|(Key { record, .. }, value)| (record, value))
+            .collect()
+    }
+}
 
 impl<'a> Iterator for Iter<'a> {
     type Item = (&'a st_data_t, &'a st_data_t);
@@ -358,6 +382,17 @@ impl<'a> ExactSizeIterator for Iter<'a> {}
 #[derive(Debug)]
 pub struct IterMut<'a>(hash_map::IterMut<'a, Key, st_data_t>);
 
+impl<'a> IterMut<'a> {
+    pub fn ordered(self) -> Vec<(&'a st_data_t, &'a mut st_data_t)> {
+        let mut pairs = self.0.collect::<Vec<_>>();
+        pairs.sort_by(|(left, _), (right, _)| left.insert_counter.cmp(&right.insert_counter));
+        pairs
+            .into_iter()
+            .map(|(key, value)| (&key.record, value))
+            .collect()
+    }
+}
+
 impl<'a> Iterator for IterMut<'a> {
     type Item = (&'a st_data_t, &'a mut st_data_t);
 
@@ -402,6 +437,14 @@ impl<'a> ExactSizeIterator for IterMut<'a> {}
 #[derive(Debug)]
 pub struct Keys<'a>(hash_map::Keys<'a, Key, st_data_t>);
 
+impl<'a> Keys<'a> {
+    pub fn ordered(self) -> Vec<&'a st_data_t> {
+        let mut pairs = self.0.collect::<Vec<_>>();
+        pairs.sort_by(|left, right| left.insert_counter.cmp(&right.insert_counter));
+        pairs.into_iter().map(|Key { record, .. }| record).collect()
+    }
+}
+
 impl<'a> Iterator for Keys<'a> {
     type Item = &'a st_data_t;
 
@@ -444,14 +487,22 @@ impl<'a> FusedIterator for Keys<'a> {}
 impl<'a> ExactSizeIterator for Keys<'a> {}
 
 #[derive(Debug)]
-pub struct Values<'a>(hash_map::Values<'a, Key, st_data_t>);
+pub struct Values<'a>(Iter<'a>);
+
+impl<'a> Values<'a> {
+    pub fn ordered(self) -> Vec<&'a st_data_t> {
+        let pairs = self.0.ordered();
+        pairs.into_iter().map(|(_, value)| value).collect()
+    }
+}
 
 impl<'a> Iterator for Values<'a> {
     type Item = &'a st_data_t;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        let (_, value) = self.0.next()?;
+        Some(value)
     }
 
     #[inline]
@@ -466,17 +517,19 @@ impl<'a> Iterator for Values<'a> {
 
     #[inline]
     fn last(self) -> Option<Self::Item> {
-        self.0.last()
+        let (_, value) = self.0.last()?;
+        Some(value)
     }
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        self.0.nth(n)
+        let (_, value) = self.0.nth(n)?;
+        Some(value)
     }
 
     #[inline]
     fn collect<B: FromIterator<Self::Item>>(self) -> B {
-        self.0.collect()
+        self.0.map(|(_, value)| value).collect()
     }
 }
 

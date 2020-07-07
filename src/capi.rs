@@ -49,21 +49,21 @@ struct __st_table {
 }
 
 // ensure that `StdHash` fits in `st_table` for an opaque FFI container.
-const _: () = [()][!(size_of::<__st_table>() >= size_of::<StHash>()) as usize];
+const _: () = [()][!(size_of::<__st_table>() >= size_of::<Box<StHash>>()) as usize];
 // const _: [(); 0] = [(); size_of::<__st_table>()];
-// const _: [(); 0] = [(); size_of::<StHash>()];
-const ST_TABLE_PADDING_LEN: usize = size_of::<__st_table>() - size_of::<*mut StHash>();
+// const _: [(); 0] = [(); size_of::<Box<StHash>>()];
+const ST_TABLE_PADDING_LEN: usize = size_of::<__st_table>() - size_of::<Box<StHash>>();
 
 #[repr(C)]
 pub struct st_table {
-    table: StHash,
+    table: Box<StHash>,
     padding: [u8; ST_TABLE_PADDING_LEN],
 }
 
 impl From<StHash> for st_table {
     fn from(table: StHash) -> Self {
         Self {
-            table,
+            table: Box::new(table),
             padding: [0; ST_TABLE_PADDING_LEN],
         }
     }
@@ -71,7 +71,6 @@ impl From<StHash> for st_table {
 
 impl From<Box<StHash>> for st_table {
     fn from(table: Box<StHash>) -> Self {
-        let table = *table;
         Self {
             table,
             padding: [0; ST_TABLE_PADDING_LEN],
