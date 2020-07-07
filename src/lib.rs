@@ -254,6 +254,7 @@ impl Default for StHash {
 impl StHash {
     #[inline]
     #[must_use]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn with_hash_type(hash_type: *const st_hash_type) -> Self {
         let hasher = StBuildHasher::from(hash_type);
         let map = HashMap::with_hasher(hasher);
@@ -267,6 +268,7 @@ impl StHash {
 
     #[inline]
     #[must_use]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn with_capacity_and_hash_type(capacity: usize, hash_type: *const st_hash_type) -> Self {
         let hasher = StBuildHasher::from(hash_type);
         let map = HashMap::with_capacity_and_hasher(capacity, hasher);

@@ -52,7 +52,7 @@ impl Hasher for Fnv1a32 {
     #[inline]
     fn write(&mut self, bytes: &[u8]) {
         for &byte in bytes.iter() {
-            self.0 = self.0 ^ (byte as u32);
+            self.0 ^= byte as u32;
             self.0 = self.0.wrapping_mul(FNV_32_PRIME);
         }
     }

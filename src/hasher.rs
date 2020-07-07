@@ -68,6 +68,7 @@ impl Default for StBuildHasher {
 }
 
 impl From<*const st_hash_type> for StBuildHasher {
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn from(hash_type: *const st_hash_type) -> Self {
         let hash = unsafe { (*hash_type).hash };
         Self {
@@ -132,66 +133,32 @@ impl Hasher for StHasher {
     #[cfg(target_pointer_width = "32")]
     fn write(&mut self, bytes: &[u8]) {
         let mut iter = bytes.chunks_exact(4);
-        while let Some(&[a, b, c, d]) = iter.next() {
-            let i = st_hash_t::from_ne_bytes([a, b, c, d]);
+        while let Some(chunk) = iter.next() {
+            let mut bytes = [0_u8; 4];
+            bytes.copy_from_slice(chunk);
+            let i = st_hash_t::from_ne_bytes(bytes);
             self.add_to_hash(i);
         }
-        match iter.remainder() {
-            &[a] => {
-                let i = st_hash_t::from_ne_bytes([a, 0, 0, 0]);
-                self.add_to_hash(i);
-            }
-            &[a, b] => {
-                let i = st_hash_t::from_ne_bytes([a, b, 0, 0]);
-                self.add_to_hash(i);
-            }
-            &[a, b, c] => {
-                let i = st_hash_t::from_ne_bytes([a, b, c, 0]);
-                self.add_to_hash(i);
-            }
-            _ => {}
-        }
+        let mut bytes = [0_u8; 4];
+        bytes.copy_from_slice(iter.remainder());
+        let i = st_hash_t::from_ne_bytes(bytes);
+        self.add_to_hash(i);
     }
 
     #[inline]
     #[cfg(target_pointer_width = "64")]
     fn write(&mut self, bytes: &[u8]) {
         let mut iter = bytes.chunks_exact(8);
-        while let Some(&[a, b, c, d, e, f, g, h]) = iter.next() {
-            let i = st_hash_t::from_ne_bytes([a, b, c, d, e, f, g, h]);
+        while let Some(chunk) = iter.next() {
+            let mut bytes = [0_u8; 8];
+            bytes.copy_from_slice(chunk);
+            let i = st_hash_t::from_ne_bytes(bytes);
             self.add_to_hash(i);
         }
-        match iter.remainder() {
-            &[a] => {
-                let i = st_hash_t::from_ne_bytes([a, 0, 0, 0, 0, 0, 0, 0]);
-                self.add_to_hash(i);
-            }
-            &[a, b] => {
-                let i = st_hash_t::from_ne_bytes([a, b, 0, 0, 0, 0, 0, 0]);
-                self.add_to_hash(i);
-            }
-            &[a, b, c] => {
-                let i = st_hash_t::from_ne_bytes([a, b, c, 0, 0, 0, 0, 0]);
-                self.add_to_hash(i);
-            }
-            &[a, b, c, d] => {
-                let i = st_hash_t::from_ne_bytes([a, b, c, d, 0, 0, 0, 0]);
-                self.add_to_hash(i);
-            }
-            &[a, b, c, d, e] => {
-                let i = st_hash_t::from_ne_bytes([a, b, c, d, e, 0, 0, 0]);
-                self.add_to_hash(i);
-            }
-            &[a, b, c, d, e, f] => {
-                let i = st_hash_t::from_ne_bytes([a, b, c, d, e, f, 0, 0]);
-                self.add_to_hash(i);
-            }
-            &[a, b, c, d, e, f, g] => {
-                let i = st_hash_t::from_ne_bytes([a, b, c, d, e, f, g, 0]);
-                self.add_to_hash(i);
-            }
-            _ => {}
-        }
+        let mut bytes = [0_u8; 8];
+        bytes.copy_from_slice(iter.remainder());
+        let i = st_hash_t::from_ne_bytes(bytes);
+        self.add_to_hash(i);
     }
 
     #[inline]

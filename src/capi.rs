@@ -2,7 +2,7 @@
 
 use core::ffi::c_void;
 use core::hash::Hasher;
-use core::mem::{self, size_of};
+use core::mem;
 use core::ptr;
 use core::slice;
 use std::ffi::CStr;
@@ -82,6 +82,16 @@ impl st_table {
         Box::into_raw(table)
     }
 
+    /// Construct a boxed `st_table` from a raw pointer.
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because improper use may lead to memory
+    /// problems. For example, a double-free may occur if the function is
+    /// called twice on the same raw pointer.
+    ///
+    /// The `table` pointer must be non-null and allocated using either
+    /// [`st_table::into_raw`] or [`st_table::boxed_into_raw`].
     #[inline]
     #[must_use]
     pub unsafe fn from_raw(table: *mut Self) -> Box<Self> {
@@ -98,13 +108,13 @@ impl From<StHash> for st_table {
 
 // CONSTFUNC(int st_numcmp(st_data_t, st_data_t));
 #[no_mangle]
-pub unsafe extern "C" fn st_numcmp(x: st_data_t, y: st_data_t) -> libc::c_int {
+unsafe extern "C" fn st_numcmp(x: st_data_t, y: st_data_t) -> libc::c_int {
     x.cmp(&y) as libc::c_int
 }
 
 // CONSTFUNC(st_index_t st_numhash(st_data_t));
 #[no_mangle]
-pub unsafe extern "C" fn st_numhash(n: st_data_t) -> st_index_t {
+unsafe extern "C" fn st_numhash(n: st_data_t) -> st_index_t {
     let s1 = 11;
     let s2 = 3;
     let hash = ((n >> s1) | (n << s2)) ^ (n >> s2);
@@ -144,14 +154,14 @@ static type_strcasehash: st_hash_type = st_hash_type {
 
 // st_table *st_init_table(const struct st_hash_type *);
 #[no_mangle]
-pub unsafe extern "C" fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
+unsafe extern "C" fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
     let table = StHash::with_hash_type(hash_type);
     st_table::into_raw(table.into())
 }
 
 // st_table *st_init_table_with_size(const struct st_hash_type *, st_index_t);
 #[no_mangle]
-pub unsafe extern "C" fn st_init_table_with_size(
+unsafe extern "C" fn st_init_table_with_size(
     hash_type: *const st_hash_type,
     size: st_index_t,
 ) -> *mut st_table {
@@ -161,42 +171,42 @@ pub unsafe extern "C" fn st_init_table_with_size(
 
 // st_table *st_init_numtable(void);
 #[no_mangle]
-pub unsafe extern "C" fn st_init_numtable() -> *mut st_table {
+unsafe extern "C" fn st_init_numtable() -> *mut st_table {
     let table = StHash::with_hash_type(&st_hashtype_num as *const _);
     st_table::into_raw(table.into())
 }
 
 // st_table *st_init_numtable_with_size(st_index_t);
 #[no_mangle]
-pub unsafe extern "C" fn st_init_numtable_with_size(size: st_index_t) -> *mut st_table {
+unsafe extern "C" fn st_init_numtable_with_size(size: st_index_t) -> *mut st_table {
     let table = StHash::with_capacity_and_hash_type(size as usize, &st_hashtype_num as *const _);
     st_table::into_raw(table.into())
 }
 
 // st_table *st_init_strtable(void);
 #[no_mangle]
-pub unsafe extern "C" fn st_init_strtable() -> *mut st_table {
+unsafe extern "C" fn st_init_strtable() -> *mut st_table {
     let table = StHash::with_hash_type(&type_strhash as *const _);
     st_table::into_raw(table.into())
 }
 
 // st_table *st_init_strtable_with_size(st_index_t);
 #[no_mangle]
-pub unsafe extern "C" fn st_init_strtable_with_size(size: st_index_t) -> *mut st_table {
+unsafe extern "C" fn st_init_strtable_with_size(size: st_index_t) -> *mut st_table {
     let table = StHash::with_capacity_and_hash_type(size as usize, &type_strhash as *const _);
     st_table::into_raw(table.into())
 }
 
 // st_table *st_init_strcasetable(void);
 #[no_mangle]
-pub unsafe extern "C" fn st_init_strcasetable() -> *mut st_table {
+unsafe extern "C" fn st_init_strcasetable() -> *mut st_table {
     let table = StHash::with_hash_type(&type_strcasehash as *const _);
     st_table::into_raw(table.into())
 }
 
 // st_table *st_init_strcasetable_with_size(st_index_t);
 #[no_mangle]
-pub unsafe extern "C" fn st_init_strcasetable_with_size(size: st_index_t) -> *mut st_table {
+unsafe extern "C" fn st_init_strcasetable_with_size(size: st_index_t) -> *mut st_table {
     let table = StHash::with_capacity_and_hash_type(size as usize, &type_strcasehash as *const _);
     st_table::into_raw(table.into())
 }
@@ -213,7 +223,7 @@ pub unsafe extern "C" fn st_init_strcasetable_with_size(size: st_index_t) -> *mu
 /// int st_delete(st_table *, st_data_t *, st_data_t *); /* returns 0:notfound 1:deleted */
 /// ```
 #[no_mangle]
-pub unsafe extern "C" fn st_delete(
+unsafe extern "C" fn st_delete(
     table: *mut st_table,
     key: *mut st_data_t,
     value: *mut st_data_t,
@@ -251,7 +261,7 @@ pub unsafe extern "C" fn st_delete(
 /// int st_delete_safe(st_table *, st_data_t *, st_data_t *, st_data_t);
 /// ```
 #[no_mangle]
-pub unsafe extern "C" fn st_delete_safe(
+unsafe extern "C" fn st_delete_safe(
     table: *mut st_table,
     key: *mut st_data_t,
     value: *mut st_data_t,
@@ -290,7 +300,7 @@ pub unsafe extern "C" fn st_delete_safe(
 /// int st_shift(st_table *, st_data_t *, st_data_t *); /* returns 0:notfound 1:deleted */
 /// ```
 #[no_mangle]
-pub unsafe extern "C" fn st_shift(
+unsafe extern "C" fn st_shift(
     table: *mut st_table,
     key: *mut st_data_t,
     value: *mut st_data_t,
@@ -321,7 +331,7 @@ pub unsafe extern "C" fn st_shift(
 /// int st_insert(st_table *, st_data_t, st_data_t);
 /// ```
 #[no_mangle]
-pub unsafe extern "C" fn st_insert(
+unsafe extern "C" fn st_insert(
     table: *mut st_table,
     key: st_data_t,
     value: st_data_t,
@@ -342,7 +352,7 @@ pub unsafe extern "C" fn st_insert(
 /// int st_insert2(st_table *, st_data_t, st_data_t, st_data_t (*)(st_data_t));
 /// ```
 #[no_mangle]
-pub unsafe extern "C" fn st_insert2(
+unsafe extern "C" fn st_insert2(
     table: *mut st_table,
     key: st_data_t,
     value: st_data_t,
@@ -357,7 +367,7 @@ pub unsafe extern "C" fn st_insert2(
         let table = st_table::boxed_into_raw(table);
         // `func` might mutate this table, so make sure we don't
         // alias the `Box`.
-        let insert_key = func(key);
+        let key = func(key);
         let mut table = st_table::from_raw(table);
         let _ = table.0.insert(key, value);
         mem::forget(table);
@@ -374,7 +384,7 @@ pub unsafe extern "C" fn st_insert2(
 /// int st_lookup(st_table *, st_data_t, st_data_t *);
 /// ```
 #[no_mangle]
-pub unsafe extern "C" fn st_lookup(
+unsafe extern "C" fn st_lookup(
     table: *mut st_table,
     key: st_data_t,
     value: *mut st_data_t,
@@ -401,7 +411,7 @@ pub unsafe extern "C" fn st_lookup(
 /// int st_get_key(st_table *, st_data_t, st_data_t *);
 /// ```
 #[no_mangle]
-pub unsafe extern "C" fn st_get_key(
+unsafe extern "C" fn st_get_key(
     table: *mut st_table,
     key: st_data_t,
     result: *mut st_data_t,
@@ -445,7 +455,7 @@ pub type st_update_callback_func =
 /// int st_update(st_table *table, st_data_t key, st_update_callback_func *func, st_data_t arg);
 /// ```
 #[no_mangle]
-pub unsafe extern "C" fn st_update(
+unsafe extern "C" fn st_update(
     table: *mut st_table,
     key: st_data_t,
     func: st_update_callback_func,
@@ -498,7 +508,8 @@ pub unsafe extern "C" fn st_update(
 pub type st_foreach_callback_func = fn(st_data_t, st_data_t, st_data_t, libc::c_int) -> libc::c_int;
 
 // int st_foreach(st_table *, int (*)(ANYARGS), st_data_t);
-pub unsafe extern "C" fn st_foreach(
+#[no_mangle]
+unsafe extern "C" fn st_foreach(
     table: *mut st_table,
     func: st_foreach_callback_func,
     arg: st_data_t,
@@ -555,7 +566,8 @@ pub unsafe extern "C" fn st_foreach(
 }
 
 // int st_foreach_check(st_table *, int (*)(ANYARGS), st_data_t, st_data_t);
-pub unsafe extern "C" fn st_foreach_check(
+#[no_mangle]
+unsafe extern "C" fn st_foreach_check(
     table: *mut st_table,
     func: st_foreach_callback_func,
     arg: st_data_t,
@@ -621,7 +633,7 @@ pub unsafe extern "C" fn st_foreach_check(
 /// st_index_t st_keys(st_table *table, st_data_t *keys, st_index_t size);
 /// ```
 #[no_mangle]
-pub unsafe extern "C" fn st_keys(
+unsafe extern "C" fn st_keys(
     table: *mut st_table,
     keys: *mut st_data_t,
     size: st_index_t,
@@ -645,7 +657,7 @@ pub unsafe extern "C" fn st_keys(
 /// st_index_t st_keys_check(st_table *table, st_data_t *keys, st_index_t size, st_data_t never);
 /// ```
 #[no_mangle]
-pub unsafe extern "C" fn st_keys_check(
+unsafe extern "C" fn st_keys_check(
     table: *mut st_table,
     keys: *mut st_data_t,
     size: st_index_t,
@@ -671,7 +683,7 @@ pub unsafe extern "C" fn st_keys_check(
 /// st_index_t st_values(st_table *table, st_data_t *values, st_index_t size);
 /// ```
 #[no_mangle]
-pub unsafe extern "C" fn st_values(
+unsafe extern "C" fn st_values(
     table: *mut st_table,
     values: *mut st_data_t,
     size: st_index_t,
@@ -695,7 +707,7 @@ pub unsafe extern "C" fn st_values(
 /// st_index_t st_values_check(st_table *table, st_data_t *values, st_index_t size, st_data_t never);
 /// ```
 #[no_mangle]
-pub unsafe extern "C" fn st_values_check(
+unsafe extern "C" fn st_values_check(
     table: *mut st_table,
     values: *mut st_data_t,
     size: st_index_t,
@@ -714,7 +726,7 @@ pub unsafe extern "C" fn st_values_check(
 
 // void st_add_direct(st_table *, st_data_t, st_data_t);
 #[no_mangle]
-pub unsafe extern "C" fn st_add_direct(table: *mut st_table, key: st_data_t, value: st_data_t) {
+unsafe extern "C" fn st_add_direct(table: *mut st_table, key: st_data_t, value: st_data_t) {
     // The original C implementation uses `st_add_direct_with_hash` to implement
     // this function.
     //
@@ -739,7 +751,7 @@ pub unsafe extern "C" fn st_add_direct(table: *mut st_table, key: st_data_t, val
 /// void st_free_table(st_table *);
 /// ```
 #[no_mangle]
-pub unsafe extern "C" fn st_free_table(table: *mut st_table) {
+unsafe extern "C" fn st_free_table(table: *mut st_table) {
     let table = st_table::from_raw(table);
     mem::drop(table)
 }
@@ -752,7 +764,7 @@ pub unsafe extern "C" fn st_free_table(table: *mut st_table) {
 /// void st_cleanup_safe(st_table *, st_data_t);
 /// ```
 #[no_mangle]
-pub unsafe extern "C" fn st_cleanup_safe(table: *mut st_table, _never: st_data_t) {
+unsafe extern "C" fn st_cleanup_safe(table: *mut st_table, _never: st_data_t) {
     let _ = table;
 }
 
@@ -764,7 +776,7 @@ pub unsafe extern "C" fn st_cleanup_safe(table: *mut st_table, _never: st_data_t
 /// void st_clear(st_table *);
 /// ```
 #[no_mangle]
-pub unsafe extern "C" fn st_clear(table: *mut st_table) {
+unsafe extern "C" fn st_clear(table: *mut st_table) {
     let mut table = st_table::from_raw(table);
     table.0.clear();
     mem::forget(table);
@@ -772,7 +784,7 @@ pub unsafe extern "C" fn st_clear(table: *mut st_table) {
 
 // st_table *st_copy(st_table *);
 #[no_mangle]
-pub unsafe extern "C" fn st_copy(table: *mut st_table) -> *mut st_table {
+unsafe extern "C" fn st_copy(table: *mut st_table) -> *mut st_table {
     let table = st_table::from_raw(table);
     let copy = table.0.clone();
     mem::forget(table);
@@ -781,10 +793,7 @@ pub unsafe extern "C" fn st_copy(table: *mut st_table) -> *mut st_table {
 
 // PUREFUNC(int st_locale_insensitive_strcasecmp(const char *s1, const char *s2));
 #[no_mangle]
-pub unsafe extern "C" fn st_locale_insensitive_strcasecmp(
-    s1: st_data_t,
-    s2: st_data_t,
-) -> libc::c_int {
+unsafe extern "C" fn st_locale_insensitive_strcasecmp(s1: st_data_t, s2: st_data_t) -> libc::c_int {
     let s1 = CStr::from_ptr(s1 as *const libc::c_char);
     let s2 = CStr::from_ptr(s2 as *const libc::c_char);
     match (s1.to_bytes().len(), s2.to_bytes().len()) {
@@ -808,7 +817,7 @@ pub unsafe extern "C" fn st_locale_insensitive_strcasecmp(
 
 // PUREFUNC(int st_locale_insensitive_strncasecmp(const char *s1, const char *s2, size_t n));
 #[no_mangle]
-pub unsafe extern "C" fn st_locale_insensitive_strncasecmp(
+unsafe extern "C" fn st_locale_insensitive_strncasecmp(
     s1: st_data_t,
     s2: st_data_t,
     n: libc::size_t,
@@ -837,22 +846,18 @@ pub unsafe extern "C" fn st_locale_insensitive_strncasecmp(
 
 // #define st_strcasecmp st_locale_insensitive_strcasecmp
 #[no_mangle]
-pub unsafe extern "C" fn st_strcasecmp(s1: st_data_t, s2: st_data_t) -> libc::c_int {
+unsafe extern "C" fn st_strcasecmp(s1: st_data_t, s2: st_data_t) -> libc::c_int {
     st_locale_insensitive_strcasecmp(s1, s2)
 }
 
 // #define st_strncasecmp st_locale_insensitive_strncasecmp
 #[no_mangle]
-pub unsafe extern "C" fn st_strncasecmp(
-    s1: st_data_t,
-    s2: st_data_t,
-    n: libc::size_t,
-) -> libc::c_int {
+unsafe extern "C" fn st_strncasecmp(s1: st_data_t, s2: st_data_t, n: libc::size_t) -> libc::c_int {
     st_locale_insensitive_strncasecmp(s1, s2, n)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn st_memsize(table: *const st_table) -> libc::size_t {
+unsafe extern "C" fn st_memsize(table: *const st_table) -> libc::size_t {
     let table = st_table::from_raw(table as *mut st_table);
     let memsize = table.0.estimated_memsize();
     mem::forget(table);
@@ -861,11 +866,7 @@ pub unsafe extern "C" fn st_memsize(table: *const st_table) -> libc::size_t {
 
 // PUREFUNC(st_index_t st_hash(const void *ptr, size_t len, st_index_t h));
 #[no_mangle]
-pub unsafe extern "C" fn st_hash(
-    ptr: *const c_void,
-    len: libc::size_t,
-    h: st_index_t,
-) -> st_index_t {
+unsafe extern "C" fn st_hash(ptr: *const c_void, len: libc::size_t, h: st_index_t) -> st_index_t {
     let mut hasher = Fnv1a32::with_seed(h as u32);
     let data = slice::from_raw_parts(ptr as *const u8, len as usize);
     hasher.write(data);
@@ -874,7 +875,7 @@ pub unsafe extern "C" fn st_hash(
 
 // CONSTFUNC(st_index_t st_hash_uint32(st_index_t h, uint32_t i));
 #[no_mangle]
-pub unsafe extern "C" fn st_hash_uint32(h: st_index_t, i: u32) -> st_index_t {
+unsafe extern "C" fn st_hash_uint32(h: st_index_t, i: u32) -> st_index_t {
     let mut hasher = Fnv1a32::with_seed(h as u32);
     hasher.write_u32(i);
     hasher.finish() as st_index_t
@@ -882,7 +883,7 @@ pub unsafe extern "C" fn st_hash_uint32(h: st_index_t, i: u32) -> st_index_t {
 
 // CONSTFUNC(st_index_t st_hash_uint(st_index_t h, st_index_t i));
 #[no_mangle]
-pub unsafe extern "C" fn st_hash_uint(h: st_index_t, i: st_index_t) -> st_index_t {
+unsafe extern "C" fn st_hash_uint(h: st_index_t, i: st_index_t) -> st_index_t {
     let mut hasher = Fnv1a32::with_seed(h as u32);
     hasher.write_u64(i as u64);
     hasher.finish() as st_index_t
@@ -890,13 +891,13 @@ pub unsafe extern "C" fn st_hash_uint(h: st_index_t, i: st_index_t) -> st_index_
 
 // CONSTFUNC(st_index_t st_hash_end(st_index_t h));
 #[no_mangle]
-pub unsafe extern "C" fn st_hash_end(h: st_index_t) -> st_index_t {
+unsafe extern "C" fn st_hash_end(h: st_index_t) -> st_index_t {
     h
 }
 
 // CONSTFUNC(st_index_t st_hash_start(st_index_t h));
 #[no_mangle]
-pub unsafe extern "C" fn st_hash_start(h: st_index_t) -> st_index_t {
+unsafe extern "C" fn st_hash_start(h: st_index_t) -> st_index_t {
     let mut hasher = Fnv1a32::new();
     hasher.write_u64(h as u64);
     hasher.finish() as st_index_t
