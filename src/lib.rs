@@ -115,20 +115,15 @@ pub mod capi;
 mod entry;
 mod fnv;
 mod hasher;
+mod typedefs;
 
 use entry::{Entry, OccupiedEntry, VacantEntry};
-pub use hasher::{st_hash_t, st_hash_type, StBuildHasher, StHasher};
+pub use hasher::{StBuildHasher, StHasher};
+pub use typedefs::*;
 
 pub mod st_hashmap {
     pub use crate::entry::{Entry, OccupiedEntry, VacantEntry};
 }
-
-#[cfg(target_pointer_width = "64")]
-pub type st_data_t = u64;
-#[cfg(target_pointer_width = "32")]
-pub type st_data_t = u32;
-
-pub type st_index_t = st_data_t;
 
 #[derive(Debug, Clone)]
 struct Key {

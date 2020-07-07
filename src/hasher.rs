@@ -2,31 +2,7 @@ use core::convert;
 use core::hash::{BuildHasher, Hasher};
 use std::collections::hash_map::{DefaultHasher, RandomState};
 
-use crate::{st_data_t, st_index_t};
-
-pub type st_hash_t = st_index_t;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(C)]
-pub struct st_hash_type {
-    /// `st_compare_func`
-    ///
-    /// # Header declaration
-    ///
-    /// ```c
-    /// (*compare)(ANYARGS /*st_data_t, st_data_t*/); /* st_compare_func* */
-    /// ```
-    pub compare: unsafe extern "C" fn(st_data_t, st_data_t) -> i32,
-
-    /// `st_hash_func`
-    ///
-    /// # Header declaration
-    ///
-    /// ```c
-    /// st_index_t (*hash)(ANYARGS /*st_data_t*/);        /* st_hash_func* */
-    /// ```
-    pub hash: unsafe extern "C" fn(st_data_t) -> st_index_t,
-}
+use crate::typedefs::*;
 
 pub unsafe extern "C" fn default_compare(x: st_data_t, y: st_data_t) -> i32 {
     x.cmp(&y) as _
@@ -53,12 +29,14 @@ pub struct StBuildHasher {
 }
 
 impl StBuildHasher {
+    #[inline]
     pub fn into_boxed(self) -> Box<Self> {
         Box::new(self)
     }
 }
 
 impl Default for StBuildHasher {
+    #[inline]
     fn default() -> Self {
         Self {
             inner: RandomState::default(),
@@ -68,6 +46,7 @@ impl Default for StBuildHasher {
 }
 
 impl From<*const st_hash_type> for StBuildHasher {
+    #[inline]
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn from(hash_type: *const st_hash_type) -> Self {
         let hash = unsafe { (*hash_type).hash };
@@ -109,6 +88,7 @@ pub struct StHasher {
 }
 
 impl Default for StHasher {
+    #[inline]
     fn default() -> Self {
         Self {
             state: DefaultHasher::default(),
@@ -176,15 +156,15 @@ impl Hasher for StHasher {
         self.add_to_hash(i as st_hash_t);
     }
 
-    #[cfg(target_pointer_width = "32")]
     #[inline]
+    #[cfg(target_pointer_width = "32")]
     fn write_u64(&mut self, i: u64) {
         self.add_to_hash(i as st_hash_t);
         self.add_to_hash((i >> 32) as st_hash_t);
     }
 
-    #[cfg(target_pointer_width = "64")]
     #[inline]
+    #[cfg(target_pointer_width = "64")]
     fn write_u64(&mut self, i: u64) {
         self.add_to_hash(i as st_hash_t);
     }
