@@ -226,6 +226,18 @@ impl StHash {
     }
 
     #[inline]
+    pub fn entry(&mut self, key: st_data_t) -> Entry<'_> {
+        let key = Key {
+            record: key,
+            eq: self.eq,
+        };
+        match self.map.entry(key) {
+            hash_map::Entry::Occupied(base) => Entry::Occupied(OccupiedEntry(base)),
+            hash_map::Entry::Vacant(base) => Entry::Vacant(VacantEntry(base)),
+        }
+    }
+
+    #[inline]
     #[must_use]
     pub fn insert(&mut self, key: st_data_t, value: st_data_t) -> Option<st_data_t> {
         let key = Key {
@@ -233,6 +245,17 @@ impl StHash {
             eq: self.eq,
         };
         self.map.insert(key, value)
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn delete(&mut self, key: st_data_t) -> Option<(st_data_t, st_data_t)> {
+        let key = Key {
+            record: key,
+            eq: self.eq,
+        };
+        let (Key { record, .. }, value) = self.map.remove_entry(&key)?;
+        Some((record, value))
     }
 
     #[inline]
@@ -468,5 +491,162 @@ impl<'a> IntoIterator for &'a StHash {
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
+    }
+}
+
+#[derive(Debug)]
+pub enum Entry<'a> {
+    /// An occupied entry.
+    Occupied(OccupiedEntry<'a>),
+
+    /// A vacant entry.
+    Vacant(VacantEntry<'a>),
+}
+
+#[derive(Debug)]
+pub struct OccupiedEntry<'a>(hash_map::OccupiedEntry<'a, Key, st_data_t>);
+
+#[derive(Debug)]
+pub struct VacantEntry<'a>(hash_map::VacantEntry<'a, Key, st_data_t>);
+
+impl<'a> Entry<'a> {
+    /// Ensures a value is in the entry by inserting the default if empty, and
+    /// returns a mutable reference to the value in the entry.
+    #[inline]
+    pub fn or_insert(self, default: st_data_t) -> &'a mut st_data_t {
+        match self {
+            Self::Occupied(entry) => entry.0.into_mut(),
+            Self::Vacant(entry) => entry.0.insert(default),
+        }
+    }
+
+    /// Ensures a value is in the entry by inserting the result of the default
+    /// function if empty, and returns a mutable reference to the value in the
+    /// entry.
+    #[inline]
+    pub fn or_insert_with<F: FnOnce() -> st_data_t>(self, default: F) -> &'a mut st_data_t {
+        match self {
+            Self::Occupied(entry) => entry.0.into_mut(),
+            Self::Vacant(entry) => entry.0.insert(default()),
+        }
+    }
+
+    /// Ensures a value is in the entry by inserting, if empty, the result of
+    /// the default function, which takes the key as its argument, and returns a
+    /// mutable reference to the value in the entry.
+    #[inline]
+    pub fn or_insert_with_key<F: FnOnce(&st_data_t) -> st_data_t>(
+        self,
+        default: F,
+    ) -> &'a mut st_data_t {
+        match self {
+            Self::Occupied(entry) => entry.0.into_mut(),
+            Self::Vacant(entry) => {
+                let value = default(&entry.0.key().record);
+                entry.insert(value)
+            }
+        }
+    }
+
+    /// Returns a reference to this entry's key.
+    #[inline]
+    pub fn key(&self) -> &st_data_t {
+        match self {
+            Self::Occupied(entry) => &entry.0.key().record,
+            Self::Vacant(entry) => &entry.0.key().record,
+        }
+    }
+
+    /// Provides in-place mutable access to an occupied entry before any
+    /// potential inserts into the map.
+    #[inline]
+    pub fn and_modify<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut st_data_t),
+    {
+        match self {
+            Self::Occupied(mut entry) => {
+                f(entry.0.get_mut());
+                Self::Occupied(entry)
+            }
+            Self::Vacant(entry) => Self::Vacant(entry),
+        }
+    }
+}
+
+impl<'a> OccupiedEntry<'a> {
+    /// Gets a reference to the key in the entry.
+    #[inline]
+    pub fn key(&self) -> &st_data_t {
+        &self.0.key().record
+    }
+
+    /// Take the ownership of the key and value from the map.
+    #[inline]
+    pub fn remove_entry(self) -> (st_data_t, st_data_t) {
+        let (Key { record, .. }, value) = self.0.remove_entry();
+        (record, value)
+    }
+
+    /// Gets a reference to the value in the entry.
+    #[inline]
+    pub fn get(&self) -> &st_data_t {
+        self.0.get()
+    }
+
+    /// Gets a mutable reference to the value in the entry.
+    ///
+    /// If you need a reference to the `OccupiedEntry` which may outlive the
+    /// destruction of the `Entry` value, see [`into_mut`].
+    ///
+    /// [`into_mut`]: #method.into_mut
+    #[inline]
+    pub fn get_mut(&mut self) -> &mut st_data_t {
+        self.0.get_mut()
+    }
+
+    /// Converts the OccupiedEntry into a mutable reference to the value in the
+    /// entry with a lifetime bound to the map itself.
+    ///
+    /// If you need multiple references to the `OccupiedEntry`, see [`get_mut`].
+    ///
+    /// [`get_mut`]: #method.get_mut
+    #[inline]
+    pub fn into_mut(self) -> &'a mut st_data_t {
+        self.0.into_mut()
+    }
+
+    /// Sets the value of the entry, and returns the entry's old value.
+    #[inline]
+    pub fn insert(&mut self, value: st_data_t) -> st_data_t {
+        self.0.insert(value)
+    }
+
+    /// Takes the value out of the entry, and returns it.
+    #[inline]
+    pub fn remove(self) -> st_data_t {
+        self.0.remove()
+    }
+}
+
+impl<'a> VacantEntry<'a> {
+    /// Gets a reference to the key that would be used when inserting a value
+    /// through the `VacantEntry`.
+    #[inline]
+    pub fn key(&self) -> &st_data_t {
+        &self.0.key().record
+    }
+
+    /// Take ownership of the key.
+    #[inline]
+    pub fn into_key(self) -> st_data_t {
+        self.0.into_key().record
+    }
+
+    /// Sets the value of the entry with the VacantEntry's key, and returns a
+    /// mutable reference to it.
+    #[inline]
+    pub fn insert(self, value: st_data_t) -> &'a mut st_data_t {
+        self.0.insert(value)
     }
 }
