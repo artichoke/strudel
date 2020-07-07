@@ -1,8 +1,22 @@
 [package]
-name = "st_hash"
-version = "0.1.0"
+name = "strudel"
+version = "1.0.0"
 authors = ["Ryan Lopopolo <rjl@hyperbo.la>"]
 edition = "2018"
+description = "Rust port of the st_hash C library"
+repository = "https://github.com/artichoke/strudel"
+readme = "README.md"
+license = "MIT"
+keywords = ["hash", "hashtable", "ffi", "port"]
+categories = ["api-bindings", "data-structures", "external-ffi-bindings"]
+include = [
+  "**/*.rs",
+  "LICENSE",
+  "README.md"
+]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 libc = { version = "0.2", optional = true }
