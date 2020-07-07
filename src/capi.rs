@@ -350,35 +350,74 @@ pub unsafe extern "C" fn st_insert2(
     func: unsafe extern "C" fn(st_data_t) -> st_data_t,
 ) -> libc::c_int {
     let mut table = st_table::from_raw(table);
-    let ret = if table.0.get(key).is_some() {
+    if table.0.get(key).is_some() {
         let _ = table.0.insert(key, value);
+        mem::forget(table);
         1
     } else {
-        let _ = table.0.insert(func(key), value);
+        let table = st_table::boxed_into_raw(table);
+        // `func` might mutate this table, so make sure we don't
+        // alias the `Box`.
+        let insert_key = func(key);
+        let mut table = st_table::from_raw(table);
+        let _ = table.0.insert(key, value);
+        mem::forget(table);
         0
-    };
-    mem::forget(table);
-    ret
+    }
 }
 
-// int st_lookup(st_table *, st_data_t, st_data_t *);
+/// Find an entry with `key` in table `table`. Return non-zero if we found it.
+/// Set up `*RECORD` to the found entry record.
+///
+/// # Header declaration
+///
+/// ```c
+/// int st_lookup(st_table *, st_data_t, st_data_t *);
+/// ```
 #[no_mangle]
 pub unsafe extern "C" fn st_lookup(
     table: *mut st_table,
     key: st_data_t,
     value: *mut st_data_t,
 ) -> libc::c_int {
-    todo!();
+    let table = st_table::from_raw(table);
+    let ret = if let Some(&entry_value) = table.0.get(key) {
+        if !value.is_null() {
+            ptr::write(value, entry_value);
+        }
+        1
+    } else {
+        0
+    };
+    mem::forget(table);
+    ret
 }
 
-// int st_get_key(st_table *, st_data_t, st_data_t *);
+/// Find an entry with `key` in table `table`. Return non-zero if we found it.
+/// Set up `*RESULT` to the found table entry key.
+///
+/// # Header declaration
+///
+/// ```c
+/// int st_get_key(st_table *, st_data_t, st_data_t *);
+/// ```
 #[no_mangle]
 pub unsafe extern "C" fn st_get_key(
     table: *mut st_table,
     key: st_data_t,
     result: *mut st_data_t,
 ) -> libc::c_int {
-    todo!();
+    let table = st_table::from_raw(table);
+    let ret = if let Some((&entry_key, _)) = table.0.get_key_value(key) {
+        if !result.is_null() {
+            ptr::write(result, entry_key);
+        }
+        1
+    } else {
+        0
+    };
+    mem::forget(table);
+    ret
 }
 
 // typedef int st_update_callback_func(st_data_t *key, st_data_t *value, st_data_t arg, int existing);
@@ -466,14 +505,29 @@ pub unsafe extern "C" fn st_foreach_check(
     todo!();
 }
 
-// st_index_t st_keys(st_table *table, st_data_t *keys, st_index_t size);
+/// Set up array `keys` by at most `size` keys of head table `table` entries.
+/// Return the number of keys set up in array `keys`.
+///
+/// # Header declaration
+///
+/// ```c
+/// st_index_t st_keys(st_table *table, st_data_t *keys, st_index_t size);
+/// ```
 #[no_mangle]
 pub unsafe extern "C" fn st_keys(
     table: *mut st_table,
     keys: *mut st_data_t,
     size: st_index_t,
 ) -> st_index_t {
-    todo!();
+    let table = st_table::from_raw(table);
+    let keys = slice::from_raw_parts_mut(keys, size as usize);
+    let mut count = 0;
+    for (counter, (slot, &key)) in keys.iter_mut().zip(table.0.keys()).enumerate() {
+        ptr::write(slot, key);
+        count = counter;
+    }
+    mem::forget(table);
+    count as st_index_t
 }
 
 // st_index_t st_keys_check(st_table *table, st_data_t *keys, st_index_t size, st_data_t never);
