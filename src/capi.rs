@@ -387,7 +387,7 @@ unsafe extern "C" fn st_get_key(
 
 // typedef int st_update_callback_func(st_data_t *key, st_data_t *value, st_data_t arg, int existing);
 pub type st_update_callback_func =
-    fn(*mut st_data_t, *mut st_data_t, st_data_t, libc::c_int) -> libc::c_int;
+    unsafe extern "C" fn(*mut st_data_t, *mut st_data_t, st_data_t, libc::c_int) -> libc::c_int;
 
 /// Find entry with `key` in table `table`, call `func` with the key and the
 /// value of the found entry, and non-zero as the 3rd argument. If the entry is
@@ -461,7 +461,8 @@ unsafe extern "C" fn st_update(
 }
 
 // int (*)(ANYARGS)
-pub type st_foreach_callback_func = fn(st_data_t, st_data_t, st_data_t, libc::c_int) -> libc::c_int;
+pub type st_foreach_callback_func =
+    unsafe extern "C" fn(st_data_t, st_data_t, st_data_t, libc::c_int) -> libc::c_int;
 
 // int st_foreach(st_table *, int (*)(ANYARGS), st_data_t);
 #[no_mangle]
