@@ -100,6 +100,19 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 
 */
 
+#![warn(clippy::all)]
+#![warn(clippy::pedantic)]
+#![warn(clippy::cargo)]
+#![allow(clippy::cast_lossless)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::wildcard_imports)]
+#![allow(clippy::enum_glob_use)]
+// #![warn(missing_docs, intra_doc_link_resolution_failure)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_copy_implementations)]
+#![warn(rust_2018_idioms)]
+#![warn(unused_qualifications)]
+#![warn(variant_size_differences)]
 #![allow(non_camel_case_types)]
 
 use core::borrow::Borrow;
@@ -499,6 +512,7 @@ impl StHash {
     }
 
     #[inline]
+    #[must_use]
     pub fn estimated_memsize(&self) -> usize {
         size_of::<Self>()
             + (size_of::<Key>() + size_of::<st_data_t>()) * self.map.capacity()

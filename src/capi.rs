@@ -476,7 +476,7 @@ unsafe extern "C" fn st_foreach(
     let table = st_table::from_raw(table_ptr);
     let mut insertion_ranks = table.insert_ranks_from(0).peekable();
     let mut max = table.max_insert_rank();
-    st_table::boxed_into_raw(table);
+    let _ = st_table::boxed_into_raw(table);
 
     loop {
         let table = st_table::from_raw(table_ptr);
@@ -492,19 +492,19 @@ unsafe extern "C" fn st_foreach(
             let nth = table.get_nth(rank);
 
             if let Some((&key, &value)) = nth {
-                st_table::boxed_into_raw(table);
+                let _ = st_table::boxed_into_raw(table);
                 match func(key, value, arg, 0) {
                     retval if ST_CONTINUE == retval => {}
                     retval if ST_CHECK == retval || ST_STOP == retval => return 0,
                     retval if ST_DELETE == retval => {
                         let mut table = st_table::from_raw(table_ptr);
                         let _ = table.remove(key);
-                        st_table::boxed_into_raw(table);
+                        let _ = st_table::boxed_into_raw(table);
                     }
                     _ => {}
                 }
             } else {
-                st_table::boxed_into_raw(table);
+                let _ = st_table::boxed_into_raw(table);
             }
         } else {
             let current_max = table.max_insert_rank();
@@ -513,7 +513,7 @@ unsafe extern "C" fn st_foreach(
             }
             max = current_max;
             insertion_ranks = table.insert_ranks_from(max).peekable();
-            st_table::boxed_into_raw(table);
+            let _ = st_table::boxed_into_raw(table);
         }
     }
     0
@@ -533,7 +533,7 @@ unsafe extern "C" fn st_foreach_check(
     let table = st_table::from_raw(table_ptr);
     let mut insertion_ranks = table.insert_ranks_from(0).peekable();
     let mut max = table.max_insert_rank();
-    st_table::boxed_into_raw(table);
+    let _ = st_table::boxed_into_raw(table);
 
     loop {
         let table = st_table::from_raw(table_ptr);
@@ -549,19 +549,19 @@ unsafe extern "C" fn st_foreach_check(
             let nth = table.get_nth(rank);
 
             if let Some((&key, &value)) = nth {
-                st_table::boxed_into_raw(table);
+                let _ = st_table::boxed_into_raw(table);
                 match func(key, value, arg, 0) {
                     retval if ST_CONTINUE == retval || ST_CHECK == retval => {}
                     retval if ST_STOP == retval => return 0,
                     retval if ST_DELETE == retval => {
                         let mut table = st_table::from_raw(table_ptr);
                         let _ = table.remove(key);
-                        st_table::boxed_into_raw(table);
+                        let _ = st_table::boxed_into_raw(table);
                     }
                     _ => {}
                 }
             } else {
-                st_table::boxed_into_raw(table);
+                let _ = st_table::boxed_into_raw(table);
             }
         } else {
             let current_max = table.max_insert_rank();
@@ -570,7 +570,7 @@ unsafe extern "C" fn st_foreach_check(
             }
             max = current_max;
             insertion_ranks = table.insert_ranks_from(max).peekable();
-            st_table::boxed_into_raw(table);
+            let _ = st_table::boxed_into_raw(table);
         }
     }
     0
@@ -705,7 +705,7 @@ unsafe extern "C" fn st_add_direct(table: *mut st_table, key: st_data_t, value: 
 #[no_mangle]
 unsafe extern "C" fn st_free_table(table: *mut st_table) {
     let table = st_table::from_raw(table);
-    mem::drop(table)
+    drop(table)
 }
 
 /// No-op. See comments for function [`st_delete_safe`].

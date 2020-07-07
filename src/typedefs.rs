@@ -41,16 +41,19 @@ pub enum st_retval {
 }
 
 /// Opaque FFI wrapper around an `StHash`.
+#[derive(Debug)]
 pub struct st_table(crate::StHash);
 
 impl st_table {
     #[inline]
+    #[must_use]
     pub fn into_raw(table: Self) -> *mut Self {
         let table = Box::new(table);
         Box::into_raw(table)
     }
 
     #[inline]
+    #[must_use]
     pub fn boxed_into_raw(table: Box<Self>) -> *mut Self {
         Box::into_raw(table)
     }

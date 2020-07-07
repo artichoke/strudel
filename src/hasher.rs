@@ -1,5 +1,6 @@
 use core::convert;
 use core::hash::{BuildHasher, Hasher};
+use core::mem::size_of;
 use std::collections::hash_map::{DefaultHasher, RandomState};
 
 use crate::typedefs::*;
@@ -23,6 +24,7 @@ impl Default for st_hash_type {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::module_name_repetitions)]
 pub struct StBuildHasher {
     inner: RandomState,
     hash: unsafe extern "C" fn(st_data_t) -> st_index_t,
@@ -30,6 +32,7 @@ pub struct StBuildHasher {
 
 impl StBuildHasher {
     #[inline]
+    #[must_use]
     pub fn into_boxed(self) -> Box<Self> {
         Box::new(self)
     }
@@ -82,6 +85,7 @@ impl BuildHasher for Box<StBuildHasher> {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::module_name_repetitions)]
 pub struct StHasher {
     state: DefaultHasher,
     hash: unsafe extern "C" fn(st_data_t) -> st_index_t,
@@ -110,34 +114,17 @@ impl StHasher {
 
 impl Hasher for StHasher {
     #[inline]
-    #[cfg(target_pointer_width = "32")]
     fn write(&mut self, bytes: &[u8]) {
-        let mut iter = bytes.chunks_exact(4);
+        let mut iter = bytes.chunks_exact(size_of::<st_hash_t>());
+        let mut buf = [0_u8; size_of::<st_hash_t>()];
         while let Some(chunk) = iter.next() {
-            let mut bytes = [0_u8; 4];
-            bytes.copy_from_slice(chunk);
-            let i = st_hash_t::from_ne_bytes(bytes);
+            buf.copy_from_slice(chunk);
+            let i = st_hash_t::from_ne_bytes(buf);
             self.add_to_hash(i);
         }
-        let mut bytes = [0_u8; 4];
-        bytes.copy_from_slice(iter.remainder());
-        let i = st_hash_t::from_ne_bytes(bytes);
-        self.add_to_hash(i);
-    }
-
-    #[inline]
-    #[cfg(target_pointer_width = "64")]
-    fn write(&mut self, bytes: &[u8]) {
-        let mut iter = bytes.chunks_exact(8);
-        while let Some(chunk) = iter.next() {
-            let mut bytes = [0_u8; 8];
-            bytes.copy_from_slice(chunk);
-            let i = st_hash_t::from_ne_bytes(bytes);
-            self.add_to_hash(i);
-        }
-        let mut bytes = [0_u8; 8];
-        bytes.copy_from_slice(iter.remainder());
-        let i = st_hash_t::from_ne_bytes(bytes);
+        buf = [0_u8; size_of::<st_hash_t>()];
+        buf.copy_from_slice(iter.remainder());
+        let i = st_hash_t::from_ne_bytes(buf);
         self.add_to_hash(i);
     }
 

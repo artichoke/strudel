@@ -27,16 +27,19 @@ pub enum Entry<'a> {
 /// A view into an occupied entry in a `StHash`. It is part of the [`Entry`]
 /// enum.
 #[derive(Debug)]
+#[allow(clippy::module_name_repetitions)]
 pub struct OccupiedEntry<'a>(pub(crate) OccupiedHashEntry<'a, Key, st_data_t>);
 
 /// A view into a vacant entry in a `StHash`. It is part of the [`Entry`] enum.
 #[derive(Debug)]
+#[allow(clippy::module_name_repetitions)]
 pub struct VacantEntry<'a>(pub(crate) VacantHashEntry<'a, Key, st_data_t>);
 
 impl<'a> Entry<'a> {
     /// Ensures a value is in the entry by inserting the default if empty, and
     /// returns a mutable reference to the value in the entry.
     #[inline]
+    #[must_use]
     pub fn or_insert(self, default: st_data_t) -> &'a mut st_data_t {
         match self {
             Self::Occupied(entry) => entry.0.into_mut(),
@@ -74,6 +77,7 @@ impl<'a> Entry<'a> {
 
     /// Returns a reference to this entry's key.
     #[inline]
+    #[must_use]
     pub fn key(&self) -> &st_data_t {
         match self {
             Self::Occupied(entry) => entry.0.key().record(),
@@ -101,12 +105,14 @@ impl<'a> Entry<'a> {
 impl<'a> OccupiedEntry<'a> {
     /// Gets a reference to the key in the entry.
     #[inline]
+    #[must_use]
     pub fn key(&self) -> &st_data_t {
         self.0.key().record()
     }
 
     /// Take the ownership of the key and value from the map.
     #[inline]
+    #[must_use]
     pub fn remove_entry(self) -> (st_data_t, st_data_t) {
         let (key, value) = self.0.remove_entry();
         (key.into_record(), value)
@@ -114,6 +120,7 @@ impl<'a> OccupiedEntry<'a> {
 
     /// Gets a reference to the value in the entry.
     #[inline]
+    #[must_use]
     pub fn get(&self) -> &st_data_t {
         self.0.get()
     }
@@ -129,13 +136,14 @@ impl<'a> OccupiedEntry<'a> {
         self.0.get_mut()
     }
 
-    /// Converts the OccupiedEntry into a mutable reference to the value in the
-    /// entry with a lifetime bound to the map itself.
+    /// Converts the `OccupiedEntry` into a mutable reference to the value in
+    /// the entry with a lifetime bound to the map itself.
     ///
     /// If you need multiple references to the `OccupiedEntry`, see [`get_mut`].
     ///
     /// [`get_mut`]: #method.get_mut
     #[inline]
+    #[must_use]
     pub fn into_mut(self) -> &'a mut st_data_t {
         self.0.into_mut()
     }
@@ -148,6 +156,7 @@ impl<'a> OccupiedEntry<'a> {
 
     /// Takes the value out of the entry, and returns it.
     #[inline]
+    #[must_use]
     pub fn remove(self) -> st_data_t {
         self.0.remove()
     }
@@ -157,19 +166,22 @@ impl<'a> VacantEntry<'a> {
     /// Gets a reference to the key that would be used when inserting a value
     /// through the `VacantEntry`.
     #[inline]
+    #[must_use]
     pub fn key(&self) -> &st_data_t {
         self.0.key().record()
     }
 
     /// Take ownership of the key.
     #[inline]
+    #[must_use]
     pub fn into_key(self) -> st_data_t {
         self.0.into_key().into_record()
     }
 
-    /// Sets the value of the entry with the VacantEntry's key, and returns a
+    /// Sets the value of the entry with the `VacantEntry`'s key, and returns a
     /// mutable reference to it.
     #[inline]
+    #[must_use]
     pub fn insert(self, value: st_data_t) -> &'a mut st_data_t {
         self.0.insert(value)
     }

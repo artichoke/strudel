@@ -1,10 +1,11 @@
 use core::fmt;
 use core::hash::{BuildHasher, Hasher};
 
-pub const FNV1_32A_INIT: u32 = 0x811_c9dc5;
+pub const FNV1_32A_INIT: u32 = 0x811c_9dc5;
 pub const FNV_32_PRIME: u32 = 1677_7619;
 
 #[derive(Default, Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[allow(clippy::module_name_repetitions)]
 pub struct Fnv1a32BuildHasher;
 
 impl BuildHasher for Fnv1a32BuildHasher {
@@ -17,6 +18,7 @@ impl BuildHasher for Fnv1a32BuildHasher {
     }
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub struct Fnv1a32(u32);
 
 impl Fnv1a32 {
