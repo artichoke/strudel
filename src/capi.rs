@@ -83,6 +83,7 @@ impl st_table {
     }
 
     #[inline]
+    #[must_use]
     pub unsafe fn from_raw(table: *mut Self) -> Box<Self> {
         Box::from_raw(table)
     }
@@ -618,7 +619,20 @@ pub unsafe extern "C" fn st_values_check(
 // void st_add_direct(st_table *, st_data_t, st_data_t);
 #[no_mangle]
 pub unsafe extern "C" fn st_add_direct(table: *mut st_table, key: st_data_t, value: st_data_t) {
-    todo!();
+    // The original C implementation uses `st_add_direct_with_hash` to implement
+    // this function.
+    //
+    // ```c
+    // st_hash_t hash_value;
+    // hash_value = do_hash(key, tab);
+    // st_add_direct_with_hash(tab, key, value, hash_value);
+    // ```
+    //
+    // Unlike `st_update`, there is no semantic difference here because there
+    // are no callbacks.
+    let mut table = st_table::from_raw(table);
+    let _ = table.0.insert(key, value);
+    mem::forget(table);
 }
 
 /// Free table `table` space.
@@ -630,7 +644,7 @@ pub unsafe extern "C" fn st_add_direct(table: *mut st_table, key: st_data_t, val
 /// ```
 #[no_mangle]
 pub unsafe extern "C" fn st_free_table(table: *mut st_table) {
-    let table = Box::from_raw(table);
+    let table = st_table::from_raw(table);
     mem::drop(table)
 }
 
@@ -655,7 +669,7 @@ pub unsafe extern "C" fn st_cleanup_safe(table: *mut st_table, _never: st_data_t
 /// ```
 #[no_mangle]
 pub unsafe extern "C" fn st_clear(table: *mut st_table) {
-    let mut table = Box::from_raw(table);
+    let mut table = st_table::from_raw(table);
     table.0.clear();
     mem::forget(table);
 }
@@ -743,11 +757,10 @@ pub unsafe extern "C" fn st_strncasecmp(
 
 #[no_mangle]
 pub unsafe extern "C" fn st_memsize(table: *const st_table) -> libc::size_t {
-    let table = Box::from_raw(table as *mut st_table);
-    let mut size = size_of::<st_table>();
-    size += table.0.capacity() * size_of::<st_data_t>() * 2;
+    let table = st_table::from_raw(table as *mut st_table);
+    let memsize = table.0.estimated_memsize();
     mem::forget(table);
-    size as _
+    memsize as _
 }
 
 // PUREFUNC(st_index_t st_hash(const void *ptr, size_t len, st_index_t h));
