@@ -507,13 +507,23 @@ pub unsafe extern "C" fn st_foreach(
 
     let table_ptr = table;
     let table = st_table::from_raw(table_ptr);
-    let mut insertion_ranks = table.0.insert_ranks_from(0);
+    let mut insertion_ranks = table.0.insert_ranks_from(0).peekable();
     let mut max = table.0.max_insert_rank();
     st_table::boxed_into_raw(table);
 
     loop {
+        let table = st_table::from_raw(table_ptr);
+
+        // skip any ranks that have been removed from the table.
+        let min = table.0.min_insert_rank();
+        match insertion_ranks.peek() {
+            Some(&rank) if rank < min => {
+                insertion_ranks = table.0.insert_ranks_from(min).peekable()
+            }
+            _ => {}
+        }
+
         if let Some(rank) = insertion_ranks.next() {
-            let table = st_table::from_raw(table_ptr);
             let nth = table.0.get_nth(rank);
 
             if let Some((&key, &value)) = nth {
@@ -532,13 +542,12 @@ pub unsafe extern "C" fn st_foreach(
                 st_table::boxed_into_raw(table);
             }
         } else {
-            let table = st_table::from_raw(table_ptr);
             let current_max = table.0.max_insert_rank();
             if current_max == max {
                 break;
             }
             max = current_max;
-            insertion_ranks = table.0.insert_ranks_from(max);
+            insertion_ranks = table.0.insert_ranks_from(max).peekable();
             st_table::boxed_into_raw(table);
         }
     }
@@ -556,13 +565,23 @@ pub unsafe extern "C" fn st_foreach_check(
 
     let table_ptr = table;
     let table = st_table::from_raw(table_ptr);
-    let mut insertion_ranks = table.0.insert_ranks_from(0);
+    let mut insertion_ranks = table.0.insert_ranks_from(0).peekable();
     let mut max = table.0.max_insert_rank();
     st_table::boxed_into_raw(table);
 
     loop {
+        let table = st_table::from_raw(table_ptr);
+
+        // skip any ranks that have been removed from the table.
+        let min = table.0.min_insert_rank();
+        match insertion_ranks.peek() {
+            Some(&rank) if rank < min => {
+                insertion_ranks = table.0.insert_ranks_from(min).peekable()
+            }
+            _ => {}
+        }
+
         if let Some(rank) = insertion_ranks.next() {
-            let table = st_table::from_raw(table_ptr);
             let nth = table.0.get_nth(rank);
 
             if let Some((&key, &value)) = nth {
@@ -581,13 +600,12 @@ pub unsafe extern "C" fn st_foreach_check(
                 st_table::boxed_into_raw(table);
             }
         } else {
-            let table = st_table::from_raw(table_ptr);
             let current_max = table.0.max_insert_rank();
             if current_max == max {
                 break;
             }
             max = current_max;
-            insertion_ranks = table.0.insert_ranks_from(max);
+            insertion_ranks = table.0.insert_ranks_from(max).peekable();
             st_table::boxed_into_raw(table);
         }
     }
