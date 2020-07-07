@@ -105,7 +105,7 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 use core::borrow::Borrow;
 use core::hash::{Hash, Hasher};
 use core::iter::{FromIterator, FusedIterator};
-use std::collections::{hash_map, HashMap};
+use std::collections::{btree_map, hash_map, BTreeMap, HashMap};
 
 #[cfg(feature = "capi")]
 pub mod capi;
@@ -128,6 +128,11 @@ struct Key {
 }
 
 impl Key {
+    #[inline]
+    fn insert_counter(&self) -> st_index_t {
+        self.insert_counter
+    }
+
     #[inline]
     fn lookup_key(&self) -> &LookupKey {
         &self.lookup
@@ -216,6 +221,7 @@ impl Borrow<LookupKey> for Key {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StHash {
     map: HashMap<Key, st_data_t, StBuildHasher>,
+    ordered: BTreeMap<st_index_t, (st_data_t, st_data_t)>,
     eq: unsafe extern "C" fn(st_data_t, st_data_t) -> i32,
     insert_counter: st_index_t,
 }
@@ -225,6 +231,7 @@ impl Default for StHash {
     fn default() -> Self {
         Self {
             map: HashMap::default(),
+            ordered: BTreeMap::default(),
             eq: hasher::default_compare,
             insert_counter: 0,
         }
@@ -239,6 +246,7 @@ impl StHash {
         let map = HashMap::with_hasher(hasher);
         Self {
             map,
+            ordered: BTreeMap::new(),
             eq: unsafe { (*hash_type).compare },
             insert_counter: 0,
         }
@@ -251,6 +259,7 @@ impl StHash {
         let map = HashMap::with_capacity_and_hasher(capacity, hasher);
         Self {
             map,
+            ordered: BTreeMap::new(),
             eq: unsafe { (*hash_type).compare },
             insert_counter: 0,
         }
@@ -277,6 +286,8 @@ impl StHash {
     #[inline]
     pub fn clear(&mut self) {
         self.map.clear();
+        self.ordered.clear();
+        self.insert_counter = 0;
     }
 
     #[inline]
@@ -330,16 +341,30 @@ impl StHash {
     #[inline]
     #[must_use]
     pub fn insert(&mut self, key: st_data_t, value: st_data_t) -> Option<st_data_t> {
+        let insert_counter = self.insert_counter;
+        self.insert_counter += 1;
+        let key_data = key;
+
         let key = LookupKey {
             record: key,
             eq: self.eq,
         };
         let key = Key {
             lookup: key,
-            insert_counter: self.insert_counter,
+            insert_counter,
         };
-        self.insert_counter += 1;
-        self.map.insert(key, value)
+        let (counter, old_value) = match self.map.entry(key) {
+            hash_map::Entry::Occupied(base) => {
+                let old_value = base.insert(value);
+                (base.key().insert_counter(), Some(old_value))
+            }
+            hash_map::Entry::Vacant(base) => {
+                base.insert(value);
+                (insert_counter, None)
+            }
+        };
+        self.ordered.insert(counter, (key_data, value));
+        old_value
     }
 
     #[inline]
