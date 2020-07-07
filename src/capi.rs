@@ -6,8 +6,8 @@ use core::mem::{self, size_of};
 use core::slice;
 use std::ffi::CStr;
 
-use crate::fnv::{self, Fnv1a32, FNV1_32A_INIT, FNV_32_PRIME};
-use crate::{st_data_t, st_hash_t, st_hash_type, st_index_t, StHash, StHasher};
+use crate::fnv::{self, Fnv1a32, FNV1_32A_INIT};
+use crate::{st_data_t, st_hash_t, st_hash_type, st_index_t, StHash};
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
@@ -48,6 +48,8 @@ struct __st_table {
 
 // ensure that `StdHash` fits in `st_table` for an opaque FFI container.
 const _: () = [()][!(size_of::<__st_table>() >= size_of::<StHash>()) as usize];
+// const _: [(); 0] = [(); size_of::<__st_table>()];
+// const _: [(); 0] = [(); size_of::<StHash>()];
 const ST_TABLE_PADDING_LEN: usize = size_of::<__st_table>() - size_of::<*mut StHash>();
 
 #[repr(C)]

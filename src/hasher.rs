@@ -1,24 +1,30 @@
 use core::convert;
-use core::fmt;
 use core::hash::{BuildHasher, Hasher};
-use core::mem::size_of;
-use core::ops::BitXor;
+use std::collections::hash_map::{DefaultHasher, RandomState};
 
 use crate::{st_data_t, st_index_t};
-
-#[cfg(target_pointer_width = "32")]
-const K: st_hash_t = 0x9e3779b9;
-#[cfg(target_pointer_width = "64")]
-const K: st_hash_t = 0x517cc1b727220a95;
 
 pub type st_hash_t = st_index_t;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct st_hash_type {
-    // (*compare)(ANYARGS /*st_data_t, st_data_t*/); /* st_compare_func* */
+    /// `st_compare_func`
+    ///
+    /// # Header declaration
+    ///
+    /// ```c
+    /// (*compare)(ANYARGS /*st_data_t, st_data_t*/); /* st_compare_func* */
+    /// ```
     pub compare: unsafe extern "C" fn(st_data_t, st_data_t) -> i32,
-    // st_index_t (*hash)(ANYARGS /*st_data_t*/);        /* st_hash_func* */
+
+    /// `st_hash_func`
+    ///
+    /// # Header declaration
+    ///
+    /// ```c
+    /// st_index_t (*hash)(ANYARGS /*st_data_t*/);        /* st_hash_func* */
+    /// ```
     pub hash: unsafe extern "C" fn(st_data_t) -> st_index_t,
 }
 
@@ -30,11 +36,6 @@ pub unsafe extern "C" fn default_hash(value: st_data_t) -> st_index_t {
     convert::identity(value)
 }
 
-static default_hash_type: st_hash_type = st_hash_type {
-    compare: default_compare,
-    hash: default_hash,
-};
-
 impl Default for st_hash_type {
     #[inline]
     fn default() -> Self {
@@ -45,21 +46,34 @@ impl Default for st_hash_type {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone)]
 pub struct StBuildHasher {
+    inner: RandomState,
     hash: unsafe extern "C" fn(st_data_t) -> st_index_t,
+}
+
+impl StBuildHasher {
+    pub fn into_boxed(self) -> Box<Self> {
+        Box::new(self)
+    }
 }
 
 impl Default for StBuildHasher {
     fn default() -> Self {
-        Self { hash: default_hash }
+        Self {
+            inner: RandomState::default(),
+            hash: default_hash,
+        }
     }
 }
 
 impl From<*const st_hash_type> for StBuildHasher {
     fn from(hash_type: *const st_hash_type) -> Self {
         let hash = unsafe { (*hash_type).hash };
-        Self { hash }
+        Self {
+            inner: RandomState::new(),
+            hash,
+        }
     }
 }
 
@@ -68,40 +82,37 @@ impl BuildHasher for StBuildHasher {
 
     #[inline]
     fn build_hasher(&self) -> Self::Hasher {
-        let mut buf = [0_u8; size_of::<st_hash_t>()];
-        let _ = getrandom::getrandom(&mut buf);
-        let seed = st_hash_t::from_ne_bytes(buf);
         Self::Hasher {
-            state: seed,
+            state: self.inner.build_hasher(),
             hash: self.hash,
         }
     }
 }
 
+impl BuildHasher for Box<StBuildHasher> {
+    type Hasher = StHasher;
+
+    #[inline]
+    fn build_hasher(&self) -> Self::Hasher {
+        Self::Hasher {
+            state: self.inner.build_hasher(),
+            hash: self.hash,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct StHasher {
-    state: st_hash_t,
+    state: DefaultHasher,
     hash: unsafe extern "C" fn(st_data_t) -> st_index_t,
 }
 
 impl Default for StHasher {
     fn default() -> Self {
         Self {
-            state: 0,
+            state: DefaultHasher::default(),
             hash: default_hash,
         }
-    }
-}
-
-impl From<&StBuildHasher> for StHasher {
-    #[inline]
-    fn from(build_hasher: &StBuildHasher) -> Self {
-        build_hasher.build_hasher()
-    }
-}
-
-impl fmt::Debug for StHasher {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "StHasher {{}}")
     }
 }
 
@@ -109,7 +120,10 @@ impl StHasher {
     #[inline]
     fn add_to_hash(&mut self, i: st_hash_t) {
         let i = unsafe { (self.hash)(i) };
-        self.state = self.state.rotate_left(5).bitxor(i).wrapping_mul(K);
+        #[cfg(target_pointer_width = "32")]
+        self.state.write_u32(i);
+        #[cfg(target_pointer_width = "64")]
+        self.state.write_u64(i);
     }
 }
 
@@ -215,6 +229,6 @@ impl Hasher for StHasher {
 
     #[inline]
     fn finish(&self) -> u64 {
-        self.state as u64
+        self.state.finish()
     }
 }

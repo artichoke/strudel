@@ -137,13 +137,16 @@ impl Eq for Key {}
 
 impl Hash for Key {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.record.hash(state)
+        #[cfg(target_pointer_width = "32")]
+        state.write_u32(self.record);
+        #[cfg(target_pointer_width = "64")]
+        state.write_u64(self.record);
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StHash {
-    map: HashMap<Key, st_data_t, StBuildHasher>,
+    map: HashMap<Key, st_data_t, Box<StBuildHasher>>,
     eq: unsafe extern "C" fn(st_data_t, st_data_t) -> i32,
 }
 
@@ -161,7 +164,7 @@ impl StHash {
     #[must_use]
     pub fn with_hash_type(hash_type: *const st_hash_type) -> Self {
         let hasher = StBuildHasher::from(hash_type);
-        let map = HashMap::with_hasher(hasher);
+        let map = HashMap::with_hasher(hasher.into_boxed());
         Self {
             map,
             eq: unsafe { (*hash_type).compare },
@@ -172,7 +175,7 @@ impl StHash {
     #[must_use]
     pub fn with_capacity_and_hash_type(capacity: usize, hash_type: *const st_hash_type) -> Self {
         let hasher = StBuildHasher::from(hash_type);
-        let map = HashMap::with_capacity_and_hasher(capacity, hasher);
+        let map = HashMap::with_capacity_and_hasher(capacity, hasher.into_boxed());
         Self {
             map,
             eq: unsafe { (*hash_type).compare },
