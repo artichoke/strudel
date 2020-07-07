@@ -1,4 +1,3 @@
-#![allow(non_camel_case_types)]
 #![allow(non_upper_case_globals)]
 
 use core::ffi::c_void;
@@ -465,14 +464,26 @@ pub unsafe extern "C" fn st_update(
     let update = func(&mut key, &mut value, arg, 1);
     match update {
         ret if ret == ST_CONTINUE && !existing => {
-            st_add_direct_with_hash(table, key, value, hash);
+            // In the MRI implementation, `st_add_direct_with_hash` is called in
+            // this position, which has the following docs:
+            //
+            // > Insert (KEY, VALUE, HASH) into table TAB. The table should not
+            // > have entry with KEY before the insertion.
+            //
+            // Rust maps do not expose direct insert with hash APIs, so we go
+            // through the normal insert route. This is semantically different
+            // behavior because `hash` of `key` might have changed when calling
+            // `func`.
+            //
+            // # Header declaration
+            //
+            // ```c
+            // st_add_direct_with_hash(table, key, value, hash);
+            // ```
+            let _ = table.0.insert(key, value);
         }
         ret if ret == ST_CONTINUE => {
-            if old_key == key {
-                table.0.insert(key, value);
-            } else {
-                table.0.update(key, value);
-            }
+            table.0.update(key, value);
         }
         ret if ret == ST_DELETE && existing => {
             let _ = table.0.remove(old_key);
@@ -530,7 +541,13 @@ pub unsafe extern "C" fn st_keys(
     count as st_index_t
 }
 
-// st_index_t st_keys_check(st_table *table, st_data_t *keys, st_index_t size, st_data_t never);
+/// No-op. See comments for function [`st_delete_safe`].
+///
+/// # Header declaration
+///
+/// ```c
+/// st_index_t st_keys_check(st_table *table, st_data_t *keys, st_index_t size, st_data_t never);
+/// ```
 #[no_mangle]
 pub unsafe extern "C" fn st_keys_check(
     table: *mut st_table,
@@ -538,20 +555,49 @@ pub unsafe extern "C" fn st_keys_check(
     size: st_index_t,
     _never: st_data_t,
 ) -> st_index_t {
-    todo!();
+    let table = st_table::from_raw(table);
+    let keys = slice::from_raw_parts_mut(keys, size as usize);
+    let mut count = 0;
+    for (counter, (slot, &key)) in keys.iter_mut().zip(table.0.keys()).enumerate() {
+        ptr::write(slot, key);
+        count = counter;
+    }
+    mem::forget(table);
+    count as st_index_t
 }
 
-// st_index_t st_values(st_table *table, st_data_t *values, st_index_t size);
+/// Set up array `values` by at most `size` values of head table `table`
+/// entries. Return the number of values set up in array `values`.
+///
+/// # Header declaration
+///
+/// ```c
+/// st_index_t st_values(st_table *table, st_data_t *values, st_index_t size);
+/// ```
 #[no_mangle]
 pub unsafe extern "C" fn st_values(
     table: *mut st_table,
     values: *mut st_data_t,
     size: st_index_t,
 ) -> st_index_t {
-    todo!();
+    let table = st_table::from_raw(table);
+    let keys = slice::from_raw_parts_mut(values, size as usize);
+    let mut count = 0;
+    for (counter, (slot, &value)) in keys.iter_mut().zip(table.0.values()).enumerate() {
+        ptr::write(slot, value);
+        count = counter;
+    }
+    mem::forget(table);
+    count as st_index_t
 }
 
-// st_index_t st_values_check(st_table *table, st_data_t *values, st_index_t size, st_data_t never);
+/// No-op. See comments for function [`st_delete_safe`].
+///
+/// # Header declaration
+///
+/// ```c
+/// st_index_t st_values_check(st_table *table, st_data_t *values, st_index_t size, st_data_t never);
+/// ```
 #[no_mangle]
 pub unsafe extern "C" fn st_values_check(
     table: *mut st_table,
@@ -559,7 +605,15 @@ pub unsafe extern "C" fn st_values_check(
     size: st_index_t,
     _never: st_data_t,
 ) -> st_index_t {
-    todo!();
+    let table = st_table::from_raw(table);
+    let keys = slice::from_raw_parts_mut(values, size as usize);
+    let mut count = 0;
+    for (counter, (slot, &value)) in keys.iter_mut().zip(table.0.values()).enumerate() {
+        ptr::write(slot, value);
+        count = counter;
+    }
+    mem::forget(table);
+    count as st_index_t
 }
 
 // void st_add_direct(st_table *, st_data_t, st_data_t);
@@ -610,11 +664,10 @@ pub unsafe extern "C" fn st_clear(table: *mut st_table) {
 // st_table *st_copy(st_table *);
 #[no_mangle]
 pub unsafe extern "C" fn st_copy(table: *mut st_table) -> *mut st_table {
-    let table = Box::from_raw(table);
+    let table = st_table::from_raw(table);
     let copy = table.0.clone();
     mem::forget(table);
-    let new_table = Box::new(copy.into());
-    Box::into_raw(new_table)
+    st_table::into_raw(copy.into())
 }
 
 // PUREFUNC(int st_locale_insensitive_strcasecmp(const char *s1, const char *s2));

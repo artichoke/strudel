@@ -105,17 +105,22 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 use core::borrow::Borrow;
 use core::hash::{Hash, Hasher};
 use core::iter::{FromIterator, FusedIterator};
-use std::collections::hash_map::{
-    Entry as HashEntry, OccupiedEntry as OccupiedHashEntry, VacantEntry as VacantHashEntry,
-};
+use core::mem::size_of;
+use std::collections::hash_map::Entry as HashEntry;
 use std::collections::{btree_map, BTreeMap, HashMap};
 
 #[cfg(feature = "capi")]
 pub mod capi;
+mod entry;
 mod fnv;
 mod hasher;
 
+use entry::{Entry, OccupiedEntry, VacantEntry};
 pub use hasher::{st_hash_t, st_hash_type, StBuildHasher, StHasher};
+
+pub mod st_hashmap {
+    pub use crate::entry::{Entry, OccupiedEntry, VacantEntry};
+}
 
 #[cfg(target_pointer_width = "64")]
 pub type st_data_t = u64;
@@ -357,7 +362,7 @@ impl StHash {
             insert_counter,
         };
         let (counter, old_value) = match self.map.entry(key) {
-            HashEntry::Occupied(base) => {
+            HashEntry::Occupied(mut base) => {
                 let old_value = base.insert(value);
                 (base.key().insert_counter(), Some(old_value))
             }
@@ -368,6 +373,25 @@ impl StHash {
         };
         self.ordered.insert(counter, (key_data, value));
         old_value
+    }
+
+    #[inline]
+    pub fn update(&mut self, key: st_data_t, value: st_data_t) {
+        let key_data = key;
+        let key = LookupKey {
+            record: key,
+            eq: self.eq,
+        };
+        if let Some((mut entry_key, _)) = self.map.remove_entry(&key) {
+            self.ordered
+                .insert(entry_key.insert_counter(), (key_data, value));
+            if &key_data != entry_key.record() {
+                entry_key.lookup.record = key_data;
+                self.map.insert(entry_key, value);
+            }
+        } else {
+            let _ = self.insert(key_data, value);
+        }
     }
 
     #[inline]
@@ -417,7 +441,7 @@ impl StHash {
 
     #[inline]
     #[must_use]
-    pub fn values(&mut self) -> Values<'_> {
+    pub fn values(&self) -> Values<'_> {
         Values(self.iter())
     }
 
@@ -429,6 +453,13 @@ impl StHash {
     #[inline]
     pub fn shrink_to_fit(&mut self) {
         self.map.shrink_to_fit();
+    }
+
+    #[inline]
+    pub fn estimated_memsize(&self) -> usize {
+        size_of::<Self>()
+            + (size_of::<Key>() + size_of::<st_data_t>()) * self.map.capacity()
+            + (size_of::<st_index_t>() + size_of::<(st_data_t, st_data_t)>()) * self.ordered.len()
     }
 }
 
@@ -603,162 +634,5 @@ impl<'a> IntoIterator for &'a StHash {
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
-    }
-}
-
-#[derive(Debug)]
-pub enum Entry<'a> {
-    /// An occupied entry.
-    Occupied(OccupiedEntry<'a>),
-
-    /// A vacant entry.
-    Vacant(VacantEntry<'a>),
-}
-
-#[derive(Debug)]
-pub struct OccupiedEntry<'a>(OccupiedHashEntry<'a, Key, st_data_t>);
-
-#[derive(Debug)]
-pub struct VacantEntry<'a>(VacantHashEntry<'a, Key, st_data_t>);
-
-impl<'a> Entry<'a> {
-    /// Ensures a value is in the entry by inserting the default if empty, and
-    /// returns a mutable reference to the value in the entry.
-    #[inline]
-    pub fn or_insert(self, default: st_data_t) -> &'a mut st_data_t {
-        match self {
-            Self::Occupied(entry) => entry.0.into_mut(),
-            Self::Vacant(entry) => entry.0.insert(default),
-        }
-    }
-
-    /// Ensures a value is in the entry by inserting the result of the default
-    /// function if empty, and returns a mutable reference to the value in the
-    /// entry.
-    #[inline]
-    pub fn or_insert_with<F: FnOnce() -> st_data_t>(self, default: F) -> &'a mut st_data_t {
-        match self {
-            Self::Occupied(entry) => entry.0.into_mut(),
-            Self::Vacant(entry) => entry.0.insert(default()),
-        }
-    }
-
-    /// Ensures a value is in the entry by inserting, if empty, the result of
-    /// the default function, which takes the key as its argument, and returns a
-    /// mutable reference to the value in the entry.
-    #[inline]
-    pub fn or_insert_with_key<F: FnOnce(&st_data_t) -> st_data_t>(
-        self,
-        default: F,
-    ) -> &'a mut st_data_t {
-        match self {
-            Self::Occupied(entry) => entry.0.into_mut(),
-            Self::Vacant(entry) => {
-                let value = default(entry.0.key().record());
-                entry.insert(value)
-            }
-        }
-    }
-
-    /// Returns a reference to this entry's key.
-    #[inline]
-    pub fn key(&self) -> &st_data_t {
-        match self {
-            Self::Occupied(entry) => entry.0.key().record(),
-            Self::Vacant(entry) => entry.0.key().record(),
-        }
-    }
-
-    /// Provides in-place mutable access to an occupied entry before any
-    /// potential inserts into the map.
-    #[inline]
-    pub fn and_modify<F>(self, f: F) -> Self
-    where
-        F: FnOnce(&mut st_data_t),
-    {
-        match self {
-            Self::Occupied(mut entry) => {
-                f(entry.0.get_mut());
-                Self::Occupied(entry)
-            }
-            Self::Vacant(entry) => Self::Vacant(entry),
-        }
-    }
-}
-
-impl<'a> OccupiedEntry<'a> {
-    /// Gets a reference to the key in the entry.
-    #[inline]
-    pub fn key(&self) -> &st_data_t {
-        self.0.key().record()
-    }
-
-    /// Take the ownership of the key and value from the map.
-    #[inline]
-    pub fn remove_entry(self) -> (st_data_t, st_data_t) {
-        let (key, value) = self.0.remove_entry();
-        (key.into_record(), value)
-    }
-
-    /// Gets a reference to the value in the entry.
-    #[inline]
-    pub fn get(&self) -> &st_data_t {
-        self.0.get()
-    }
-
-    /// Gets a mutable reference to the value in the entry.
-    ///
-    /// If you need a reference to the `OccupiedEntry` which may outlive the
-    /// destruction of the `Entry` value, see [`into_mut`].
-    ///
-    /// [`into_mut`]: #method.into_mut
-    #[inline]
-    pub fn get_mut(&mut self) -> &mut st_data_t {
-        self.0.get_mut()
-    }
-
-    /// Converts the OccupiedEntry into a mutable reference to the value in the
-    /// entry with a lifetime bound to the map itself.
-    ///
-    /// If you need multiple references to the `OccupiedEntry`, see [`get_mut`].
-    ///
-    /// [`get_mut`]: #method.get_mut
-    #[inline]
-    pub fn into_mut(self) -> &'a mut st_data_t {
-        self.0.into_mut()
-    }
-
-    /// Sets the value of the entry, and returns the entry's old value.
-    #[inline]
-    pub fn insert(&mut self, value: st_data_t) -> st_data_t {
-        self.0.insert(value)
-    }
-
-    /// Takes the value out of the entry, and returns it.
-    #[inline]
-    pub fn remove(self) -> st_data_t {
-        self.0.remove()
-    }
-}
-
-impl<'a> VacantEntry<'a> {
-    /// Gets a reference to the key that would be used when inserting a value
-    /// through the `VacantEntry`.
-    #[inline]
-    pub fn key(&self) -> &st_data_t {
-        self.0.key().record()
-    }
-
-    /// Take ownership of the key.
-    #[inline]
-    pub fn into_key(self) -> st_data_t {
-        self.0.into_key().into_record()
-    }
-
-    /// Sets the value of the entry with the VacantEntry's key, and returns a
-    /// mutable reference to it.
-    #[inline]
-    pub fn insert(self, value: st_data_t) -> &'a mut st_data_t {
-        self.0.insert(value)
     }
 }
