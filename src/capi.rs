@@ -48,33 +48,19 @@ struct __st_table {
     entries: *mut st_table_entry,
 }
 
-// ensure that `StdHash` fits in `st_table` for an opaque FFI container.
-const _: () = [()][!(size_of::<__st_table>() >= size_of::<Box<StHash>>()) as usize];
-// const _: [(); 0] = [(); size_of::<__st_table>()];
-// const _: [(); 0] = [(); size_of::<Box<StHash>>()];
-const ST_TABLE_PADDING_LEN: usize = size_of::<__st_table>() - size_of::<Box<StHash>>();
-
-#[repr(C)]
-pub struct st_table {
-    table: Box<StHash>,
-    padding: [u8; ST_TABLE_PADDING_LEN],
-}
+pub struct st_table(StHash);
 
 impl From<StHash> for st_table {
+    #[inline]
     fn from(table: StHash) -> Self {
-        Self {
-            table: Box::new(table),
-            padding: [0; ST_TABLE_PADDING_LEN],
-        }
+        Self(table)
     }
 }
 
 impl From<Box<StHash>> for st_table {
+    #[inline]
     fn from(table: Box<StHash>) -> Self {
-        Self {
-            table,
-            padding: [0; ST_TABLE_PADDING_LEN],
-        }
+        Self(*table)
     }
 }
 
@@ -128,9 +114,8 @@ static type_strcasehash: st_hash_type = st_hash_type {
 // st_table *st_init_table(const struct st_hash_type *);
 #[no_mangle]
 pub unsafe extern "C" fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
-    let map = StHash::with_hash_type(hash_type);
-    let table = map.into();
-    let table = Box::new(table);
+    let table = StHash::with_hash_type(hash_type);
+    let table = Box::new(table.into());
     Box::into_raw(table)
 }
 
@@ -140,9 +125,8 @@ pub unsafe extern "C" fn st_init_table_with_size(
     hash_type: *const st_hash_type,
     size: st_index_t,
 ) -> *mut st_table {
-    let map = StHash::with_capacity_and_hash_type(size as usize, hash_type);
-    let table = map.into();
-    let table = Box::new(table);
+    let table = StHash::with_capacity_and_hash_type(size as usize, hash_type);
+    let table = Box::new(table.into());
     Box::into_raw(table)
 }
 
@@ -199,8 +183,8 @@ pub unsafe extern "C" fn st_delete(
     key: *mut st_data_t,
     value: *mut st_data_t,
 ) -> libc::c_int {
-    let mut map = Box::from_raw(table);
-    let ret = if let Some((original_key, original_value)) = map.table.delete(*key) {
+    let mut table = Box::from_raw(table);
+    let ret = if let Some((original_key, original_value)) = table.0.delete(*key) {
         ptr::write(key, original_key);
         if !value.is_null() {
             ptr::write(value, original_value);
@@ -212,7 +196,7 @@ pub unsafe extern "C" fn st_delete(
         }
         0
     };
-    mem::forget(map);
+    mem::forget(table);
     ret
 }
 
@@ -227,14 +211,35 @@ pub unsafe extern "C" fn st_delete_safe(
     st_delete(table, key, value)
 }
 
-// int st_shift(st_table *, st_data_t *, st_data_t *); /* returns 0:notfound 1:deleted */
+/// If table `table` is empty, clear `*VALUE` (unless `VALUE` is zero), and
+/// return zero. Otherwise, remove the first entry in the table.  Return its key
+/// through `KEY` and its record through `VALUE` (unless `VALUE` is zero).
+///
+/// # Header declaration
+///
+/// ```c
+/// int st_shift(st_table *, st_data_t *, st_data_t *); /* returns 0:notfound 1:deleted */
+/// ```
 #[no_mangle]
 pub unsafe extern "C" fn st_shift(
     table: *mut st_table,
     key: *mut st_data_t,
     value: *mut st_data_t,
 ) -> libc::c_int {
-    todo!();
+    let mut table = Box::from_raw(table);
+    if let Some(&&first_key) = table.0.keys().ordered().first() {
+        if let Some((first_key, first_value)) = table.0.delete(first_key) {
+            ptr::write(key, first_key);
+            if !value.is_null() {
+                ptr::write(value, first_value);
+            }
+            return 1;
+        }
+    }
+    if !value.is_null() {
+        ptr::write(value, 0);
+    }
+    0
 }
 
 /// Insert (KEY, VALUE) into table TAB and return zero. If there is already
@@ -252,9 +257,9 @@ pub unsafe extern "C" fn st_insert(
     key: st_data_t,
     value: st_data_t,
 ) -> libc::c_int {
-    let mut map = Box::from_raw(table);
-    let ret = map.table.insert(key, value).is_some() as libc::c_int;
-    mem::forget(map);
+    let mut table = Box::from_raw(table);
+    let ret = table.0.insert(key, value).is_some() as libc::c_int;
+    mem::forget(table);
     ret
 }
 
@@ -274,15 +279,15 @@ pub unsafe extern "C" fn st_insert2(
     value: st_data_t,
     func: unsafe extern "C" fn(st_data_t) -> st_data_t,
 ) -> libc::c_int {
-    let mut map = Box::from_raw(table);
-    let ret = if map.table.get(key).is_some() {
-        let _ = map.table.insert(key, value);
+    let mut table = Box::from_raw(table);
+    let ret = if table.0.get(key).is_some() {
+        let _ = table.0.insert(key, value);
         1
     } else {
-        let _ = map.table.insert(func(key), value);
+        let _ = table.0.insert(func(key), value);
         0
     };
-    mem::forget(map);
+    mem::forget(table);
     ret
 }
 
@@ -403,8 +408,8 @@ pub unsafe extern "C" fn st_add_direct(table: *mut st_table, key: st_data_t, val
 /// ```
 #[no_mangle]
 pub unsafe extern "C" fn st_free_table(table: *mut st_table) {
-    let map = Box::from_raw(table);
-    mem::drop(map)
+    let table = Box::from_raw(table);
+    mem::drop(table)
 }
 
 /// No-op. See comments for function [`st_delete_safe`].
@@ -428,19 +433,18 @@ pub unsafe extern "C" fn st_cleanup_safe(table: *mut st_table, _never: st_data_t
 /// ```
 #[no_mangle]
 pub unsafe extern "C" fn st_clear(table: *mut st_table) {
-    let mut map = Box::from_raw(table);
-    map.table.clear();
-    mem::forget(map);
+    let mut table = Box::from_raw(table);
+    table.0.clear();
+    mem::forget(table);
 }
 
 // st_table *st_copy(st_table *);
 #[no_mangle]
 pub unsafe extern "C" fn st_copy(table: *mut st_table) -> *mut st_table {
-    let map = Box::from_raw(table);
-    let copy = map.table.clone();
-    mem::forget(map);
-    let new_table = copy.into();
-    let new_table = Box::new(new_table);
+    let table = Box::from_raw(table);
+    let copy = table.0.clone();
+    mem::forget(table);
+    let new_table = Box::new(copy.into());
     Box::into_raw(new_table)
 }
 
@@ -518,10 +522,10 @@ pub unsafe extern "C" fn st_strncasecmp(
 
 #[no_mangle]
 pub unsafe extern "C" fn st_memsize(table: *const st_table) -> libc::size_t {
-    let map = Box::from_raw(table as *mut st_table);
+    let table = Box::from_raw(table as *mut st_table);
     let mut size = size_of::<st_table>();
-    size += map.table.capacity() * size_of::<st_data_t>() * 2;
-    mem::forget(map);
+    size += table.0.capacity() * size_of::<st_data_t>() * 2;
+    mem::forget(table);
     size as _
 }
 
