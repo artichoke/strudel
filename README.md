@@ -26,16 +26,16 @@ strudel = "1.0"
 All features are enabled by default.
 
 - **capi** - Enables a C API suitable for embedding `strudel` with FFI. Linking
-  in the `libstrudel` cdylib will implement the functions defined in [`include/st.h`](include/st.h).
-  Disabling this drops the [`libc`] dependency.
+  in the `libstrudel` cdylib will implement the functions defined in
+  [`include/st.h`](include/st.h). Disabling this drops the [`libc`] dependency.
 
 ## License
 
 `strudel` is licensed under the [MIT License](LICENSE) (c) Ryan Lopopolo.
 
 `strudel` is based on `st.h` and `st.c` from
-[Ruby](https://github.com/ruby/ruby). See [`COPYING`](COPYING). These sources are
-vendored in [`ruby`](ruby)
+[Ruby](https://github.com/ruby/ruby). See [`COPYING`](COPYING). These sources
+are vendored in [`ruby`](ruby)
 
 The `strudel` implementation in Ruby includes the following notice:
 
