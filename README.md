@@ -35,9 +35,9 @@ All features are enabled by default.
 
 `strudel` is based on `st.h` and `st.c` from
 [Ruby](https://github.com/ruby/ruby). See [`COPYING`](COPYING). These sources
-are vendored in [`ruby`](ruby)
+are vendored in [`ruby`](ruby) source directory.
 
-The `strudel` implementation in Ruby includes the following notice:
+The `st_hash` implementation in Ruby includes the following notice:
 
 ```
 /* This is a public domain general purpose hash table package
