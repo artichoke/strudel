@@ -1,12 +1,14 @@
 #![allow(non_camel_case_types)]
+#![allow(non_upper_case_globals)]
 
 use core::ffi::c_void;
 use core::hash::Hasher;
 use core::mem::{self, size_of};
+use core::ptr;
 use core::slice;
 use std::ffi::CStr;
 
-use crate::fnv::{self, Fnv1a32, FNV1_32A_INIT};
+use crate::fnv::{self, Fnv1a32};
 use crate::{st_data_t, st_hash_t, st_hash_type, st_index_t, StHash};
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -105,11 +107,7 @@ unsafe extern "C" fn strcmp(x: st_data_t, y: st_data_t) -> libc::c_int {
 
 unsafe extern "C" fn strhash(arg: st_data_t) -> st_index_t {
     let string = CStr::from_ptr(arg as *const libc::c_char);
-    st_hash(
-        string.as_ptr() as *const c_void,
-        string.to_bytes().len(),
-        FNV1_32A_INIT as st_index_t,
-    )
+    fnv::hash(string.to_bytes()) as st_index_t
 }
 
 static type_strhash: st_hash_type = st_hash_type {
@@ -185,14 +183,38 @@ pub unsafe extern "C" fn st_init_strcasetable_with_size(size: st_index_t) -> *mu
     st_init_table_with_size(&type_strcasehash as *const _, size)
 }
 
-// int st_delete(st_table *, st_data_t *, st_data_t *); /* returns 0:notfound 1:deleted */
+/// Delete entry with `key` from table `table`.
+///
+/// Set up `*VALUE` (unless `VALUE` is zero) from deleted table entry, and
+/// return non-zero. If there is no entry with `key` in the table, clear
+/// `*VALUE` (unless `VALUE` is zero), and return zero.
+///
+/// # Header declaration
+///
+/// ```c
+/// int st_delete(st_table *, st_data_t *, st_data_t *); /* returns 0:notfound 1:deleted */
+/// ```
 #[no_mangle]
 pub unsafe extern "C" fn st_delete(
     table: *mut st_table,
     key: *mut st_data_t,
     value: *mut st_data_t,
 ) -> libc::c_int {
-    todo!();
+    let mut map = Box::from_raw(table);
+    let ret = if let Some((original_key, original_value)) = map.table.delete(*key) {
+        ptr::write(key, original_key);
+        if !value.is_null() {
+            ptr::write(value, original_value);
+        }
+        1
+    } else {
+        if !value.is_null() {
+            ptr::write(value, 0);
+        }
+        0
+    };
+    mem::forget(map);
+    ret
 }
 
 // int st_delete_safe(st_table *, st_data_t *, st_data_t *, st_data_t);
@@ -255,10 +277,10 @@ pub unsafe extern "C" fn st_insert2(
 ) -> libc::c_int {
     let mut map = Box::from_raw(table);
     let ret = if map.table.get(key).is_some() {
-        map.table.insert(key, value);
+        let _ = map.table.insert(key, value);
         1
     } else {
-        map.table.insert(func(key), value);
+        let _ = map.table.insert(func(key), value);
         0
     };
     mem::forget(map);
