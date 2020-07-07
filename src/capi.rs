@@ -295,8 +295,7 @@ pub unsafe extern "C" fn st_shift(
     value: *mut st_data_t,
 ) -> libc::c_int {
     let mut table = st_table::from_raw(table);
-    // The `StHash::keys` iterator returns keys in insertion order.
-    if let Some(&first_key) = table.0.keys().next() {
+    if let Some((&first_key, _)) = table.0.first() {
         if let Some((entry_key, entry_value)) = table.0.delete(first_key) {
             ptr::write(key, entry_key);
             if !value.is_null() {

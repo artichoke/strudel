@@ -137,21 +137,25 @@ struct Key {
 
 impl Key {
     #[inline]
+    #[must_use]
     fn insert_counter(&self) -> st_index_t {
         self.insert_counter
     }
 
     #[inline]
+    #[must_use]
     fn lookup_key(&self) -> &LookupKey {
         &self.lookup
     }
 
     #[inline]
+    #[must_use]
     fn record(&self) -> &st_data_t {
         &self.lookup.record
     }
 
     #[inline]
+    #[must_use]
     fn into_record(self) -> st_data_t {
         self.lookup.record
     }
@@ -327,6 +331,18 @@ impl StHash {
         };
         let (key, value) = self.map.get_key_value(&key)?;
         Some((key.record(), value))
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn first(&self) -> Option<(&st_data_t, &st_data_t)> {
+        self.iter().next()
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn last(&self) -> Option<(&st_data_t, &st_data_t)> {
+        self.iter().last()
     }
 
     #[inline]
