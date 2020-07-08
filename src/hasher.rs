@@ -27,7 +27,7 @@ impl Default for st_hash_type {
 #[allow(clippy::module_name_repetitions)]
 pub struct StBuildHasher {
     inner: RandomState,
-    hash: unsafe extern "C" fn(st_data_t) -> st_index_t,
+    hash: st_hash_func,
 }
 
 impl StBuildHasher {
@@ -88,7 +88,7 @@ impl BuildHasher for Box<StBuildHasher> {
 #[allow(clippy::module_name_repetitions)]
 pub struct StHasher {
     state: DefaultHasher,
-    hash: unsafe extern "C" fn(st_data_t) -> st_index_t,
+    hash: st_hash_func,
 }
 
 impl Default for StHasher {
@@ -123,7 +123,7 @@ impl Hasher for StHasher {
             self.add_to_hash(i);
         }
         buf = [0_u8; size_of::<st_hash_t>()];
-        buf.copy_from_slice(iter.remainder());
+        buf[..iter.remainder().len()].copy_from_slice(iter.remainder());
         let i = st_hash_t::from_ne_bytes(buf);
         self.add_to_hash(i);
     }

@@ -22,5 +22,12 @@ crate-type = ["cdylib", "rlib"]
 libc = { version = "0.2", optional = true }
 
 [features]
-default = ["capi"]
-capi = ["libc"]
+default = ["capi", "debug"]
+capi-specialized-init = ["capi"]
+capi = ["api"]
+api = ["libc"]
+debug = []
+
+[profile.release]
+codegen-units = 1
+lto = true

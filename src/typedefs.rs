@@ -9,8 +9,14 @@ pub type st_index_t = st_data_t;
 
 pub type st_hash_t = st_index_t;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// typedef int st_compare_func(st_data_t, st_data_t);
+pub type st_compare_func = unsafe extern "C" fn(st_data_t, st_data_t) -> i32;
+
+// typedef st_index_t st_hash_func(st_data_t);
+pub type st_hash_func = unsafe extern "C" fn(st_data_t) -> st_index_t;
+
 #[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct st_hash_type {
     /// `st_compare_func`
     ///
@@ -19,7 +25,7 @@ pub struct st_hash_type {
     /// ```c
     /// (*compare)(ANYARGS /*st_data_t, st_data_t*/); /* st_compare_func* */
     /// ```
-    pub compare: unsafe extern "C" fn(st_data_t, st_data_t) -> i32,
+    pub compare: st_compare_func,
 
     /// `st_hash_func`
     ///
@@ -28,7 +34,7 @@ pub struct st_hash_type {
     /// ```c
     /// st_index_t (*hash)(ANYARGS /*st_data_t*/);        /* st_hash_func* */
     /// ```
-    pub hash: unsafe extern "C" fn(st_data_t) -> st_index_t,
+    pub hash: st_hash_func,
 }
 
 #[repr(C)]
@@ -39,6 +45,26 @@ pub enum st_retval {
     ST_DELETE,
     ST_CHECK,
 }
+
+impl PartialEq<i32> for st_retval {
+    fn eq(&self, other: &i32) -> bool {
+        *self as i32 == *other
+    }
+}
+
+impl PartialEq<st_retval> for i32 {
+    fn eq(&self, other: &st_retval) -> bool {
+        *self == *other as i32
+    }
+}
+
+// typedef int st_update_callback_func(st_data_t *key, st_data_t *value, st_data_t arg, int existing);
+pub type st_update_callback_func =
+    unsafe extern "C" fn(*mut st_data_t, *mut st_data_t, st_data_t, i32) -> i32;
+
+// int (*)(ANYARGS)
+pub type st_foreach_callback_func =
+    unsafe extern "C" fn(st_data_t, st_data_t, st_data_t, i32) -> i32;
 
 /// Opaque FFI wrapper around an `StHash`.
 #[derive(Debug)]

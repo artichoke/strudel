@@ -1,0 +1,129 @@
+diff --git a/st.c b/st.c
+index ed235c674e..4c19dc1fb5 100644
+--- a/st.c
++++ b/st.c
+@@ -570,6 +570,7 @@ stat_col(void)
+ }
+ #endif
+ 
++#ifndef STRUDEL
+ /* Create and return table with TYPE which can hold at least SIZE
+    entries.  The real number of entries which the table can hold is
+    the nearest power of two for SIZE.  */
+@@ -702,6 +703,8 @@ st_memsize(const st_table *tab)
+            + get_allocated_entries(tab) * sizeof(st_table_entry));
+ }
+ 
++#endif
++
+ static st_index_t
+ find_table_entry_ind(st_table *tab, st_hash_t hash_value, st_data_t key);
+ 
+@@ -1074,6 +1077,8 @@ find_table_bin_ptr_and_reserve(st_table *tab, st_hash_t *hash_value,
+     return entry_index;
+ }
+ 
++#ifndef STRUDEL
++
+ /* Find an entry with KEY in table TAB.  Return non-zero if we found
+    it.  Set up *RECORD to the found entry record.  */
+ int
+@@ -1132,6 +1137,8 @@ st_get_key(st_table *tab, st_data_t key, st_data_t *result)
+     return 1;
+ }
+ 
++#endif
++
+ /* Check the table and rebuild it if it is necessary.  */
+ static inline void
+ rebuild_table_if_necessary (st_table *tab)
+@@ -1143,6 +1150,8 @@ rebuild_table_if_necessary (st_table *tab)
+     st_assert(tab->entries_bound < get_allocated_entries(tab));
+ }
+ 
++#ifndef STRUDEL
++
+ /* Insert (KEY, VALUE) into table TAB and return zero.  If there is
+    already entry with KEY in the table, return nonzero and and update
+    the value of the found entry.  */
+@@ -1318,6 +1327,8 @@ st_copy(st_table *old_tab)
+     return new_tab;
+ }
+ 
++#endif
++
+ /* Update the entries start of table TAB after removing an entry
+    with index N in the array entries.  */
+ static inline void
+@@ -1329,6 +1340,8 @@ update_range_for_deleted(st_table *tab, st_index_t n)
+         tab->entries_start = n + 1;
+ }
+ 
++#ifndef STRUDEL
++
+ /* Delete entry with KEY from table TAB, set up *VALUE (unless
+    VALUE is zero) from deleted table entry, and return non-zero.  If
+    there is no entry with KEY in the table, clear *VALUE (unless VALUE
+@@ -1737,6 +1750,8 @@ st_values_check(st_table *tab, st_data_t *values, st_index_t size,
+     return st_general_values(tab, values, size);
+ }
+ 
++#endif
++
+ #define FNV1_32A_INIT 0x811c9dc5
+ 
+ /*
+@@ -1825,6 +1840,8 @@ murmur_finish(st_index_t h)
+ #undef r2
+ #undef r3
+ 
++#ifndef STRUDEL
++
+ st_index_t
+ st_hash(const void *ptr, size_t len, st_index_t h)
+ {
+@@ -2004,6 +2021,8 @@ st_hash_start(st_index_t h)
+     return h;
+ }
+ 
++#endif
++
+ static st_index_t
+ strhash(st_data_t arg)
+ {
+@@ -2011,6 +2030,8 @@ strhash(st_data_t arg)
+     return st_hash(string, strlen(string), FNV1_32A_INIT);
+ }
+ 
++#ifndef STRUDEL
++
+ int
+ st_locale_insensitive_strcasecmp(const char *s1, const char *s2)
+ {
+@@ -2061,6 +2082,8 @@ st_locale_insensitive_strncasecmp(const char *s1, const char *s2, size_t n)
+     return 0;
+ }
+ 
++#endif
++
+ NO_SANITIZE("unsigned-integer-overflow", PUREFUNC(static st_index_t strcasehash(st_data_t)));
+ static st_index_t
+ strcasehash(st_data_t arg)
+@@ -2082,6 +2105,8 @@ strcasehash(st_data_t arg)
+     return hval;
+ }
+ 
++#ifndef STRUDEL
++
+ int
+ st_numcmp(st_data_t x, st_data_t y)
+ {
+@@ -2095,6 +2120,8 @@ st_numhash(st_data_t n)
+     return (st_index_t)((n>>s1|(n<<s2)) ^ (n>>s2));
+ }
+ 
++#endif
++
+ /* Expand TAB to be suitable for holding SIZ entries in total.
+    Pre-existing entries remain not deleted inside of TAB, but its bins
+    are cleared to expect future reconstruction. See rehash below. */

@@ -123,10 +123,12 @@ use std::collections::hash_map::Entry as HashEntry;
 use std::collections::{btree_map, BTreeMap, HashMap};
 use std::vec;
 
+#[cfg(feature = "api")]
+pub mod api;
 #[cfg(feature = "capi")]
 pub mod capi;
 mod entry;
-#[cfg(feature = "capi")]
+#[cfg(feature = "api")]
 mod fnv;
 mod hasher;
 mod typedefs;
@@ -173,17 +175,15 @@ impl Key {
 
 impl PartialEq for Key {
     #[inline]
-    fn eq(&self, other: &Key) -> bool {
-        let cmp = self.lookup.eq;
-        unsafe { (cmp)(self.lookup.record, other.lookup.record) == 0 }
+    fn eq(&self, other: &Self) -> bool {
+        self.lookup == other.lookup
     }
 }
 
 impl PartialEq<LookupKey> for Key {
     #[inline]
     fn eq(&self, other: &LookupKey) -> bool {
-        let cmp = self.lookup.eq;
-        unsafe { (cmp)(self.lookup.record, other.record) == 0 }
+        self.lookup == other
     }
 }
 
@@ -202,22 +202,29 @@ impl Hash for Key {
 #[derive(Debug, Clone)]
 struct LookupKey {
     record: st_data_t,
-    eq: unsafe extern "C" fn(st_data_t, st_data_t) -> i32,
+    eq: st_compare_func,
 }
 
 impl PartialEq for LookupKey {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         let cmp = self.eq;
-        unsafe { (cmp)(self.record, other.record) == 0 }
+        let a = unsafe { (cmp)(self.record, other.record) == 0 };
+        a
+    }
+}
+
+impl PartialEq<&LookupKey> for LookupKey {
+    #[inline]
+    fn eq(&self, other: &&Self) -> bool {
+        self == *other
     }
 }
 
 impl PartialEq<Key> for LookupKey {
     #[inline]
     fn eq(&self, other: &Key) -> bool {
-        let cmp = self.eq;
-        unsafe { (cmp)(self.record, other.lookup.record) == 0 }
+        *self == other.lookup
     }
 }
 
