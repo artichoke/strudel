@@ -21,6 +21,9 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 libc = { version = "0.2", optional = true }
 
+[dev-dependencies]
+memoffset = "0.5.3"
+
 [features]
 default = ["capi", "debug"]
 capi-specialized-init = ["capi"]

@@ -80,16 +80,14 @@ pub struct st_table(StHash);
 impl st_table {
     #[inline]
     #[must_use]
-    pub fn into_raw(mut table: Self) -> *mut Self {
-        table.ensure_num_entries_is_consistent_after_writes();
+    pub fn into_raw(table: Self) -> *mut Self {
         let table = Box::new(table);
         Box::into_raw(table)
     }
 
     #[inline]
     #[must_use]
-    pub fn boxed_into_raw(mut table: Box<Self>) -> *mut Self {
-        table.ensure_num_entries_is_consistent_after_writes();
+    pub fn boxed_into_raw(table: Box<Self>) -> *mut Self {
         Box::into_raw(table)
     }
 
@@ -113,14 +111,14 @@ impl st_table {
 #[cfg(not(feature = "capi"))]
 impl From<StHash> for st_table {
     #[inline]
-    fn from(table: crate::StHash) -> Self {
+    fn from(table: StHash) -> Self {
         Self(table)
     }
 }
 
 #[cfg(not(feature = "capi"))]
 impl Deref for st_table {
-    type Target = crate::StHash;
+    type Target = StHash;
 
     #[inline]
     fn deref(&self) -> &Self::Target {

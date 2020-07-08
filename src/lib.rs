@@ -457,6 +457,7 @@ impl StHash {
             eq: self.eq,
         };
         let (key, value) = self.map.remove_entry(&key)?;
+        self.ordered.remove(&key.insert_counter());
         Some((key.into_record(), value))
     }
 
@@ -467,7 +468,9 @@ impl StHash {
             record: key,
             eq: self.eq,
         };
-        self.map.remove(&key)
+        let (key, value) = self.map.remove_entry(&key)?;
+        self.ordered.remove(&key.insert_counter());
+        Some(value)
     }
 
     #[inline]

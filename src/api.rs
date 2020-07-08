@@ -305,6 +305,8 @@ pub unsafe fn st_update(
         }
         ret if ret == ST_CONTINUE => {
             table.update(key, value);
+            #[cfg(feature = "capi")]
+            table.ensure_num_entries_is_consistent_after_writes();
         }
         ret if ret == ST_DELETE && existing => {
             let _ = table.remove(old_key);
@@ -587,7 +589,7 @@ pub unsafe fn st_copy(table: *mut st_table) -> *mut st_table {
     let table = st_table::from_raw(table);
     let copy = table.clone();
     mem::forget(table);
-    st_table::boxed_into_raw(copy.into())
+    st_table::into_raw(copy.into())
 }
 
 #[inline]

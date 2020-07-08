@@ -2,7 +2,7 @@
 
 use core::ffi::c_void;
 use core::fmt;
-use core::mem::{self, size_of};
+use core::mem;
 use core::ops::{Deref, DerefMut};
 
 use crate::api;
@@ -61,14 +61,11 @@ struct __st_table_entry {
     record: st_data_t,
 }
 
-const PADDING_TO_NUM_ENTRIES: usize =
-    size_of::<libc::c_uchar>() * 3 + size_of::<libc::c_int>() + size_of::<*mut st_hash_type>();
-
-const PADDING_TO_END: usize =
-    size_of::<__st_table>() - PADDING_TO_NUM_ENTRIES - size_of::<st_index_t>();
+// These values enforced by test.
+const PADDING_TO_NUM_ENTRIES: usize = 8;
+const PADDING_TO_END: usize = 32;
 
 #[repr(C)]
-#[derive(Clone, Copy)]
 pub struct st_table {
     table: *mut StHash,
     _padding: [u8; PADDING_TO_NUM_ENTRIES],
@@ -82,6 +79,13 @@ impl st_table {
         let table = unsafe { Box::from_raw(self.table) };
         self.num_entries = table.len() as st_index_t;
         mem::forget(table);
+    }
+}
+
+impl Drop for st_table {
+    fn drop(&mut self) {
+        let inner = unsafe { Box::from_raw(self.table) };
+        drop(inner);
     }
 }
 
@@ -571,3 +575,25 @@ unsafe extern "C" fn st_hash_start(h: st_index_t) -> st_index_t {
 }
 
 // void rb_hash_bulk_insert_into_st_table(long, const VALUE *, VALUE);
+
+#[cfg(test)]
+mod tests {
+    use core::mem::size_of;
+
+    use crate::capi::__st_table;
+    use crate::typedefs::st_table;
+
+    #[test]
+    fn num_entries_offset_ffi_compat() {
+        let c_struct = memoffset::offset_of!(__st_table, num_entries);
+        let rust_struct = memoffset::offset_of!(st_table, num_entries);
+        assert_eq!(c_struct, rust_struct);
+    }
+
+    #[test]
+    fn size_of_ffi_compat() {
+        let c_struct = size_of::<__st_table>();
+        let rust_struct = size_of::<st_table>();
+        assert_eq!(c_struct, rust_struct);
+    }
+}
