@@ -3,6 +3,8 @@ use core::ops::{Deref, DerefMut};
 
 #[cfg(feature = "capi")]
 pub use crate::capi::st_table;
+#[cfg(not(feature = "capi"))]
+use crate::StHash;
 
 #[cfg(target_pointer_width = "64")]
 pub type st_data_t = u64;
@@ -73,13 +75,9 @@ pub type st_foreach_callback_func =
 /// Opaque FFI wrapper around an `StHash`.
 #[cfg(not(feature = "capi"))]
 #[derive(Debug)]
-pub struct st_table(crate::StHash);
+pub struct st_table(StHash);
 
 impl st_table {
-    #[cfg(not(feature = "capi"))]
-    #[inline]
-    pub fn ensure_num_entries_is_consistent_after_writes(&mut self) {}
-
     #[inline]
     #[must_use]
     pub fn into_raw(mut table: Self) -> *mut Self {
@@ -113,7 +111,7 @@ impl st_table {
 }
 
 #[cfg(not(feature = "capi"))]
-impl From<crate::StHash> for st_table {
+impl From<StHash> for st_table {
     #[inline]
     fn from(table: crate::StHash) -> Self {
         Self(table)
