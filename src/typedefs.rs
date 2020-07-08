@@ -1,4 +1,8 @@
+#[cfg(not(feature = "capi"))]
 use core::ops::{Deref, DerefMut};
+
+#[cfg(feature = "capi")]
+pub use crate::capi::st_table;
 
 #[cfg(target_pointer_width = "64")]
 pub type st_data_t = u64;
@@ -67,20 +71,27 @@ pub type st_foreach_callback_func =
     unsafe extern "C" fn(st_data_t, st_data_t, st_data_t, i32) -> i32;
 
 /// Opaque FFI wrapper around an `StHash`.
+#[cfg(not(feature = "capi"))]
 #[derive(Debug)]
 pub struct st_table(crate::StHash);
 
 impl st_table {
+    #[cfg(not(feature = "capi"))]
+    #[inline]
+    pub fn ensure_num_entries_is_consistent_after_writes(&mut self) {}
+
     #[inline]
     #[must_use]
-    pub fn into_raw(table: Self) -> *mut Self {
+    pub fn into_raw(mut table: Self) -> *mut Self {
+        table.ensure_num_entries_is_consistent_after_writes();
         let table = Box::new(table);
         Box::into_raw(table)
     }
 
     #[inline]
     #[must_use]
-    pub fn boxed_into_raw(table: Box<Self>) -> *mut Self {
+    pub fn boxed_into_raw(mut table: Box<Self>) -> *mut Self {
+        table.ensure_num_entries_is_consistent_after_writes();
         Box::into_raw(table)
     }
 
@@ -101,6 +112,7 @@ impl st_table {
     }
 }
 
+#[cfg(not(feature = "capi"))]
 impl From<crate::StHash> for st_table {
     #[inline]
     fn from(table: crate::StHash) -> Self {
@@ -108,6 +120,7 @@ impl From<crate::StHash> for st_table {
     }
 }
 
+#[cfg(not(feature = "capi"))]
 impl Deref for st_table {
     type Target = crate::StHash;
 
@@ -117,6 +130,7 @@ impl Deref for st_table {
     }
 }
 
+#[cfg(not(feature = "capi"))]
 impl DerefMut for st_table {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {

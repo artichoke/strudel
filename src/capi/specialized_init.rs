@@ -9,16 +9,23 @@ use crate::typedefs::*;
 // CONSTFUNC(int st_numcmp(st_data_t, st_data_t));
 #[no_mangle]
 unsafe extern "C" fn st_numcmp(x: st_data_t, y: st_data_t) -> libc::c_int {
-    (x != y) as libc::c_int
+    #[cfg(feature = "debug")]
+    dbg!("st_numcmp");
+
+    if x == y {
+        0
+    } else {
+        1
+    }
 }
 
 // CONSTFUNC(st_index_t st_numhash(st_data_t));
 #[no_mangle]
 unsafe extern "C" fn st_numhash(n: st_data_t) -> st_index_t {
-    let s1 = 11;
-    let s2 = 3;
-    let hash = ((n >> s1) | (n << s2)) ^ (n >> s2);
-    hash as st_index_t
+    #[cfg(feature = "debug")]
+    dbg!("st_numhash");
+
+    n
 }
 
 static st_hashtype_num: st_hash_type = st_hash_type {
@@ -26,12 +33,17 @@ static st_hashtype_num: st_hash_type = st_hash_type {
     hash: st_numhash,
 };
 
-// CONSTFUNC(int st_numcmp(st_data_t, st_data_t));
 unsafe extern "C" fn strcmp(x: st_data_t, y: st_data_t) -> libc::c_int {
-    libc::strcmp(x as *const i8, y as *const i8)
+    #[cfg(feature = "debug")]
+    dbg!("strhash");
+
+    libc::strcmp(x as *const _, y as *const _)
 }
 
 unsafe extern "C" fn strhash(arg: st_data_t) -> st_index_t {
+    #[cfg(feature = "debug")]
+    dbg!("strhash");
+
     let string = CStr::from_ptr(arg as *const libc::c_char);
     fnv::hash(string.to_bytes()) as st_index_t
 }
@@ -42,6 +54,9 @@ static type_strhash: st_hash_type = st_hash_type {
 };
 
 unsafe extern "C" fn strcasehash(arg: st_data_t) -> st_index_t {
+    #[cfg(feature = "debug")]
+    dbg!("strcasehash");
+
     let string = CStr::from_ptr(arg as *const libc::c_char);
     let mut hasher = Fnv1a32::default();
     for byte in string.to_bytes() {
@@ -59,7 +74,8 @@ static type_strcasehash: st_hash_type = st_hash_type {
 #[no_mangle]
 unsafe extern "C" fn st_init_numtable() -> *mut st_table {
     #[cfg(feature = "debug")]
-    println!("in strudel st_init_numtable");
+    dbg!("st_init_numtable");
+
     st_init_table(&st_hashtype_num)
 }
 
@@ -67,7 +83,8 @@ unsafe extern "C" fn st_init_numtable() -> *mut st_table {
 #[no_mangle]
 unsafe extern "C" fn st_init_numtable_with_size(size: st_index_t) -> *mut st_table {
     #[cfg(feature = "debug")]
-    println!("in strudel st_init_numtable_with_size");
+    dbg!("st_init_numtable_with_size");
+
     st_init_table_with_size(&st_hashtype_num, size)
 }
 
@@ -75,7 +92,8 @@ unsafe extern "C" fn st_init_numtable_with_size(size: st_index_t) -> *mut st_tab
 #[no_mangle]
 unsafe extern "C" fn st_init_strtable() -> *mut st_table {
     #[cfg(feature = "debug")]
-    println!("in strudel st_init_strtable");
+    dbg!("st_init_strtable");
+
     st_init_table(&type_strhash)
 }
 
@@ -83,7 +101,8 @@ unsafe extern "C" fn st_init_strtable() -> *mut st_table {
 #[no_mangle]
 unsafe extern "C" fn st_init_strtable_with_size(size: st_index_t) -> *mut st_table {
     #[cfg(feature = "debug")]
-    println!("in strudel st_init_strtable_with_size");
+    dbg!("st_init_strtable_with_size");
+
     st_init_table_with_size(&type_strhash, size)
 }
 
@@ -91,7 +110,8 @@ unsafe extern "C" fn st_init_strtable_with_size(size: st_index_t) -> *mut st_tab
 #[no_mangle]
 unsafe extern "C" fn st_init_strcasetable() -> *mut st_table {
     #[cfg(feature = "debug")]
-    println!("in strudel st_init_strcasetable");
+    dbg!("st_init_strcasetable");
+
     st_init_table(&type_strcasehash)
 }
 
@@ -99,13 +119,17 @@ unsafe extern "C" fn st_init_strcasetable() -> *mut st_table {
 #[no_mangle]
 unsafe extern "C" fn st_init_strcasetable_with_size(size: st_index_t) -> *mut st_table {
     #[cfg(feature = "debug")]
-    println!("in strudel st_init_strcasetable_with_size");
+    dbg!("st_init_strcasetable_with_size");
+
     st_init_table_with_size(&type_strcasehash, size)
 }
 
 // PUREFUNC(int st_locale_insensitive_strcasecmp(const char *s1, const char *s2));
 #[no_mangle]
 unsafe extern "C" fn st_locale_insensitive_strcasecmp(s1: st_data_t, s2: st_data_t) -> libc::c_int {
+    #[cfg(feature = "debug")]
+    dbg!("st_locale_insensitive_strcasecmp");
+
     let s1 = CStr::from_ptr(s1 as *const libc::c_char);
     let s2 = CStr::from_ptr(s2 as *const libc::c_char);
     match (s1.to_bytes().len(), s2.to_bytes().len()) {
@@ -134,6 +158,9 @@ unsafe extern "C" fn st_locale_insensitive_strncasecmp(
     s2: st_data_t,
     n: libc::size_t,
 ) -> libc::c_int {
+    #[cfg(feature = "debug")]
+    dbg!("st_locale_insensitive_strncasecmp");
+
     let s1 = slice::from_raw_parts(s1 as *const u8, n as usize);
     let s2 = slice::from_raw_parts(s2 as *const u8, n as usize);
 

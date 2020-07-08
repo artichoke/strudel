@@ -2,7 +2,6 @@
 
 use core::ffi::c_void;
 use core::hash::Hasher;
-use core::mem;
 use core::ptr;
 use core::slice;
 
@@ -57,7 +56,7 @@ pub unsafe fn st_delete(
         }
         0
     };
-    mem::forget(table);
+    let _ = st_table::boxed_into_raw(table);
     ret
 }
 
@@ -108,13 +107,14 @@ pub unsafe fn st_shift(
             if !value.is_null() {
                 ptr::write(value, entry_value);
             }
+            let _ = st_table::boxed_into_raw(table);
             return 1;
         }
     }
     if !value.is_null() {
         ptr::write(value, 0);
     }
-    mem::forget(table);
+    let _ = st_table::boxed_into_raw(table);
     0
 }
 
@@ -130,8 +130,12 @@ pub unsafe fn st_shift(
 #[inline]
 pub unsafe fn st_insert(table: *mut st_table, key: st_data_t, value: st_data_t) -> libc::c_int {
     let mut table = st_table::from_raw(table);
-    let ret = table.insert(key, value).is_some() as libc::c_int;
-    mem::forget(table);
+    let ret = if table.insert(key, value).is_some() {
+        1
+    } else {
+        0
+    };
+    let _ = st_table::boxed_into_raw(table);
     ret
 }
 
@@ -154,7 +158,7 @@ pub unsafe fn st_insert2(
     let mut table = st_table::from_raw(table);
     if table.get(key).is_some() {
         let _ = table.insert(key, value);
-        mem::forget(table);
+        let _ = st_table::boxed_into_raw(table);
         1
     } else {
         let table = st_table::boxed_into_raw(table);
@@ -163,7 +167,7 @@ pub unsafe fn st_insert2(
         let key = func(key);
         let mut table = st_table::from_raw(table);
         let _ = table.insert(key, value);
-        mem::forget(table);
+        let _ = st_table::boxed_into_raw(table);
         0
     }
 }
@@ -191,7 +195,7 @@ pub unsafe fn st_lookup(
     } else {
         0
     };
-    mem::forget(table);
+    let _ = st_table::boxed_into_raw(table);
     ret
 }
 
@@ -218,7 +222,7 @@ pub unsafe fn st_get_key(
     } else {
         0
     };
-    mem::forget(table);
+    let _ = st_table::boxed_into_raw(table);
     ret
 }
 
@@ -291,7 +295,7 @@ pub unsafe fn st_update(
         }
         _ => {}
     };
-    mem::forget(table);
+    let _ = st_table::boxed_into_raw(table);
     existing as libc::c_int
 }
 
@@ -308,7 +312,7 @@ pub unsafe fn st_foreach(
     let table = st_table::from_raw(table_ptr);
     let mut insertion_ranks = table.insert_ranks_from(0).peekable();
     let mut last_seen_rank = 0;
-    mem::forget(table);
+    let _ = st_table::boxed_into_raw(table);
 
     loop {
         let table = st_table::from_raw(table_ptr);
@@ -318,13 +322,13 @@ pub unsafe fn st_foreach(
         if last_seen_rank < min {
             insertion_ranks = table.insert_ranks_from(min).peekable();
         }
-        mem::forget(table);
+        let _ = st_table::boxed_into_raw(table);
 
         if let Some(rank) = insertion_ranks.next() {
             let table = st_table::from_raw(table_ptr);
             last_seen_rank = rank;
             let nth = table.get_nth(rank).map(|(&key, &value)| (key, value));
-            mem::forget(table);
+            let _ = st_table::boxed_into_raw(table);
 
             if let Some((key, value)) = nth {
                 let retval = func(key, value, arg, 0);
@@ -334,7 +338,7 @@ pub unsafe fn st_foreach(
                     retval if ST_DELETE == retval => {
                         let mut table = st_table::from_raw(table_ptr);
                         let _ = table.remove(key);
-                        mem::forget(table);
+                        let _ = st_table::boxed_into_raw(table);
                     }
                     _ => {}
                 }
@@ -343,11 +347,11 @@ pub unsafe fn st_foreach(
             let table = st_table::from_raw(table_ptr);
             let current_max = table.max_insert_rank();
             if current_max <= last_seen_rank {
-                mem::forget(table);
+                let _ = st_table::boxed_into_raw(table);
                 break;
             }
             insertion_ranks = table.insert_ranks_from(last_seen_rank).peekable();
-            mem::forget(table);
+            let _ = st_table::boxed_into_raw(table);
         }
     }
     0
@@ -377,14 +381,17 @@ pub unsafe fn st_foreach_check(
         if last_seen_rank < min {
             insertion_ranks = table.insert_ranks_from(min).peekable();
         }
+        let _ = st_table::boxed_into_raw(table);
 
         if let Some(rank) = insertion_ranks.next() {
+            let table = st_table::from_raw(table_ptr);
             last_seen_rank = rank;
             let nth = table.get_nth(rank).map(|(&key, &value)| (key, value));
             let _ = st_table::boxed_into_raw(table);
 
             if let Some((key, value)) = nth {
-                match func(key, value, arg, 0) {
+                let retval = func(key, value, arg, 0);
+                match retval {
                     retval if ST_CONTINUE == retval || ST_CHECK == retval => {}
                     retval if ST_STOP == retval => return 0,
                     retval if ST_DELETE == retval => {
@@ -399,6 +406,7 @@ pub unsafe fn st_foreach_check(
             let table = st_table::from_raw(table_ptr);
             let current_max = table.max_insert_rank();
             if current_max <= last_seen_rank {
+                let _ = st_table::boxed_into_raw(table);
                 break;
             }
             insertion_ranks = table.insert_ranks_from(last_seen_rank).peekable();
@@ -425,7 +433,7 @@ pub unsafe fn st_keys(table: *mut st_table, keys: *mut st_data_t, size: st_index
         ptr::write(slot, key);
         count = counter;
     }
-    mem::forget(table);
+    let _ = st_table::boxed_into_raw(table);
     count as st_index_t
 }
 
@@ -467,7 +475,7 @@ pub unsafe fn st_values(
         ptr::write(slot, value);
         count = counter;
     }
-    mem::forget(table);
+    let _ = st_table::boxed_into_raw(table);
     count as st_index_t
 }
 
@@ -504,7 +512,7 @@ pub unsafe fn st_add_direct(table: *mut st_table, key: st_data_t, value: st_data
     // are no callbacks.
     let mut table = st_table::from_raw(table);
     let _ = table.insert(key, value);
-    mem::forget(table);
+    let _ = st_table::boxed_into_raw(table);
 }
 
 /// Free table `table` space.
@@ -543,7 +551,7 @@ pub unsafe fn st_cleanup_safe(table: *mut st_table, _never: st_data_t) {
 pub unsafe fn st_clear(table: *mut st_table) {
     let mut table = st_table::from_raw(table);
     table.clear();
-    mem::forget(table);
+    let _ = st_table::boxed_into_raw(table);
 }
 
 // st_table *st_copy(st_table *);
@@ -551,15 +559,15 @@ pub unsafe fn st_clear(table: *mut st_table) {
 pub unsafe fn st_copy(table: *mut st_table) -> *mut st_table {
     let table = st_table::from_raw(table);
     let copy = table.clone();
-    mem::forget(table);
-    st_table::into_raw(copy.into())
+    let _ = st_table::boxed_into_raw(table);
+    st_table::boxed_into_raw(copy.into())
 }
 
 #[inline]
 pub unsafe fn st_memsize(table: *const st_table) -> libc::size_t {
     let table = st_table::from_raw(table as *mut st_table);
     let memsize = table.estimated_memsize();
-    mem::forget(table);
+    let _ = st_table::boxed_into_raw(table);
     memsize as _
 }
 

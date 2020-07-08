@@ -208,9 +208,11 @@ struct LookupKey {
 impl PartialEq for LookupKey {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
+        if self.record == other.record {
+            return true;
+        }
         let cmp = self.eq;
-        let a = unsafe { (cmp)(self.record, other.record) == 0 };
-        a
+        unsafe { (cmp)(self.record, other.record) == 0 }
     }
 }
 
