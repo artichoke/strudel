@@ -25,7 +25,7 @@ libc = { version = "0.2", optional = true }
 memoffset = "0.5.3"
 
 [features]
-default = ["capi", "debug"]
+default = ["capi-specialized-init"]
 capi-specialized-init = ["capi"]
 capi = ["api"]
 api = ["libc"]

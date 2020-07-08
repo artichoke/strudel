@@ -12,55 +12,6 @@ use crate::StHash;
 #[cfg(feature = "capi-specialized-init")]
 mod specialized_init;
 
-/*
-struct st_table {
-    /* Cached features of the table -- see st.c for more details.  */
-    unsigned char entry_power, bin_power, size_ind;
-    /* How many times the table was rebuilt.  */
-    unsigned int rebuilds_num;
-    const struct st_hash_type *type;
-    /* Number of entries currently in the table.  */
-    st_index_t num_entries;
-    /* Array of bins used for access by keys.  */
-    st_index_t *bins;
-    /* Start and bound index of entries in array entries.
-       entries_starts and entries_bound are in interval
-       [0,allocated_entries].  */
-    st_index_t entries_start, entries_bound;
-    /* Array of size 2^entry_power.  */
-    st_table_entry *entries;
-};
-*/
-
-#[repr(C)]
-struct __st_table {
-    entry_power: libc::c_uchar,
-    bin_power: libc::c_uchar,
-    size_ind: libc::c_uchar,
-    rebuilds_num: libc::c_uint,
-    type_: *const st_hash_type,
-    num_entries: st_index_t,
-    bins: *mut st_index_t,
-    entries_start: st_index_t,
-    entries_bound: st_index_t,
-    entries: *mut __st_table_entry,
-}
-
-/*
-struct st_table_entry {
-    st_hash_t hash;
-    st_data_t key;
-    st_data_t record;
-};
-*/
-
-#[repr(C)]
-struct __st_table_entry {
-    hash: st_hash_t,
-    key: st_data_t,
-    record: st_data_t,
-}
-
 // These values enforced by test.
 const PADDING_TO_NUM_ENTRIES: usize = 8;
 const PADDING_TO_END: usize = 32;
@@ -580,20 +531,80 @@ unsafe extern "C" fn st_hash_start(h: st_index_t) -> st_index_t {
 mod tests {
     use core::mem::size_of;
 
-    use crate::capi::__st_table;
+    use crate::capi::ffi_types;
     use crate::typedefs::st_table;
 
     #[test]
     fn num_entries_offset_ffi_compat() {
-        let c_struct = memoffset::offset_of!(__st_table, num_entries);
+        let c_struct = memoffset::offset_of!(ffi_types::st_table, num_entries);
         let rust_struct = memoffset::offset_of!(st_table, num_entries);
         assert_eq!(c_struct, rust_struct);
     }
 
     #[test]
     fn size_of_ffi_compat() {
-        let c_struct = size_of::<__st_table>();
+        let c_struct = size_of::<ffi_types::st_table>();
         let rust_struct = size_of::<st_table>();
         assert_eq!(c_struct, rust_struct);
+    }
+}
+
+#[cfg(test)]
+mod ffi_types {
+    use crate::typedefs::*;
+
+    /// `st_table` struct definition from C in `st.h`.
+    ///
+    /// # Header declaration
+    ///
+    /// ```c
+    /// struct st_table {
+    ///     /* Cached features of the table -- see st.c for more details.  */
+    ///     unsigned char entry_power, bin_power, size_ind;
+    ///     /* How many times the table was rebuilt.  */
+    ///     unsigned int rebuilds_num;
+    ///     const struct st_hash_type *type;
+    ///     /* Number of entries currently in the table.  */
+    ///     st_index_t num_entries;
+    ///     /* Array of bins used for access by keys.  */
+    ///     st_index_t *bins;
+    ///     /* Start and bound index of entries in array entries.
+    ///        entries_starts and entries_bound are in interval
+    ///        [0,allocated_entries].  */
+    ///     st_index_t entries_start, entries_bound;
+    ///     /* Array of size 2^entry_power.  */
+    ///     st_table_entry *entries;
+    /// };
+    /// ```
+    #[repr(C)]
+    pub struct st_table {
+        pub entry_power: libc::c_uchar,
+        pub bin_power: libc::c_uchar,
+        pub size_ind: libc::c_uchar,
+        pub rebuilds_num: libc::c_uint,
+        pub type_: *const st_hash_type,
+        pub num_entries: st_index_t,
+        pub bins: *mut st_index_t,
+        pub entries_start: st_index_t,
+        pub entries_bound: st_index_t,
+        pub entries: *mut st_table_entry,
+    }
+
+    /// `st_table_entry` struct definition from C in `st.c`.
+    ///
+    /// # Header declaration
+    ///
+    /// ```c
+    /// struct st_table_entry {
+    ///     st_hash_t hash;
+    ///     st_data_t key;
+    ///     st_data_t record;
+    /// };
+    /// ```
+    #[repr(C)]
+    pub struct st_table_entry {
+        pub hash: st_hash_t,
+        pub key: st_data_t,
+        pub record: st_data_t,
     }
 }
