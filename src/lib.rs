@@ -107,7 +107,7 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::wildcard_imports)]
 #![allow(clippy::enum_glob_use)]
-// #![warn(missing_docs, intra_doc_link_resolution_failure)]
+#![warn(missing_docs, intra_doc_link_resolution_failure)]
 #![warn(missing_debug_implementations)]
 #![warn(rust_2018_idioms)]
 #![warn(unused_qualifications)]
@@ -151,11 +151,11 @@ pub use st::StHash;
 pub use typedefs::*;
 
 pub mod st_hash_map {
-    //! An insertion-ordered hash map implemented with
-    //! [`HashMap`](std::collections::HashMap) and
-    //! [`BTreeMap`](std::collections::BTreeMap).
-    pub use super::st::{
-        InsertRanks, Iter, IterMut, Keys, OccupiedEntry, StBuildHasher, StHash, StHasher,
-        VacantEntry, Values,
-    };
+    //! An insertion-ordered hash map implemented with [`HashMap`] and
+    //! [`BTreeMap`].
+    //!
+    //! [`HashMap`]: std::collections::HashMap
+    //! [`BTreeMap`]: std::collections::BTreeMap
+
+    pub use super::st::*;
 }

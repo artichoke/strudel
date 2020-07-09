@@ -12,12 +12,8 @@ pub struct StBuildHasher {
 }
 
 impl StBuildHasher {
-    #[inline]
-    #[must_use]
-    pub fn into_boxed(self) -> Box<Self> {
-        Box::new(self)
-    }
-
+    /// Return the underlying equality comparator and hash function used to
+    /// construct this [`BuildHasher`].
     #[inline]
     #[must_use]
     pub fn hash_type(&self) -> *const st_hash_type {
@@ -70,6 +66,11 @@ impl StHasher {
     #[inline]
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn add_to_hash(&mut self, i: st_hash_t) {
+        // Safety:
+        //
+        // `StHash` assumes the `*const st_hash_type` pointer has `'static`
+        // lifetime.
+        // `StHash` assumes that the `hash` function pointer is non-NULL.
         let i = unsafe {
             let hash = (*self.hash_type).hash;
             (hash)(i)
@@ -80,6 +81,8 @@ impl StHasher {
         self.state.write_u64(i);
     }
 
+    /// Return the underlying equality comparator and hash function used to
+    /// construct this [`Hasher`].
     #[inline]
     #[must_use]
     pub fn hash_type(&self) -> *const st_hash_type {

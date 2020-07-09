@@ -57,57 +57,6 @@ impl<'a> DoubleEndedIterator for Iter<'a> {
 }
 
 #[derive(Debug)]
-pub struct IterMut<'a>(pub(crate) btree_map::ValuesMut<'a, st_index_t, (st_data_t, st_data_t)>);
-
-impl<'a> Iterator for IterMut<'a> {
-    type Item = (&'a st_data_t, &'a mut st_data_t);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|(key, value)| (&*key, value))
-    }
-
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.0.size_hint()
-    }
-
-    #[inline]
-    fn count(self) -> usize {
-        self.0.count()
-    }
-
-    #[inline]
-    fn last(self) -> Option<Self::Item> {
-        self.0.last().map(|(key, value)| (&*key, value))
-    }
-
-    #[inline]
-    fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        self.0.nth(n).map(|(key, value)| (&*key, value))
-    }
-
-    #[inline]
-    fn collect<B: FromIterator<Self::Item>>(self) -> B {
-        self.0.map(|(key, value)| (&*key, value)).collect()
-    }
-}
-
-impl<'a> FusedIterator for IterMut<'a> {}
-
-impl<'a> ExactSizeIterator for IterMut<'a> {}
-
-impl<'a> DoubleEndedIterator for IterMut<'a> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        self.0.next_back().map(|(key, value)| (&*key, value))
-    }
-
-    fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
-        self.0.nth_back(n).map(|(key, value)| (&*key, value))
-    }
-}
-
-#[derive(Debug)]
 pub struct Keys<'a>(pub(crate) Iter<'a>);
 
 impl<'a> Iterator for Keys<'a> {

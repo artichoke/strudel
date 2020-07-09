@@ -69,7 +69,7 @@ pub unsafe fn st_delete(
     value: *mut st_data_t,
 ) -> libc::c_int {
     let mut table = st_table::from_raw(table);
-    let ret = if let Some((entry_key, entry_value)) = table.delete(*key) {
+    let ret = if let Some((entry_key, entry_value)) = table.remove_entry(*key) {
         ptr::write(key, entry_key);
         if !value.is_null() {
             ptr::write(value, entry_value);
@@ -138,7 +138,7 @@ pub unsafe fn st_shift(
 ) -> libc::c_int {
     let mut table = st_table::from_raw(table);
     if let Some((&first_key, _)) = table.first() {
-        if let Some((entry_key, entry_value)) = table.delete(first_key) {
+        if let Some((entry_key, entry_value)) = table.remove_entry(first_key) {
             ptr::write(key, entry_key);
             if !value.is_null() {
                 ptr::write(value, entry_value);

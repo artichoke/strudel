@@ -1,23 +1,70 @@
 use core::fmt;
+use core::mem::size_of;
 use core::ops::{Deref, DerefMut};
 
 use crate::StHash;
 
+/// Type alias for pointers to keys and values.
+///
+/// Assumed to be equivalent to `usize`.
+///
+/// ```
+/// # use core::mem::size_of;
+/// assert_eq!(size_of::<usize>(), size_of::<st_data_t>());
+/// ```
 #[cfg(target_pointer_width = "64")]
 pub type st_data_t = u64;
+
+/// Type alias for pointers to keys and values.
+///
+/// Assumed to be equivalent to `usize`.
+///
+/// ```
+/// # use core::mem::size_of;
+/// assert_eq!(size_of::<usize>(), size_of::<st_data_t>());
+/// ```
 #[cfg(target_pointer_width = "32")]
 pub type st_data_t = u32;
 
+/// Type alias for insertion order indexes.
 pub type st_index_t = st_data_t;
 
+/// Type alias for hash values.
 pub type st_hash_t = st_index_t;
 
-// typedef int st_compare_func(st_data_t, st_data_t);
+/// Equality comparator function for `StHash` keys.
+///
+/// # Header declaration
+///
+/// ```c
+/// typedef int st_compare_func(st_data_t, st_data_t);
+/// ```
 pub type st_compare_func = unsafe extern "C" fn(st_data_t, st_data_t) -> i32;
 
-// typedef st_index_t st_hash_func(st_data_t);
+/// Hash function for `StHash` keys.
+///
+/// # Header declaration
+///
+/// ```c
+/// typedef st_index_t st_hash_func(st_data_t);
+/// ```
 pub type st_hash_func = unsafe extern "C" fn(st_data_t) -> st_index_t;
 
+// typedef char st_check_for_sizeof_st_index_t[SIZEOF_VOIDP == (int)sizeof(st_index_t) ? 1 : -1];
+const _: () = [()][(size_of::<usize>() == size_of::<st_index_t>()) as usize - 1];
+
+/// Equality comparator and hash function used to build a [`StHash`] hasher.
+///
+/// These functions are `unsafe extern "C" fn` and expected to be supplied via
+/// FFI.
+///
+/// # Safety
+///
+/// `st_hash_type` are expected to have `'static` lifetime. This assumption is
+/// exploited by [`StHash`] and [`StBuildHasher`].
+///
+/// [`StHash`]: crate::StHash
+/// [`StBuildHasher`]: crate::st_hash_map::StBuildHasher
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct st_hash_type {
@@ -40,12 +87,24 @@ pub struct st_hash_type {
     pub hash: st_hash_func,
 }
 
+/// Return values from [`st_foreach_callback_func`] and
+/// [`st_update_callback_func`] callback function pointers.
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum st_retval {
+    /// Continue iteration.
     ST_CONTINUE,
+
+    /// Stop iteration.
     ST_STOP,
+
+    /// Delete current iteration (`key`, `value`) pair and continue iteration.
     ST_DELETE,
+
+    /// Continue or stop iteration.
+    ///
+    /// This return value has slightly different behavior depending on API. See
+    /// `api::st_foreach` and `api::st_foreach_check`.
     ST_CHECK,
 }
 
@@ -61,11 +120,23 @@ impl PartialEq<st_retval> for i32 {
     }
 }
 
-// typedef int st_update_callback_func(st_data_t *key, st_data_t *value, st_data_t arg, int existing);
+/// `api::st_update` callback function.
+///
+/// # Header declaration
+///
+/// ```c
+/// typedef int st_update_callback_func(st_data_t *key, st_data_t *value, st_data_t arg, int existing);
+/// ```
 pub type st_update_callback_func =
     unsafe extern "C" fn(*mut st_data_t, *mut st_data_t, st_data_t, i32) -> i32;
 
-// int (*)(ANYARGS)
+/// `api::st_foreach` and `api::st_foreach_check` callback function.
+///
+/// # Header declaration
+///
+/// ```c
+/// int (*)(ANYARGS)
+/// ```
 pub type st_foreach_callback_func =
     unsafe extern "C" fn(st_data_t, st_data_t, st_data_t, i32) -> i32;
 
@@ -75,8 +146,12 @@ const PADDING_TO_END: usize = 32;
 
 /// C struct wrapper around an `StHash`.
 ///
-/// This wrapper allows property access to `hash->type` and `hash->num_entries`
-/// from C callers.
+/// This wrapper is FFI compatible with the C definition for access to the
+/// `hash->type` and `hash->num_entries` struct fields.
+///
+/// This wrapper has the same `size_of` the C definition.
+///
+/// `st_table` `deref`s and `deref_mut`s to [`StHash`]
 #[repr(C)]
 pub struct st_table {
     table: *mut StHash,
@@ -87,11 +162,29 @@ pub struct st_table {
 }
 
 impl st_table {
+    /// Sync the `num_entries` field on the FFI wrapper with the underlying
+    /// table.
+    ///
+    /// This method should be called after mutable operations to the underlying
+    /// [`StHash`].
     #[inline]
     pub fn ensure_num_entries_is_consistent_after_writes(&mut self) {
         self.num_entries = self.len() as st_index_t;
     }
 
+    /// Consumes the table, returning a wrapped raw pointer.
+    ///
+    /// The pointer will be properly aligned and non-null.
+    ///
+    /// After calling this function, the caller is responsible for the allocated
+    /// memory. In particular, the caller should properly destroy the `st_table`
+    /// and release the memory, taking into account the memory layout used. The
+    /// easiest way to do this is to convert the raw pointer back into a bosed
+    /// `st_table` with the [`st_table::from_raw`] function, allowing the
+    /// destructor to perform the cleanup.
+    ///
+    /// Note: this is an associated function, which means that you have to call
+    /// it as `st_table::into_raw(table)` instead of `table.into_raw()`.
     #[inline]
     #[must_use]
     pub fn into_raw(table: Self) -> *mut Self {
@@ -99,6 +192,19 @@ impl st_table {
         Box::into_raw(table)
     }
 
+    /// Consumes the boxed table, returning a wrapped raw pointer.
+    ///
+    /// The pointer will be properly aligned and non-null.
+    ///
+    /// After calling this function, the caller is responsible for the allocated
+    /// memory. In particular, the caller should properly destroy the `st_table`
+    /// and release the memory, taking into account the memory layout used. The
+    /// easiest way to do this is to convert the raw pointer back into a bosed
+    /// `st_table` with the [`st_table::from_raw`] function, allowing the
+    /// destructor to perform the cleanup.
+    ///
+    /// Note: this is an associated function, which means that you have to call
+    /// it as `st_table::into_raw(table)` instead of `table.into_raw()`.
     #[inline]
     #[must_use]
     pub fn boxed_into_raw(table: Box<Self>) -> *mut Self {
