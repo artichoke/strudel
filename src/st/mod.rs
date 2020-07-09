@@ -1,14 +1,15 @@
 use core::borrow::Borrow;
 use core::hash::{BuildHasher, Hash, Hasher};
 use core::mem::size_of;
+use core::ops::Index;
 use std::collections::hash_map::{Entry as HashEntry, RandomState};
 use std::collections::{BTreeMap, HashMap};
 
-pub use crate::entry::{Entry, OccupiedEntry, VacantEntry};
-pub use crate::hasher::{StBuildHasher, StHasher};
-pub use crate::iter::{InsertRanks, Iter, Keys, Values};
+mod entry;
+mod iter;
 
-use crate::typedefs::*;
+pub use entry::{Entry, OccupiedEntry, VacantEntry};
+pub use iter::{InsertRanks, Iter, Keys, Values};
 
 #[derive(Debug, Clone)]
 pub(crate) struct Key<T> {
@@ -27,12 +28,6 @@ impl<T> Key<T> {
     #[must_use]
     pub fn inner(&self) -> &T {
         &self.inner
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn inner_mut(&mut self) -> &mut T {
-        &mut self.inner
     }
 
     #[inline]
@@ -94,7 +89,7 @@ impl<T> Borrow<T> for Key<T> {
 /// [`RandomState`]: std::collections::hash_map::RandomState
 /// [`with_hash_type`]: StHash::with_hash_type
 /// [`with_capacity_and_hash_type`]: StHash::with_capacity_and_hash_type
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct StHashMap<K, V, S = RandomState> {
     map: HashMap<Key<K>, V, S>,
     ordered: BTreeMap<usize, (K, V)>,
@@ -119,6 +114,24 @@ where
     V: PartialEq,
     S: BuildHasher,
 {
+}
+
+impl<K, V, S> Index<&K> for StHashMap<K, V, S>
+where
+    K: Eq + Hash,
+    S: BuildHasher,
+{
+    type Output = V;
+
+    /// Returns a reference to the value corresponding to the supplied key.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the key is not present in the `HashMap`.
+    #[inline]
+    fn index(&self, key: &K) -> &V {
+        self.get(key).expect("no entry found for key")
+    }
 }
 
 impl<K, V> StHashMap<K, V, RandomState> {
@@ -188,7 +201,7 @@ impl<K, V, S> StHashMap<K, V, S> {
     /// use std::collections::hash_map::RandomState;
     ///
     /// let s = RandomState::new();
-    /// let mut map = HashMap::with_hasher(s);
+    /// let mut map = StHashMap::with_hasher(s);
     /// assert_eq!(0, map.capacity());
     /// map.insert(1, 2);
     /// ```
@@ -223,7 +236,7 @@ impl<K, V, S> StHashMap<K, V, S> {
     /// use std::collections::hash_map::RandomState;
     ///
     /// let s = RandomState::new();
-    /// let mut map = HashMap::with_capacity_and_hasher(10, s);
+    /// let mut map = StHashMap::with_capacity_and_hasher(10, s);
     /// assert!(map.capacity() >= 10);
     /// map.insert(1, 2);
     /// ```
@@ -344,15 +357,15 @@ impl<K, V, S> StHashMap<K, V, S> {
     /// map.insert("b", 2);
     /// map.insert("c", 3);
     ///
-    /// map.remove("a");
+    /// map.remove(&"a");
     /// map.insert("b", 100);
     ///
     /// let insert_ranks = map.insert_ranks_from(0).collect::<Vec<_>>();
     /// assert_eq!(vec![1, 2], insert_ranks);
     ///
     /// assert_eq!(None, map.get_nth(0));
-    /// assert_eq!(Some(&100), map.get_nth(1));
-    /// assert_eq!(Some(&3), map.get_nth(2));
+    /// assert_eq!(Some((&"b", &100)), map.get_nth(1));
+    /// assert_eq!(Some((&"c", &3)), map.get_nth(2));
     /// assert_eq!(None, map.get_nth(4));
     ///
     /// assert_eq!(0, map.insert_ranks_from(100).count());
@@ -384,11 +397,11 @@ impl<K, V, S> StHashMap<K, V, S> {
     /// map.insert("a", 1);
     /// map.insert("b", 2);
     /// map.insert("c", 3);
-    /// assert_eq!(Some(("a", &1)), map.first());
+    /// assert_eq!(Some((&"a", &1)), map.first());
     ///
-    /// map.remove("a");
+    /// map.remove(&"a");
     /// map.insert("b", 100);
-    /// assert_eq!(Some(("b", &100)), map.first());
+    /// assert_eq!(Some((&"b", &100)), map.first());
     /// ```
     ///
     /// [in-place updates to keys]: StHash::update
@@ -414,11 +427,11 @@ impl<K, V, S> StHashMap<K, V, S> {
     /// map.insert("a", 1);
     /// map.insert("b", 2);
     /// map.insert("c", 3);
-    /// assert_eq!(Some(("c", &3)), map.last());
+    /// assert_eq!(Some((&"c", &3)), map.last());
     ///
-    /// map.remove("a");
+    /// map.remove(&"a");
     /// map.insert("b", 100);
-    /// assert_eq!(Some(("c", &3)), map.last());
+    /// assert_eq!(Some((&"c", &3)), map.last());
     /// ```
     ///
     /// [in-place updates to keys]: StHash::update
@@ -445,15 +458,15 @@ impl<K, V, S> StHashMap<K, V, S> {
     /// map.insert("b", 2);
     /// map.insert("c", 3);
     ///
-    /// map.remove("a");
+    /// map.remove(&"a");
     /// map.insert("b", 100);
     ///
     /// let insert_ranks = map.insert_ranks_from(0).collect::<Vec<_>>();
     /// assert_eq!(vec![1, 2], insert_ranks);
     ///
     /// assert_eq!(None, map.get_nth(0));
-    /// assert_eq!(Some(&100), map.get_nth(1));
-    /// assert_eq!(Some(&3), map.get_nth(2));
+    /// assert_eq!(Some((&"b", &100)), map.get_nth(1));
+    /// assert_eq!(Some((&"c", &3)), map.get_nth(2));
     /// assert_eq!(None, map.get_nth(4));
     ///
     /// assert_eq!(0, map.insert_ranks_from(100).count());
@@ -481,7 +494,7 @@ impl<K, V, S> StHashMap<K, V, S> {
     /// map.insert("c", 3);
     /// assert_eq!(0, map.min_insert_rank());
     ///
-    /// map.remove("a");
+    /// map.remove(&"a");
     /// map.insert("b", 100);
     /// assert_eq!(1, map.min_insert_rank());
     /// ```
@@ -508,7 +521,7 @@ impl<K, V, S> StHashMap<K, V, S> {
     /// map.insert("c", 3);
     /// assert_eq!(2, map.max_insert_rank());
     ///
-    /// map.remove("a");
+    /// map.remove(&"a");
     /// map.insert("b", 100);
     /// assert_eq!(2, map.max_insert_rank());
     /// ```
@@ -617,8 +630,7 @@ impl<K, V, S> StHashMap<K, V, S> {
 
 impl<K, V, S> StHashMap<K, V, S>
 where
-    K: Eq + Hash + Clone,
-    V: Clone,
+    K: Eq + Hash,
     S: BuildHasher,
 {
     /// Reserves capacity for at least `additional` more elements to be inserted
@@ -726,7 +738,14 @@ where
         let (key, value) = self.map.get_key_value(key)?;
         Some((key.inner(), value))
     }
+}
 
+impl<K, V, S> StHashMap<K, V, S>
+where
+    K: Eq + Hash + Clone,
+    V: Clone,
+    S: BuildHasher,
+{
     /// Gets the given key's corresponding entry in the map for in-place
     /// manipulation.
     ///
@@ -785,14 +804,14 @@ where
             HashEntry::Occupied(mut base) => {
                 let rank = base.key().insert_rank();
                 self.ordered
-                    .insert(rank, (base.key().inner().clone(), value));
+                    .insert(rank, (base.key().inner().clone(), value.clone()));
                 let old_value = base.insert(value);
                 Some(old_value)
             }
             HashEntry::Vacant(base) => {
                 let rank = base.key().insert_rank();
                 self.ordered
-                    .insert(rank, (base.key().inner().clone(), value));
+                    .insert(rank, (base.key().inner().clone(), value.clone()));
                 base.insert(value);
                 None
             }

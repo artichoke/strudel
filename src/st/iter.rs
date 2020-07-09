@@ -56,7 +56,7 @@ impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
 }
 
 #[derive(Debug)]
-pub struct IntoIter<K, V>(pub(crate) btree_map::IntoIter<usize, (K, V)>);
+pub struct IntoIter<K, V>(btree_map::IntoIter<usize, (K, V)>);
 
 impl<K, V> Iterator for IntoIter<K, V> {
     type Item = (K, V);
