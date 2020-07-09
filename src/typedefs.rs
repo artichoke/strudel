@@ -1,8 +1,172 @@
 use core::fmt;
+use core::hash::{Hash, Hasher};
 use core::mem::size_of;
 use core::ops::{Deref, DerefMut};
 
-use crate::StHash;
+use crate::hasher::StBuildHasher;
+use crate::StHashMap;
+
+#[derive(Debug, Clone)]
+pub struct ExternKey {
+    record: st_data_t,
+    eq: st_compare_func,
+}
+
+impl ExternKey {
+    #[inline]
+    #[must_use]
+    pub fn inner(&self) -> &st_data_t {
+        &self.record
+    }
+}
+
+impl From<ExternKey> for st_data_t {
+    #[inline]
+    fn from(key: ExternKey) -> Self {
+        key.record
+    }
+}
+
+impl PartialEq for ExternKey {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        if self.record == other.record {
+            return true;
+        }
+        let cmp = self.eq;
+        // Safety
+        //
+        // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
+        unsafe { (cmp)(self.record, other.record) == 0 }
+    }
+}
+
+impl PartialEq<&ExternKey> for ExternKey {
+    #[inline]
+    fn eq(&self, other: &&Self) -> bool {
+        self == *other
+    }
+}
+
+impl Eq for ExternKey {}
+
+impl Hash for ExternKey {
+    #[inline]
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        #[cfg(target_pointer_width = "32")]
+        state.write_u32(self.record);
+        #[cfg(target_pointer_width = "64")]
+        state.write_u64(self.record);
+    }
+}
+
+/// Type alias for an [`StHashMap`] that stores opaque pointers with a
+/// [`st_hash_type`] derived [`StBuildHasher`].
+pub type ExternStHashMap = StHashMap<ExternKey, st_data_t, StBuildHasher>;
+
+impl ExternStHashMap {
+    /// Creates an empty `StHashMap` which will use the given `st_hash_type` to
+    /// hash keys.
+    ///
+    /// The created map has the default initial capacity.
+    ///
+    /// A [`Hasher`] is constructed from an [`StBuildHasher`].
+    #[inline]
+    #[must_use]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
+    pub fn with_hash_type(hash_type: *const st_hash_type) -> Self {
+        let hasher = StBuildHasher::from(hash_type);
+        Self::with_hasher(hasher)
+    }
+
+    /// Creates an empty `StHash` with the specified capacity which will use the
+    /// given `st_hash_type` to hash keys.
+    ///
+    /// The hash map will be able to hold at least `capacity` elements without
+    /// reallocating. If `capacity` is 0, the hash map will not allocate.
+    ///
+    /// A [`Hasher`] is constructed from an [`StBuildHasher`].
+    #[inline]
+    #[must_use]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
+    pub fn with_capacity_and_hash_type(capacity: usize, hash_type: *const st_hash_type) -> Self {
+        let hasher = StBuildHasher::from(hash_type);
+        Self::with_capacity_and_hasher(capacity, hasher)
+    }
+
+    pub fn first_raw(&self) -> Option<(&st_data_t, &st_data_t)> {
+        let (key, value) = self.first()?;
+        Some((&key.record, value))
+    }
+
+    pub fn get_raw(&self, key: st_data_t) -> Option<&st_data_t> {
+        let hash_type = self.hasher().hash_type();
+        // Safety
+        //
+        // `StHashMap` assumes `hash_type` has `'static` lifetime.
+        // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
+        let eq = unsafe { (*hash_type).compare };
+        let key = ExternKey { record: key, eq };
+        self.get(&key)
+    }
+
+    pub fn get_key_value_raw(&self, key: st_data_t) -> Option<(&st_data_t, &st_data_t)> {
+        let hash_type = self.hasher().hash_type();
+        // Safety
+        //
+        // `StHashMap` assumes `hash_type` has `'static` lifetime.
+        // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
+        let eq = unsafe { (*hash_type).compare };
+        let key = ExternKey { record: key, eq };
+        let (key, value) = self.get_key_value(&key)?;
+        Some((&key.record, value))
+    }
+
+    pub fn insert_raw(&mut self, key: st_data_t, value: st_data_t) -> Option<st_data_t> {
+        let hash_type = self.hasher().hash_type();
+        // Safety
+        //
+        // `StHashMap` assumes `hash_type` has `'static` lifetime.
+        // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
+        let eq = unsafe { (*hash_type).compare };
+        let key = ExternKey { record: key, eq };
+        self.insert(key, value)
+    }
+
+    pub fn update_raw(&mut self, key: st_data_t, value: st_data_t) {
+        let hash_type = self.hasher().hash_type();
+        // Safety
+        //
+        // `StHashMap` assumes `hash_type` has `'static` lifetime.
+        // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
+        let eq = unsafe { (*hash_type).compare };
+        let key = ExternKey { record: key, eq };
+        self.update(key, value)
+    }
+
+    pub fn remove_raw(&mut self, key: st_data_t) -> Option<st_data_t> {
+        let hash_type = self.hasher().hash_type();
+        // Safety
+        //
+        // `StHashMap` assumes `hash_type` has `'static` lifetime.
+        // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
+        let eq = unsafe { (*hash_type).compare };
+        let key = ExternKey { record: key, eq };
+        self.remove(&key)
+    }
+
+    pub fn remove_entry_raw(&mut self, key: st_data_t) -> Option<(st_data_t, st_data_t)> {
+        let hash_type = self.hasher().hash_type();
+        // Safety
+        //
+        // `StHashMap` assumes `hash_type` has `'static` lifetime.
+        // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
+        let eq = unsafe { (*hash_type).compare };
+        let key = ExternKey { record: key, eq };
+        let (key, value) = self.remove_entry(&key)?;
+        Some((key.into(), value))
+    }
+}
 
 /// Type alias for pointers to keys and values.
 ///
@@ -61,10 +225,7 @@ const _: () = [()][(size_of::<usize>() == size_of::<st_index_t>()) as usize - 1]
 /// # Safety
 ///
 /// `st_hash_type` are expected to have `'static` lifetime. This assumption is
-/// exploited by [`StHash`] and [`StBuildHasher`].
-///
-/// [`StHash`]: crate::StHash
-/// [`StBuildHasher`]: crate::st_hash_map::StBuildHasher
+/// exploited by [`StHashMap`](StHashMap) and [`StBuildHasher`](StBuildHasher).
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct st_hash_type {
@@ -144,17 +305,17 @@ pub type st_foreach_callback_func =
 const PADDING_TO_NUM_ENTRIES: usize = 0;
 const PADDING_TO_END: usize = 32;
 
-/// C struct wrapper around an `StHash`.
+/// C struct wrapper around an `StHashMap`.
 ///
 /// This wrapper is FFI compatible with the C definition for access to the
 /// `hash->type` and `hash->num_entries` struct fields.
 ///
 /// This wrapper has the same `size_of` the C definition.
 ///
-/// `st_table` `deref`s and `deref_mut`s to [`StHash`]
+/// `st_table` `deref`s and `deref_mut`s to [`StHashMap`]
 #[repr(C)]
 pub struct st_table {
-    table: *mut StHash,
+    table: *mut ExternStHashMap,
     _padding: [u8; PADDING_TO_NUM_ENTRIES],
     type_: *const st_hash_type,
     num_entries: st_index_t,
@@ -166,7 +327,7 @@ impl st_table {
     /// table.
     ///
     /// This method should be called after mutable operations to the underlying
-    /// [`StHash`].
+    /// [`StHashMap`].
     #[inline]
     pub fn ensure_num_entries_is_consistent_after_writes(&mut self) {
         self.num_entries = self.len() as st_index_t;
@@ -241,9 +402,9 @@ impl fmt::Debug for st_table {
     }
 }
 
-impl From<StHash> for st_table {
+impl From<ExternStHashMap> for st_table {
     #[inline]
-    fn from(table: StHash) -> Self {
+    fn from(table: ExternStHashMap) -> Self {
         let num_entries = table.len() as st_index_t;
         let hash_type = table.hasher().hash_type();
         let table = Box::new(table);
@@ -259,7 +420,7 @@ impl From<StHash> for st_table {
 }
 
 impl Deref for st_table {
-    type Target = StHash;
+    type Target = ExternStHashMap;
 
     #[inline]
     fn deref(&self) -> &Self::Target {

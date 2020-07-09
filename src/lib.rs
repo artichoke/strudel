@@ -149,17 +149,23 @@ mod hasher;
 #[cfg(feature = "capi")]
 mod typedefs;
 
-pub use st::StHashMap;
-
 #[cfg(feature = "capi")]
 pub use typedefs::*;
 
-pub mod st_hash_map {
-    //! An insertion-ordered hash map implemented with [`HashMap`] and
-    //! [`BTreeMap`].
-    //!
-    //! [`HashMap`]: std::collections::HashMap
-    //! [`BTreeMap`]: std::collections::BTreeMap
+pub use st::map::StHashMap;
+pub use st::set::StHashSet;
 
-    pub use super::st::*;
+pub mod st_hash_map {
+    //! An insertion-ordered hash map implemented with
+    //! [`HashMap`](std::collections::HashMap) and
+    //! [`BTreeMap`](std::collections::BTreeMap).
+
+    pub use super::st::map::*;
+}
+
+pub mod st_hash_set {
+    //! An insertion-ordered hash set implemented as a
+    //! [`StHashMap`](crate::StHashMap) where the value is `()`.
+
+    pub use super::st::set::*;
 }

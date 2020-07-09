@@ -7,7 +7,7 @@ use std::collections::hash_map::{
     OccupiedEntry as OccupiedHashEntry, VacantEntry as VacantHashEntry,
 };
 
-use crate::st::Key;
+use crate::st::map::Key;
 
 /// A view into a single entry in a map, which may either be vacant or occupied.
 ///

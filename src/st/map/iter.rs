@@ -2,7 +2,7 @@ use core::iter::{FromIterator, FusedIterator};
 use std::collections::btree_map;
 use std::vec;
 
-use crate::st::StHashMap;
+use crate::st::map::StHashMap;
 
 #[derive(Debug, Clone)]
 pub struct Iter<'a, K, V>(pub(crate) btree_map::Values<'a, usize, (K, V)>);
@@ -106,7 +106,7 @@ impl<K, V> DoubleEndedIterator for IntoIter<K, V> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Keys<'a, K, V>(pub(crate) Iter<'a, K, V>);
 
 impl<'a, K, V> Iterator for Keys<'a, K, V> {
@@ -157,7 +157,7 @@ impl<'a, K, V> DoubleEndedIterator for Keys<'a, K, V> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Values<'a, K, V>(pub(crate) Iter<'a, K, V>);
 
 impl<'a, K, V> Iterator for Values<'a, K, V> {
@@ -208,7 +208,7 @@ impl<'a, K, V> DoubleEndedIterator for Values<'a, K, V> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InsertRanks(pub(crate) vec::IntoIter<usize>);
 
 impl<'a> Iterator for InsertRanks {
@@ -269,7 +269,7 @@ impl<K, V, S> IntoIterator for StHashMap<K, V, S> {
     }
 }
 
-impl<'a, K, V, S> IntoIterator for &'a StHashMap<K, V, S> {
+impl<'a, K: 'a, V: 'a, S> IntoIterator for &'a StHashMap<K, V, S> {
     type Item = (&'a K, &'a V);
     type IntoIter = Iter<'a, K, V>;
 
