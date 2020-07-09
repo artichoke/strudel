@@ -25,9 +25,13 @@ strudel = "1.0"
 
 All features are enabled by default.
 
+- **api** - Enables a Rust API that closely mirrors the C API defined in
+  `ruby/st.h`.
 - **capi** - Enables a C API suitable for embedding `strudel` with FFI. Linking
   in the `libstrudel` cdylib will implement the functions defined in
-  [`include/st.h`](include/st.h). Disabling this drops the [`libc`] dependency.
+  `ruby/st.h`. Disabling this drops the [`libc`] dependency.
+- **capi-specialized-init** - Enables additional `st_init_table` C APIs with
+  known `st_hash_type`s for tables with numeric and string keys.
 
 ## License
 

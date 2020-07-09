@@ -19,7 +19,7 @@ include = [
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-libc = { version = "0.2", optional = true }
+libc = "0.2"
 
 [dev-dependencies]
 memoffset = "0.5.3"
@@ -28,7 +28,7 @@ memoffset = "0.5.3"
 default = ["capi-specialized-init"]
 capi-specialized-init = ["capi"]
 capi = ["api"]
-api = ["libc"]
+api = []
 debug = []
 
 [profile.release]

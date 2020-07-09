@@ -1,5 +1,10 @@
 #![allow(non_upper_case_globals)]
 
+//! `st_hash`-compatible Rust API bindings for [`StHash`].
+//!
+//! For the C API bindings, see the [`capi`](crate::capi) module. These bindings
+//! require activating the **capi** Cargo feature.
+
 use core::ffi::c_void;
 use core::hash::Hasher;
 use core::mem;
@@ -10,19 +15,33 @@ use crate::fnv::Fnv1a32;
 use crate::typedefs::*;
 use crate::StHash;
 
-// st_table *st_init_table(const struct st_hash_type *);
+/// Create and return table with `type` which can hold a minimal number of
+/// entries.
+///
+/// # Header declaration
+///
+/// ```c
+/// st_table *st_init_table(const struct st_hash_type *);
+/// ```
 #[inline]
-pub unsafe fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
+#[must_use]
+pub fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
     let table = StHash::with_hash_type(hash_type);
     st_table::into_raw(table.into())
 }
 
-// st_table *st_init_table_with_size(const struct st_hash_type *, st_index_t);
+/// Create and return table with `type` which can hold at least `size` entries.
+/// The real number of entries which the table can hold is the nearest power of
+/// two for `size`.
+///
+/// # Header declaration
+///
+/// ```c
+/// st_table *st_init_table_with_size(const struct st_hash_type *, st_index_t);
+/// ```
 #[inline]
-pub unsafe fn st_init_table_with_size(
-    hash_type: *const st_hash_type,
-    size: st_index_t,
-) -> *mut st_table {
+#[must_use]
+pub fn st_init_table_with_size(hash_type: *const st_hash_type, size: st_index_t) -> *mut st_table {
     let table = StHash::with_capacity_and_hash_type(size as usize, hash_type);
     st_table::into_raw(table.into())
 }
@@ -38,6 +57,11 @@ pub unsafe fn st_init_table_with_size(
 /// ```c
 /// int st_delete(st_table *, st_data_t *, st_data_t *); /* returns 0:notfound 1:deleted */
 /// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
 #[inline]
 pub unsafe fn st_delete(
     table: *mut st_table,
@@ -57,7 +81,6 @@ pub unsafe fn st_delete(
         }
         0
     };
-    #[cfg(feature = "capi")]
     table.ensure_num_entries_is_consistent_after_writes();
     mem::forget(table);
     ret
@@ -78,6 +101,11 @@ pub unsafe fn st_delete(
 /// ```c
 /// int st_delete_safe(st_table *, st_data_t *, st_data_t *, st_data_t);
 /// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
 #[inline]
 pub unsafe fn st_delete_safe(
     table: *mut st_table,
@@ -97,6 +125,11 @@ pub unsafe fn st_delete_safe(
 /// ```c
 /// int st_shift(st_table *, st_data_t *, st_data_t *); /* returns 0:notfound 1:deleted */
 /// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
 #[inline]
 pub unsafe fn st_shift(
     table: *mut st_table,
@@ -110,7 +143,6 @@ pub unsafe fn st_shift(
             if !value.is_null() {
                 ptr::write(value, entry_value);
             }
-            #[cfg(feature = "capi")]
             table.ensure_num_entries_is_consistent_after_writes();
             mem::forget(table);
             return 1;
@@ -132,13 +164,17 @@ pub unsafe fn st_shift(
 /// ```c
 /// int st_insert(st_table *, st_data_t, st_data_t);
 /// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
 #[inline]
 pub unsafe fn st_insert(table: *mut st_table, key: st_data_t, value: st_data_t) -> libc::c_int {
     let mut table = st_table::from_raw(table);
     let ret = if table.insert(key, value).is_some() {
         1
     } else {
-        #[cfg(feature = "capi")]
         table.ensure_num_entries_is_consistent_after_writes();
         0
     };
@@ -155,6 +191,14 @@ pub unsafe fn st_insert(table: *mut st_table, key: st_data_t, value: st_data_t) 
 /// ```c
 /// int st_insert2(st_table *, st_data_t, st_data_t, st_data_t (*)(st_data_t));
 /// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
+///
+/// `func` must be a callback function with the
+/// `unsafe extern "C" fn(st_data_t) -> st_data_t` signature.
 #[inline]
 pub unsafe fn st_insert2(
     table: *mut st_table,
@@ -165,7 +209,6 @@ pub unsafe fn st_insert2(
     let mut table = st_table::from_raw(table);
     if table.get(key).is_some() {
         if table.insert(key, value).is_none() {
-            #[cfg(feature = "capi")]
             table.ensure_num_entries_is_consistent_after_writes();
         }
         mem::forget(table);
@@ -177,7 +220,6 @@ pub unsafe fn st_insert2(
         let key = func(key);
         let mut table = st_table::from_raw(table);
         if table.insert(key, value).is_none() {
-            #[cfg(feature = "capi")]
             table.ensure_num_entries_is_consistent_after_writes();
         }
         mem::forget(table);
@@ -193,6 +235,11 @@ pub unsafe fn st_insert2(
 /// ```c
 /// int st_lookup(st_table *, st_data_t, st_data_t *);
 /// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
 #[inline]
 pub unsafe fn st_lookup(
     table: *mut st_table,
@@ -220,6 +267,11 @@ pub unsafe fn st_lookup(
 /// ```c
 /// int st_get_key(st_table *, st_data_t, st_data_t *);
 /// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
 #[inline]
 pub unsafe fn st_get_key(
     table: *mut st_table,
@@ -260,6 +312,14 @@ pub unsafe fn st_get_key(
 /// ```c
 /// int st_update(st_table *table, st_data_t key, st_update_callback_func *func, st_data_t arg);
 /// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
+///
+/// `func` must be a callback function with the `st_update_callback_func`
+/// signature.
 #[inline]
 pub unsafe fn st_update(
     table: *mut st_table,
@@ -298,28 +358,44 @@ pub unsafe fn st_update(
             // ```c
             // st_add_direct_with_hash(table, key, value, hash);
             // ```
-            if table.insert(key, value).is_none() {
-                #[cfg(feature = "capi")]
-                table.ensure_num_entries_is_consistent_after_writes();
-            }
+            let _ = table.insert(key, value);
         }
         ret if ret == ST_CONTINUE => {
             table.update(key, value);
-            #[cfg(feature = "capi")]
-            table.ensure_num_entries_is_consistent_after_writes();
         }
         ret if ret == ST_DELETE && existing => {
             let _ = table.remove(old_key);
-            #[cfg(feature = "capi")]
-            table.ensure_num_entries_is_consistent_after_writes();
         }
         _ => {}
     };
+    table.ensure_num_entries_is_consistent_after_writes();
     mem::forget(table);
     existing as libc::c_int
 }
 
-// int st_foreach(st_table *, int (*)(ANYARGS), st_data_t);
+/// Traverse all entries in table `table` calling `func` with current entry key
+/// and value and zero. If the call returns `ST_STOP`, stop traversing. If the
+/// call returns `ST_DELETE`, delete the current entry from the table. In case
+/// of `ST_CHECK` or `ST_CONTINUE`, continue traversing. The function returns
+/// zero unless an error is found.
+///
+/// The behavior is a bit different from [`st_foreach_check`] when `ST_CHECK`
+/// is returned from `func` and when the current element is removed during
+/// traversing.
+///
+/// # Header declaration
+///
+/// ```c
+/// int st_foreach(st_table *, int (*)(ANYARGS), st_data_t);
+/// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
+///
+/// `func` must be a callback function with the `st_foreach_callback_func`
+/// signature.
 #[inline]
 pub unsafe fn st_foreach(
     table: *mut st_table,
@@ -358,7 +434,6 @@ pub unsafe fn st_foreach(
                     retval if ST_DELETE == retval => {
                         let mut table = st_table::from_raw(table_ptr);
                         let _ = table.remove(key);
-                        #[cfg(feature = "capi")]
                         table.ensure_num_entries_is_consistent_after_writes();
                         mem::forget(table);
                     }
@@ -379,7 +454,29 @@ pub unsafe fn st_foreach(
     0
 }
 
-// int st_foreach_check(st_table *, int (*)(ANYARGS), st_data_t, st_data_t);
+/// Traverse all entries in table `table` calling `func` with current entry key
+/// and value and zero. If the call returns `ST_STOP`, stop traversing. If the
+/// call returns `ST_DELETE`, delete the current entry from the table. In case
+/// of `ST_CHECK` or `ST_CONTINUE`, continue traversing. The function returns
+/// zero unless an error is found.
+///
+/// The behavior is a bit different from [`st_foreach`] when `ST_CHECK` is
+/// returned from `func` and when the current element is removed during
+/// traversing.
+///
+/// # Header declaration
+///
+/// ```c
+/// int st_foreach_check(st_table *, int (*)(ANYARGS), st_data_t, st_data_t);
+/// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
+///
+/// `func` must be a callback function with the `st_foreach_callback_func`
+/// signature.
 #[inline]
 pub unsafe fn st_foreach_check(
     table: *mut st_table,
@@ -419,7 +516,6 @@ pub unsafe fn st_foreach_check(
                     retval if ST_DELETE == retval => {
                         let mut table = st_table::from_raw(table_ptr);
                         let _ = table.remove(key);
-                        #[cfg(feature = "capi")]
                         table.ensure_num_entries_is_consistent_after_writes();
                         mem::forget(table);
                     }
@@ -448,6 +544,13 @@ pub unsafe fn st_foreach_check(
 /// ```c
 /// st_index_t st_keys(st_table *table, st_data_t *keys, st_index_t size);
 /// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
+///
+/// `keys` must be non-null and point to an array.
 #[inline]
 pub unsafe fn st_keys(table: *mut st_table, keys: *mut st_data_t, size: st_index_t) -> st_index_t {
     let table = st_table::from_raw(table);
@@ -468,6 +571,13 @@ pub unsafe fn st_keys(table: *mut st_table, keys: *mut st_data_t, size: st_index
 /// ```c
 /// st_index_t st_keys_check(st_table *table, st_data_t *keys, st_index_t size, st_data_t never);
 /// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
+///
+/// `keys` must be non-null and point to an array.
 #[inline]
 pub unsafe fn st_keys_check(
     table: *mut st_table,
@@ -486,6 +596,13 @@ pub unsafe fn st_keys_check(
 /// ```c
 /// st_index_t st_values(st_table *table, st_data_t *values, st_index_t size);
 /// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
+///
+/// `values` must be non-null and point to an array.
 #[inline]
 pub unsafe fn st_values(
     table: *mut st_table,
@@ -510,6 +627,13 @@ pub unsafe fn st_values(
 /// ```c
 /// st_index_t st_values_check(st_table *table, st_data_t *values, st_index_t size, st_data_t never);
 /// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
+///
+/// `values` must be non-null and point to an array.
 #[inline]
 pub unsafe fn st_values_check(
     table: *mut st_table,
@@ -520,7 +644,23 @@ pub unsafe fn st_values_check(
     st_values(table, values, size)
 }
 
-// void st_add_direct(st_table *, st_data_t, st_data_t);
+/// Insert (`key`, `value`) into table `table`. The table should not have entry
+/// with `key` before the insertion.
+///
+/// # Notes
+///
+/// This implementation delegates to [`StHash::insert`] directly.
+///
+/// # Header declaration
+///
+/// ```c
+/// void st_add_direct(st_table *, st_data_t, st_data_t);
+/// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
 #[inline]
 pub unsafe fn st_add_direct(table: *mut st_table, key: st_data_t, value: st_data_t) {
     // The original C implementation uses `st_add_direct_with_hash` to implement
@@ -536,7 +676,6 @@ pub unsafe fn st_add_direct(table: *mut st_table, key: st_data_t, value: st_data
     // are no callbacks.
     let mut table = st_table::from_raw(table);
     if table.insert(key, value).is_none() {
-        #[cfg(feature = "capi")]
         table.ensure_num_entries_is_consistent_after_writes();
     }
     mem::forget(table);
@@ -549,6 +688,11 @@ pub unsafe fn st_add_direct(table: *mut st_table, key: st_data_t, value: st_data
 /// ```c
 /// void st_free_table(st_table *);
 /// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
 #[inline]
 pub unsafe fn st_free_table(table: *mut st_table) {
     let table = st_table::from_raw(table);
@@ -563,7 +707,7 @@ pub unsafe fn st_free_table(table: *mut st_table) {
 /// void st_cleanup_safe(st_table *, st_data_t);
 /// ```
 #[inline]
-pub unsafe fn st_cleanup_safe(table: *mut st_table, _never: st_data_t) {
+pub fn st_cleanup_safe(table: *mut st_table, _never: st_data_t) {
     let _ = table;
 }
 
@@ -574,25 +718,58 @@ pub unsafe fn st_cleanup_safe(table: *mut st_table, _never: st_data_t) {
 /// ```c
 /// void st_clear(st_table *);
 /// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
 #[inline]
 pub unsafe fn st_clear(table: *mut st_table) {
     let mut table = st_table::from_raw(table);
     table.clear();
-    #[cfg(feature = "capi")]
     table.ensure_num_entries_is_consistent_after_writes();
     mem::forget(table);
 }
 
-// st_table *st_copy(st_table *);
+/// Create and return a copy of table `old_table`.
+///
+/// # Header declaration
+///
+/// ```c
+/// st_table *st_copy(st_table *);
+/// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
 #[inline]
-pub unsafe fn st_copy(table: *mut st_table) -> *mut st_table {
-    let table = st_table::from_raw(table);
-    let copy = table.clone();
-    mem::forget(table);
-    st_table::into_raw(copy.into())
+pub unsafe fn st_copy(old_table: *mut st_table) -> *mut st_table {
+    let old_table = st_table::from_raw(old_table);
+    let table = old_table.clone();
+    mem::forget(old_table);
+    st_table::into_raw(table.into())
 }
 
+/// Return byte size of memory allocted for table `table`.
+///
+/// # Notes
+///
+/// This implementation is a best effort approximation because Rust collection
+/// types do not expose their memsize. See [`StHash::estimated_memsize`].
+///
+/// # Header declaration
+///
+/// ```c
+/// PUREFUNC(size_t st_memsize(const st_table *));
+/// ```
+///
+/// # Safety
+///
+/// `table` must be non-null and point to a valid `st_table` created by the
+/// `st_init_table` family of functions.
 #[inline]
+#[must_use]
 pub unsafe fn st_memsize(table: *const st_table) -> libc::size_t {
     let table = st_table::from_raw(table as *mut st_table);
     let memsize = table.estimated_memsize();
@@ -600,8 +777,17 @@ pub unsafe fn st_memsize(table: *const st_table) -> libc::size_t {
     memsize as _
 }
 
-// PUREFUNC(st_index_t st_hash(const void *ptr, size_t len, st_index_t h));
+/// # Header declaration
+///
+/// ```c
+/// PUREFUNC(st_index_t st_hash(const void *ptr, size_t len, st_index_t h));
+/// ```
+///
+/// # Safety
+///
+/// `ptr` must be a non-null `*const u8` pointer.
 #[inline]
+#[must_use]
 pub unsafe fn st_hash(ptr: *const c_void, len: libc::size_t, h: st_index_t) -> st_index_t {
     let mut hasher = Fnv1a32::with_seed(h as u32);
     let data = slice::from_raw_parts(ptr as *const u8, len as usize);
@@ -609,31 +795,51 @@ pub unsafe fn st_hash(ptr: *const c_void, len: libc::size_t, h: st_index_t) -> s
     hasher.finish() as st_index_t
 }
 
-// CONSTFUNC(st_index_t st_hash_uint32(st_index_t h, uint32_t i));
+/// # Header declaration
+///
+/// ```c
+/// CONSTFUNC(st_index_t st_hash_uint32(st_index_t h, uint32_t i));
+/// ```
 #[inline]
-pub unsafe fn st_hash_uint32(h: st_index_t, i: u32) -> st_index_t {
+#[must_use]
+pub fn st_hash_uint32(h: st_index_t, i: u32) -> st_index_t {
     let mut hasher = Fnv1a32::with_seed(h as u32);
     hasher.write_u32(i);
     hasher.finish() as st_index_t
 }
 
-// CONSTFUNC(st_index_t st_hash_uint(st_index_t h, st_index_t i));
+/// # Header declaration
+///
+/// ```c
+/// CONSTFUNC(st_index_t st_hash_uint(st_index_t h, st_index_t i));
+/// ```
 #[inline]
-pub unsafe fn st_hash_uint(h: st_index_t, i: st_index_t) -> st_index_t {
+#[must_use]
+pub fn st_hash_uint(h: st_index_t, i: st_index_t) -> st_index_t {
     let mut hasher = Fnv1a32::with_seed(h as u32);
     hasher.write_u64(i as u64);
     hasher.finish() as st_index_t
 }
 
-// CONSTFUNC(st_index_t st_hash_end(st_index_t h));
+/// # Header declaration
+///
+/// ```c
+/// CONSTFUNC(st_index_t st_hash_end(st_index_t h));
+/// ```
 #[inline]
-pub unsafe fn st_hash_end(h: st_index_t) -> st_index_t {
+#[must_use]
+pub const fn st_hash_end(h: st_index_t) -> st_index_t {
     h
 }
 
-// CONSTFUNC(st_index_t st_hash_start(st_index_t h));
+/// # Header declaration
+///
+/// ```c
+/// CONSTFUNC(st_index_t st_hash_start(st_index_t h));
+/// ```
 #[inline]
-pub unsafe fn st_hash_start(h: st_index_t) -> st_index_t {
+#[must_use]
+pub fn st_hash_start(h: st_index_t) -> st_index_t {
     let mut hasher = Fnv1a32::new();
     hasher.write_u64(h as u64);
     hasher.finish() as st_index_t

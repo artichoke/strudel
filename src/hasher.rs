@@ -1,27 +1,8 @@
-use core::convert;
 use core::hash::{BuildHasher, Hasher};
 use core::mem::size_of;
 use std::collections::hash_map::{DefaultHasher, RandomState};
 
 use crate::typedefs::*;
-
-pub unsafe extern "C" fn default_compare(x: st_data_t, y: st_data_t) -> i32 {
-    x.cmp(&y) as _
-}
-
-pub unsafe extern "C" fn default_hash(value: st_data_t) -> st_index_t {
-    convert::identity(value)
-}
-
-impl Default for st_hash_type {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            compare: default_compare,
-            hash: default_hash,
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 #[allow(clippy::module_name_repetitions)]

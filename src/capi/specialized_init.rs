@@ -6,7 +6,11 @@ use crate::capi::{st_init_table, st_init_table_with_size};
 use crate::fnv::{self, Fnv1a32};
 use crate::typedefs::*;
 
-// CONSTFUNC(int st_numcmp(st_data_t, st_data_t));
+/// # Header declaration
+///
+/// ```c
+/// CONSTFUNC(int st_numcmp(st_data_t, st_data_t));
+/// ```
 #[no_mangle]
 unsafe extern "C" fn st_numcmp(x: st_data_t, y: st_data_t) -> libc::c_int {
     #[cfg(feature = "debug")]
@@ -19,7 +23,11 @@ unsafe extern "C" fn st_numcmp(x: st_data_t, y: st_data_t) -> libc::c_int {
     }
 }
 
-// CONSTFUNC(st_index_t st_numhash(st_data_t));
+/// # Header declaration
+///
+/// ```c
+/// CONSTFUNC(st_index_t st_numhash(st_data_t));
+/// ```
 #[no_mangle]
 unsafe extern "C" fn st_numhash(n: st_data_t) -> st_index_t {
     #[cfg(feature = "debug")]
@@ -70,7 +78,11 @@ static type_strcasehash: st_hash_type = st_hash_type {
     hash: strcasehash,
 };
 
-// st_table *st_init_numtable(void);
+/// # Header declaration
+///
+/// ```c
+/// st_table *st_init_numtable(void);
+/// ```
 #[no_mangle]
 unsafe extern "C" fn st_init_numtable() -> *mut st_table {
     #[cfg(feature = "debug")]
@@ -79,7 +91,11 @@ unsafe extern "C" fn st_init_numtable() -> *mut st_table {
     st_init_table(&st_hashtype_num)
 }
 
-// st_table *st_init_numtable_with_size(st_index_t);
+/// # Header declaration
+///
+/// ```c
+/// st_table *st_init_numtable_with_size(st_index_t);
+/// ```
 #[no_mangle]
 unsafe extern "C" fn st_init_numtable_with_size(size: st_index_t) -> *mut st_table {
     #[cfg(feature = "debug")]
@@ -88,7 +104,11 @@ unsafe extern "C" fn st_init_numtable_with_size(size: st_index_t) -> *mut st_tab
     st_init_table_with_size(&st_hashtype_num, size)
 }
 
-// st_table *st_init_strtable(void);
+/// # Header declaration
+///
+/// ```c
+/// st_table *st_init_strtable(void);
+/// ```
 #[no_mangle]
 unsafe extern "C" fn st_init_strtable() -> *mut st_table {
     #[cfg(feature = "debug")]
@@ -97,7 +117,11 @@ unsafe extern "C" fn st_init_strtable() -> *mut st_table {
     st_init_table(&type_strhash)
 }
 
-// st_table *st_init_strtable_with_size(st_index_t);
+/// # Header declaration
+///
+/// ```c
+/// st_table *st_init_strtable_with_size(st_index_t);
+/// ```
 #[no_mangle]
 unsafe extern "C" fn st_init_strtable_with_size(size: st_index_t) -> *mut st_table {
     #[cfg(feature = "debug")]
@@ -106,7 +130,11 @@ unsafe extern "C" fn st_init_strtable_with_size(size: st_index_t) -> *mut st_tab
     st_init_table_with_size(&type_strhash, size)
 }
 
-// st_table *st_init_strcasetable(void);
+/// # Header declaration
+///
+/// ```c
+/// st_table *st_init_strcasetable(void);
+/// ```
 #[no_mangle]
 unsafe extern "C" fn st_init_strcasetable() -> *mut st_table {
     #[cfg(feature = "debug")]
@@ -115,7 +143,11 @@ unsafe extern "C" fn st_init_strcasetable() -> *mut st_table {
     st_init_table(&type_strcasehash)
 }
 
-// st_table *st_init_strcasetable_with_size(st_index_t);
+/// # Header declaration
+///
+/// ```c
+/// st_table *st_init_strcasetable_with_size(st_index_t);
+/// ```
 #[no_mangle]
 unsafe extern "C" fn st_init_strcasetable_with_size(size: st_index_t) -> *mut st_table {
     #[cfg(feature = "debug")]
@@ -124,7 +156,11 @@ unsafe extern "C" fn st_init_strcasetable_with_size(size: st_index_t) -> *mut st
     st_init_table_with_size(&type_strcasehash, size)
 }
 
-// PUREFUNC(int st_locale_insensitive_strcasecmp(const char *s1, const char *s2));
+/// # Header declaration
+///
+/// ```c
+/// PUREFUNC(int st_locale_insensitive_strcasecmp(const char *s1, const char *s2));
+/// ```
 #[no_mangle]
 unsafe extern "C" fn st_locale_insensitive_strcasecmp(s1: st_data_t, s2: st_data_t) -> libc::c_int {
     #[cfg(feature = "debug")]
@@ -151,7 +187,11 @@ unsafe extern "C" fn st_locale_insensitive_strcasecmp(s1: st_data_t, s2: st_data
     0
 }
 
-// PUREFUNC(int st_locale_insensitive_strncasecmp(const char *s1, const char *s2, size_t n));
+/// # Header declaration
+///
+/// ```c
+/// PUREFUNC(int st_locale_insensitive_strncasecmp(const char *s1, const char *s2, size_t n));
+/// ```
 #[no_mangle]
 unsafe extern "C" fn st_locale_insensitive_strncasecmp(
     s1: st_data_t,
