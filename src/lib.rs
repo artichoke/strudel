@@ -145,9 +145,11 @@ mod fnv;
 mod hasher;
 mod iter;
 mod st;
+#[cfg(feature = "api")]
 mod typedefs;
 
-pub use st::StHash;
+pub use st::StHashMap;
+#[cfg(feature = "api")]
 pub use typedefs::*;
 
 pub mod st_hash_map {

@@ -2,14 +2,13 @@ use core::iter::{FromIterator, FusedIterator};
 use std::collections::btree_map;
 use std::vec;
 
-use crate::typedefs::*;
-use crate::StHash;
+use crate::st::StHashMap;
 
 #[derive(Debug, Clone)]
-pub struct Iter<'a>(pub(crate) btree_map::Values<'a, st_index_t, (st_data_t, st_data_t)>);
+pub struct Iter<'a, K, V>(pub(crate) btree_map::Values<'a, usize, (K, V)>);
 
-impl<'a> Iterator for Iter<'a> {
-    type Item = (&'a st_data_t, &'a st_data_t);
+impl<'a, K, V> Iterator for Iter<'a, K, V> {
+    type Item = (&'a K, &'a V);
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -42,11 +41,11 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
-impl<'a> FusedIterator for Iter<'a> {}
+impl<'a, K, V> FusedIterator for Iter<'a, K, V> {}
 
-impl<'a> ExactSizeIterator for Iter<'a> {}
+impl<'a, K, V> ExactSizeIterator for Iter<'a, K, V> {}
 
-impl<'a> DoubleEndedIterator for Iter<'a> {
+impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.next_back().map(|(key, value)| (key, value))
     }
@@ -57,10 +56,61 @@ impl<'a> DoubleEndedIterator for Iter<'a> {
 }
 
 #[derive(Debug)]
-pub struct Keys<'a>(pub(crate) Iter<'a>);
+pub struct IntoIter<K, V>(pub(crate) btree_map::IntoIter<usize, (K, V)>);
 
-impl<'a> Iterator for Keys<'a> {
-    type Item = &'a st_data_t;
+impl<K, V> Iterator for IntoIter<K, V> {
+    type Item = (K, V);
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(|(_, (key, value))| (key, value))
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.size_hint()
+    }
+
+    #[inline]
+    fn count(self) -> usize {
+        self.0.count()
+    }
+
+    #[inline]
+    fn last(self) -> Option<Self::Item> {
+        self.0.last().map(|(_, (key, value))| (key, value))
+    }
+
+    #[inline]
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        self.0.nth(n).map(|(_, (key, value))| (key, value))
+    }
+
+    #[inline]
+    fn collect<B: FromIterator<Self::Item>>(self) -> B {
+        self.0.map(|(_, (key, value))| (key, value)).collect()
+    }
+}
+
+impl<K, V> FusedIterator for IntoIter<K, V> {}
+
+impl<K, V> ExactSizeIterator for IntoIter<K, V> {}
+
+impl<K, V> DoubleEndedIterator for IntoIter<K, V> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back().map(|(_, (key, value))| (key, value))
+    }
+
+    fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
+        self.0.nth_back(n).map(|(_, (key, value))| (key, value))
+    }
+}
+
+#[derive(Debug)]
+pub struct Keys<'a, K, V>(pub(crate) Iter<'a, K, V>);
+
+impl<'a, K, V> Iterator for Keys<'a, K, V> {
+    type Item = &'a K;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -93,11 +143,11 @@ impl<'a> Iterator for Keys<'a> {
     }
 }
 
-impl<'a> FusedIterator for Keys<'a> {}
+impl<'a, K, V> FusedIterator for Keys<'a, K, V> {}
 
-impl<'a> ExactSizeIterator for Keys<'a> {}
+impl<'a, K, V> ExactSizeIterator for Keys<'a, K, V> {}
 
-impl<'a> DoubleEndedIterator for Keys<'a> {
+impl<'a, K, V> DoubleEndedIterator for Keys<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.next_back().map(|(key, _)| key)
     }
@@ -108,10 +158,10 @@ impl<'a> DoubleEndedIterator for Keys<'a> {
 }
 
 #[derive(Debug)]
-pub struct Values<'a>(pub(crate) Iter<'a>);
+pub struct Values<'a, K, V>(pub(crate) Iter<'a, K, V>);
 
-impl<'a> Iterator for Values<'a> {
-    type Item = &'a st_data_t;
+impl<'a, K, V> Iterator for Values<'a, K, V> {
+    type Item = &'a V;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -144,11 +194,11 @@ impl<'a> Iterator for Values<'a> {
     }
 }
 
-impl<'a> FusedIterator for Values<'a> {}
+impl<'a, K, V> FusedIterator for Values<'a, K, V> {}
 
-impl<'a> ExactSizeIterator for Values<'a> {}
+impl<'a, K, V> ExactSizeIterator for Values<'a, K, V> {}
 
-impl<'a> DoubleEndedIterator for Values<'a> {
+impl<'a, K, V> DoubleEndedIterator for Values<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.next_back().map(|(_, value)| value)
     }
@@ -159,10 +209,10 @@ impl<'a> DoubleEndedIterator for Values<'a> {
 }
 
 #[derive(Debug)]
-pub struct InsertRanks(pub(crate) vec::IntoIter<st_index_t>);
+pub struct InsertRanks(pub(crate) vec::IntoIter<usize>);
 
 impl<'a> Iterator for InsertRanks {
-    type Item = st_index_t;
+    type Item = usize;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -209,9 +259,19 @@ impl<'a> DoubleEndedIterator for InsertRanks {
     }
 }
 
-impl<'a> IntoIterator for &'a StHash {
-    type Item = (&'a st_data_t, &'a st_data_t);
-    type IntoIter = Iter<'a>;
+impl<K, V, S> IntoIterator for StHashMap<K, V, S> {
+    type Item = (K, V);
+    type IntoIter = IntoIter<K, V>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter(self.ordered.into_iter())
+    }
+}
+
+impl<'a, K, V, S> IntoIterator for &'a StHashMap<K, V, S> {
+    type Item = (&'a K, &'a V);
+    type IntoIter = Iter<'a, K, V>;
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
