@@ -257,18 +257,6 @@ pub struct StHash {
     insert_counter: st_index_t,
 }
 
-impl Default for StHash {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            map: HashMap::default(),
-            ordered: BTreeMap::default(),
-            eq: hasher::default_compare,
-            insert_counter: 0,
-        }
-    }
-}
-
 impl StHash {
     #[inline]
     #[must_use]

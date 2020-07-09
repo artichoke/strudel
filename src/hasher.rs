@@ -27,7 +27,7 @@ impl Default for st_hash_type {
 #[allow(clippy::module_name_repetitions)]
 pub struct StBuildHasher {
     inner: RandomState,
-    hash: st_hash_func,
+    hash_type: *const st_hash_type,
 }
 
 impl StBuildHasher {
@@ -36,26 +36,20 @@ impl StBuildHasher {
     pub fn into_boxed(self) -> Box<Self> {
         Box::new(self)
     }
-}
 
-impl Default for StBuildHasher {
     #[inline]
-    fn default() -> Self {
-        Self {
-            inner: RandomState::default(),
-            hash: default_hash,
-        }
+    #[must_use]
+    pub fn hash_type(&self) -> *const st_hash_type {
+        self.hash_type
     }
 }
 
 impl From<*const st_hash_type> for StBuildHasher {
     #[inline]
-    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn from(hash_type: *const st_hash_type) -> Self {
-        let hash = unsafe { (*hash_type).hash };
         Self {
             inner: RandomState::new(),
-            hash,
+            hash_type,
         }
     }
 }
@@ -67,7 +61,7 @@ impl BuildHasher for StBuildHasher {
     fn build_hasher(&self) -> Self::Hasher {
         Self::Hasher {
             state: self.inner.build_hasher(),
-            hash: self.hash,
+            hash_type: self.hash_type,
         }
     }
 }
@@ -79,7 +73,7 @@ impl BuildHasher for Box<StBuildHasher> {
     fn build_hasher(&self) -> Self::Hasher {
         Self::Hasher {
             state: self.inner.build_hasher(),
-            hash: self.hash,
+            hash_type: self.hash_type,
         }
     }
 }
@@ -88,27 +82,27 @@ impl BuildHasher for Box<StBuildHasher> {
 #[allow(clippy::module_name_repetitions)]
 pub struct StHasher {
     state: DefaultHasher,
-    hash: st_hash_func,
-}
-
-impl Default for StHasher {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            state: DefaultHasher::default(),
-            hash: default_hash,
-        }
-    }
+    hash_type: *const st_hash_type,
 }
 
 impl StHasher {
     #[inline]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn add_to_hash(&mut self, i: st_hash_t) {
-        let i = unsafe { (self.hash)(i) };
+        let i = unsafe {
+            let hash = (*self.hash_type).hash;
+            (hash)(i)
+        };
         #[cfg(target_pointer_width = "32")]
         self.state.write_u32(i);
         #[cfg(target_pointer_width = "64")]
         self.state.write_u64(i);
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn hash_type(&self) -> *const st_hash_type {
+        self.hash_type
     }
 }
 

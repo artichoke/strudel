@@ -109,9 +109,10 @@ impl st_table {
 }
 
 #[cfg(not(feature = "capi"))]
-impl From<StHash> for st_table {
+impl st_table {
     #[inline]
-    fn from(table: StHash) -> Self {
+    pub fn with_table_and_hash_type(table: StHash, hash_type: *const st_hash_type) -> Self {
+        let _ = hash_type;
         Self(table)
     }
 }

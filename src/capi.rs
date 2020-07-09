@@ -13,13 +13,14 @@ use crate::StHash;
 mod specialized_init;
 
 // These values enforced by test.
-const PADDING_TO_NUM_ENTRIES: usize = 8;
+const PADDING_TO_NUM_ENTRIES: usize = 0;
 const PADDING_TO_END: usize = 32;
 
 #[repr(C)]
 pub struct st_table {
     table: *mut StHash,
     _padding: [u8; PADDING_TO_NUM_ENTRIES],
+    type_: *const st_hash_type,
     num_entries: st_index_t,
     _padding_end: [u8; PADDING_TO_END],
 }
@@ -50,11 +51,13 @@ impl From<StHash> for st_table {
     #[inline]
     fn from(table: StHash) -> Self {
         let num_entries = table.len() as st_index_t;
+        let hash_type = table.hasher().hash_type();
         let table = Box::new(table);
         let table = Box::into_raw(table);
         Self {
             table,
             _padding: [0; PADDING_TO_NUM_ENTRIES],
+            type_: hash_type,
             num_entries,
             _padding_end: [0; PADDING_TO_END],
         }
@@ -538,6 +541,13 @@ mod tests {
     fn num_entries_offset_ffi_compat() {
         let c_struct = memoffset::offset_of!(ffi_types::st_table, num_entries);
         let rust_struct = memoffset::offset_of!(st_table, num_entries);
+        assert_eq!(c_struct, rust_struct);
+    }
+
+    #[test]
+    fn type_offset_ffi_compat() {
+        let c_struct = memoffset::offset_of!(ffi_types::st_table, type_);
+        let rust_struct = memoffset::offset_of!(st_table, type_);
         assert_eq!(c_struct, rust_struct);
     }
 
