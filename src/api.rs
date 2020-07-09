@@ -777,6 +777,8 @@ pub unsafe fn st_memsize(table: *const st_table) -> libc::size_t {
     memsize as _
 }
 
+/// Hash a byte array with FNV.
+///
 /// # Header declaration
 ///
 /// ```c
@@ -795,6 +797,8 @@ pub unsafe fn st_hash(ptr: *const c_void, len: libc::size_t, h: st_index_t) -> s
     hasher.finish() as st_index_t
 }
 
+/// Hash one round of FNV with `h` as the initial state.
+///
 /// # Header declaration
 ///
 /// ```c
@@ -808,6 +812,8 @@ pub fn st_hash_uint32(h: st_index_t, i: u32) -> st_index_t {
     hasher.finish() as st_index_t
 }
 
+/// Hash one round of FNV with `h` as the initial state.
+///
 /// # Header declaration
 ///
 /// ```c
@@ -821,6 +827,8 @@ pub fn st_hash_uint(h: st_index_t, i: st_index_t) -> st_index_t {
     hasher.finish() as st_index_t
 }
 
+/// Finalize FNV hash.
+///
 /// # Header declaration
 ///
 /// ```c
@@ -832,6 +840,8 @@ pub const fn st_hash_end(h: st_index_t) -> st_index_t {
     h
 }
 
+/// Initialize an FNV hash with `h` data.
+///
 /// # Header declaration
 ///
 /// ```c

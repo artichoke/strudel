@@ -1,5 +1,3 @@
-//! An insertion-ordered hash map implemented with [`HashMap`] and [`BTreeMap`].
-
 use core::borrow::Borrow;
 use core::hash::{Hash, Hasher};
 use core::mem::size_of;

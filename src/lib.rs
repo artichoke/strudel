@@ -144,8 +144,18 @@ mod entry;
 mod fnv;
 mod hasher;
 mod iter;
-pub mod st_hashmap;
+mod st;
 mod typedefs;
 
-pub use st_hashmap::StHash;
+pub use st::StHash;
 pub use typedefs::*;
+
+pub mod st_hash_map {
+    //! An insertion-ordered hash map implemented with
+    //! [`HashMap`](std::collections::HashMap) and
+    //! [`BTreeMap`](std::collections::BTreeMap).
+    pub use super::st::{
+        InsertRanks, Iter, IterMut, Keys, OccupiedEntry, StBuildHasher, StHash, StHasher,
+        VacantEntry, Values,
+    };
+}

@@ -1,6 +1,6 @@
 #![allow(non_upper_case_globals)]
 
-//! `st_hash`-compatible C API bindings for [`StHash`].
+//! `st_hash`-compatible C API bindings for [`StHash`](crate::StHash).
 //!
 //! This module's functions are exported via `#[no_mangle]` symbol bindings.
 //! These functions are callable from C by including `st.h` and linking in
