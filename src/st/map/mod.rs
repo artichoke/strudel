@@ -5,10 +5,8 @@ use core::ops::Index;
 use std::collections::hash_map::{Entry as HashEntry, RandomState};
 use std::collections::HashMap;
 
-mod entry;
 mod iter;
 
-pub use entry::{Entry, OccupiedEntry, VacantEntry};
 pub use iter::{InsertRanks, IntoIter, Iter, Keys, Values};
 
 #[derive(Debug, Clone)]
@@ -738,41 +736,6 @@ where
     V: PartialEq + Clone,
     S: BuildHasher,
 {
-    /// Gets the given key's corresponding entry in the map for in-place
-    /// manipulation.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use strudel::StHashMap;
-    ///
-    /// let mut letters = StHashMap::new();
-    ///
-    /// for ch in "a short treatise on fungi".chars() {
-    ///     let counter = letters.entry(ch).or_insert(0);
-    ///     *counter += 1;
-    /// }
-    ///
-    /// assert_eq!(letters[&'s'], 2);
-    /// assert_eq!(letters[&'t'], 3);
-    /// assert_eq!(letters[&'u'], 1);
-    /// assert_eq!(letters.get(&'y'), None);
-    /// ```
-    #[inline]
-    pub fn entry(&mut self, key: K) -> Entry<'_, K, V> {
-        let insert_rank = self.ordered.len();
-
-        let key = Key {
-            inner: key,
-            insert_rank,
-        };
-
-        match self.map.entry(key) {
-            HashEntry::Occupied(base) => Entry::Occupied(OccupiedEntry(base)),
-            HashEntry::Vacant(base) => Entry::Vacant(VacantEntry(base)),
-        }
-    }
-
     /// Inserts a key-value pair into the map.
     ///
     /// If the map did not have this key present, [`None`] is returned.
