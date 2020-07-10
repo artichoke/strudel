@@ -60,6 +60,7 @@ impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
 /// This struct is created by the `into_iter` method on [`StHashMap`]. See its
 /// documentation for more.
 #[derive(Debug)]
+#[allow(clippy::module_name_repetitions)]
 pub struct IntoIter<K, V>(btree_map::IntoIter<usize, (K, V)>);
 
 impl<K, V> Iterator for IntoIter<K, V> {

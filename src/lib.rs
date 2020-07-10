@@ -105,8 +105,6 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 #![warn(clippy::cargo)]
 #![allow(clippy::cast_lossless)]
 #![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::wildcard_imports)]
-#![allow(clippy::enum_glob_use)]
 #![warn(missing_docs, intra_doc_link_resolution_failure)]
 #![warn(missing_debug_implementations)]
 #![warn(rust_2018_idioms)]

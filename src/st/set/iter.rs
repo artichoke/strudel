@@ -59,6 +59,7 @@ impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
 /// This struct is created by the `into_iter` method on [`StHashSet`]. See its
 /// documentation for more.
 #[derive(Debug)]
+#[allow(clippy::module_name_repetitions)]
 pub struct IntoIter<T>(map::IntoIter<T, ()>);
 
 impl<T> Iterator for IntoIter<T> {

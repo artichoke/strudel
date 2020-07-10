@@ -80,7 +80,6 @@ impl ExternStHashMap {
     /// A [`Hasher`] is constructed from an [`StBuildHasher`].
     #[inline]
     #[must_use]
-    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn with_hash_type(hash_type: *const st_hash_type) -> Self {
         let hasher = StBuildHasher::from(hash_type);
         Self::with_hasher(hasher)
@@ -95,7 +94,6 @@ impl ExternStHashMap {
     /// A [`Hasher`] is constructed from an [`StBuildHasher`].
     #[inline]
     #[must_use]
-    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn with_capacity_and_hash_type(capacity: usize, hash_type: *const st_hash_type) -> Self {
         let hasher = StBuildHasher::from(hash_type);
         Self::with_capacity_and_hasher(capacity, hasher)
@@ -103,6 +101,8 @@ impl ExternStHashMap {
 
     /// Wrapper around [`StHashMap::first`] that wraps a bare `st_data_t` in a
     /// key type that can be checked for equality.
+    #[inline]
+    #[must_use]
     pub fn first_raw(&self) -> Option<(&st_data_t, &st_data_t)> {
         let (key, value) = self.first()?;
         Some((&key.record, value))
@@ -110,6 +110,9 @@ impl ExternStHashMap {
 
     /// Wrapper around [`StHashMap::get`] that wraps a bare `st_data_t` in a key
     /// type that can be checked for equality.
+    #[inline]
+    #[must_use]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn get_raw(&self, key: st_data_t) -> Option<&st_data_t> {
         let hash_type = self.hasher().hash_type();
         // Safety
@@ -123,6 +126,9 @@ impl ExternStHashMap {
 
     /// Wrapper around [`StHashMap::get_key_value`] that wraps a bare
     /// `st_data_t` in a key type that can be checked for equality.
+    #[inline]
+    #[must_use]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn get_key_value_raw(&self, key: st_data_t) -> Option<(&st_data_t, &st_data_t)> {
         let hash_type = self.hasher().hash_type();
         // Safety
@@ -137,6 +143,9 @@ impl ExternStHashMap {
 
     /// Wrapper around [`StHashMap::insert`] that wraps a bare `st_data_t` in a
     /// key type that can be checked for equality.
+    #[inline]
+    #[must_use]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn insert_raw(&mut self, key: st_data_t, value: st_data_t) -> Option<st_data_t> {
         let hash_type = self.hasher().hash_type();
         // Safety
@@ -150,6 +159,8 @@ impl ExternStHashMap {
 
     /// Wrapper around [`StHashMap::update`] that wraps a bare `st_data_t` in a
     /// key type that can be checked for equality.
+    #[inline]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn update_raw(&mut self, key: st_data_t, value: st_data_t) {
         let hash_type = self.hasher().hash_type();
         // Safety
@@ -163,6 +174,9 @@ impl ExternStHashMap {
 
     /// Wrapper around [`StHashMap::remove`] that wraps a bare `st_data_t` in a
     /// key type that can be checked for equality.
+    #[inline]
+    #[must_use]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn remove_raw(&mut self, key: st_data_t) -> Option<st_data_t> {
         let hash_type = self.hasher().hash_type();
         // Safety
@@ -176,6 +190,9 @@ impl ExternStHashMap {
 
     /// Wrapper around [`StHashMap::remove_entry`] that wraps a bare `st_data_t`
     /// in a key type that can be checked for equality.
+    #[inline]
+    #[must_use]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn remove_entry_raw(&mut self, key: st_data_t) -> Option<(st_data_t, st_data_t)> {
         let hash_type = self.hasher().hash_type();
         // Safety

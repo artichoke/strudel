@@ -335,7 +335,7 @@ pub unsafe fn st_update(
     func: st_update_callback_func,
     arg: st_data_t,
 ) -> libc::c_int {
-    use st_retval::*;
+    use st_retval::{ST_CONTINUE, ST_DELETE};
 
     let table = st_table::from_raw(table);
     let (existing, mut key, mut value) =
@@ -410,7 +410,7 @@ pub unsafe fn st_foreach(
     func: st_foreach_callback_func,
     arg: st_data_t,
 ) -> libc::c_int {
-    use st_retval::*;
+    use st_retval::{ST_CHECK, ST_CONTINUE, ST_DELETE, ST_STOP};
 
     let table_ptr = table;
     let table = st_table::from_raw(table_ptr);
@@ -437,7 +437,7 @@ pub unsafe fn st_foreach(
             mem::forget(table);
 
             if let Some((key, value)) = nth {
-                let key = key.into();
+                let key = key;
                 let retval = func(key, value, arg, 0);
                 match retval {
                     retval if ST_CONTINUE == retval => {}
@@ -495,7 +495,7 @@ pub unsafe fn st_foreach_check(
     arg: st_data_t,
     _never: st_data_t,
 ) -> libc::c_int {
-    use st_retval::*;
+    use st_retval::{ST_CHECK, ST_CONTINUE, ST_DELETE, ST_STOP};
 
     let table_ptr = table;
     let table = st_table::from_raw(table_ptr);
@@ -522,7 +522,6 @@ pub unsafe fn st_foreach_check(
             mem::forget(table);
 
             if let Some((key, value)) = nth {
-                let key = key.into();
                 let retval = func(key, value, arg, 0);
                 match retval {
                     retval if ST_CONTINUE == retval || ST_CHECK == retval => {}

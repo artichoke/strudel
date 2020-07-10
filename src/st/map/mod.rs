@@ -84,6 +84,7 @@ impl<T> Borrow<T> for Key<T> {
 ///
 /// [`RandomState`]: std::collections::hash_map::RandomState
 #[derive(Default, Debug, Clone)]
+#[allow(clippy::module_name_repetitions)]
 pub struct StHashMap<K, V, S = RandomState> {
     map: HashMap<Key<K>, V, S>,
     ordered: BTreeMap<usize, (K, V)>,

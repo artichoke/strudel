@@ -14,6 +14,7 @@ pub use iter::{InsertRanks, IntoIter, Iter};
 /// As with the [`StHashMap`] type, a `StHashSet` requires that the elements
 /// implement the [`Eq`] and [`Hash`] traits.
 #[derive(Default, Debug, Clone)]
+#[allow(clippy::module_name_repetitions)]
 pub struct StHashSet<T, S = RandomState> {
     map: StHashMap<T, (), S>,
 }
