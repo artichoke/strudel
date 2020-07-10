@@ -1,1 +1,1 @@
-initSidebarItems({"type":[["st_foreach_callback_func",""],["st_update_callback_func",""]]});
+initSidebarItems({});

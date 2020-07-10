@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Entry","A view into a single entry in a map, which may either be vacant or occupied."]],"struct":[["OccupiedEntry","A view into an occupied entry in a `StHash`. It is part of the [`Entry`] enum."],["VacantEntry","A view into a vacant entry in a `StHash`. It is part of the [`Entry`] enum."]]});

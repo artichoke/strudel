@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["strudel"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/ops/drop/trait.Drop.html\" title=\"trait core::ops::drop::Drop\">Drop</a> for <a class=\"struct\" href=\"strudel/api/struct.st_table.html\" title=\"struct strudel::api::st_table\">st_table</a>","synthetic":false,"types":["strudel::api::typedefs::st_table"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
