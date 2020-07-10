@@ -65,7 +65,7 @@ impl<T> StHashSet<T, RandomState> {
     ///
     /// ```
     /// use strudel::StHashSet;
-    /// let mut set: StHashSet<&str, i32> = StHashSet::with_capacity(10);
+    /// let mut set: StHashSet<i32> = StHashSet::with_capacity(10);
     /// assert!(set.capacity() >= 10);
     /// ```
     #[inline]
@@ -99,7 +99,7 @@ impl<T, S> StHashSet<T, S> {
     /// let s = RandomState::new();
     /// let mut set = StHashSet::with_hasher(s);
     /// assert_eq!(0, set.capacity());
-    /// set.insert(1, 2);
+    /// set.insert(1);
     /// ```
     #[inline]
     #[must_use]
@@ -131,7 +131,7 @@ impl<T, S> StHashSet<T, S> {
     /// let s = RandomState::new();
     /// let mut set = StHashSet::with_capacity_and_hasher(10, s);
     /// assert!(set.capacity() >= 10);
-    /// set.insert(1, 2);
+    /// set.insert(1);
     /// ```
     #[inline]
     #[must_use]
@@ -446,7 +446,7 @@ impl<T, S> StHashSet<T, S> {
     /// ```
     /// use strudel::StHashSet;
     /// let empty: StHashSet<i32> = StHashSet::with_capacity(0);
-    /// let set: StHashMap<i32> = StHashSet::with_capacity(100);
+    /// let set: StHashSet<i32> = StHashSet::with_capacity(100);
     /// assert!(set.estimated_memsize() > empty.estimated_memsize());
     /// ```
     #[inline]
@@ -581,9 +581,9 @@ where
     /// use strudel::StHashSet;
     ///
     /// let mut set = StHashSet::new();
-    /// set.insert(1, "a");
-    /// assert_eq!(set.remove(&1), Some("a"));
-    /// assert_eq!(set.remove(&1), None);
+    /// set.insert(1);
+    /// assert!(set.remove(&1));
+    /// assert!(!set.remove(&1));
     /// ```
     #[inline]
     #[must_use]

@@ -6,6 +6,8 @@ use core::ops::{Deref, DerefMut};
 use crate::hasher::StBuildHasher;
 use crate::StHashMap;
 
+/// A wrapper around a raw `st_data_t` key that includes a vtable for equality
+/// comparisons.
 #[derive(Debug, Clone)]
 pub struct ExternKey {
     record: st_data_t,
@@ -13,6 +15,7 @@ pub struct ExternKey {
 }
 
 impl ExternKey {
+    /// Return a reference to the inner key.
     #[inline]
     #[must_use]
     pub fn inner(&self) -> &st_data_t {
@@ -94,11 +97,15 @@ impl ExternStHashMap {
         Self::with_capacity_and_hasher(capacity, hasher)
     }
 
+    /// Wrapper around [`StHashMap::first`] that wraps a bare `st_data_t` in a
+    /// key type that can be checked for equality.
     pub fn first_raw(&self) -> Option<(&st_data_t, &st_data_t)> {
         let (key, value) = self.first()?;
         Some((&key.record, value))
     }
 
+    /// Wrapper around [`StHashMap::get`] that wraps a bare `st_data_t` in a key
+    /// type that can be checked for equality.
     pub fn get_raw(&self, key: st_data_t) -> Option<&st_data_t> {
         let hash_type = self.hasher().hash_type();
         // Safety
@@ -110,6 +117,8 @@ impl ExternStHashMap {
         self.get(&key)
     }
 
+    /// Wrapper around [`StHashMap::get_key_value`] that wraps a bare
+    /// `st_data_t` in a key type that can be checked for equality.
     pub fn get_key_value_raw(&self, key: st_data_t) -> Option<(&st_data_t, &st_data_t)> {
         let hash_type = self.hasher().hash_type();
         // Safety
@@ -122,6 +131,8 @@ impl ExternStHashMap {
         Some((&key.record, value))
     }
 
+    /// Wrapper around [`StHashMap::insert`] that wraps a bare `st_data_t` in a
+    /// key type that can be checked for equality.
     pub fn insert_raw(&mut self, key: st_data_t, value: st_data_t) -> Option<st_data_t> {
         let hash_type = self.hasher().hash_type();
         // Safety
@@ -133,6 +144,8 @@ impl ExternStHashMap {
         self.insert(key, value)
     }
 
+    /// Wrapper around [`StHashMap::update`] that wraps a bare `st_data_t` in a
+    /// key type that can be checked for equality.
     pub fn update_raw(&mut self, key: st_data_t, value: st_data_t) {
         let hash_type = self.hasher().hash_type();
         // Safety
@@ -144,6 +157,8 @@ impl ExternStHashMap {
         self.update(key, value)
     }
 
+    /// Wrapper around [`StHashMap::remove`] that wraps a bare `st_data_t` in a
+    /// key type that can be checked for equality.
     pub fn remove_raw(&mut self, key: st_data_t) -> Option<st_data_t> {
         let hash_type = self.hasher().hash_type();
         // Safety
@@ -155,6 +170,8 @@ impl ExternStHashMap {
         self.remove(&key)
     }
 
+    /// Wrapper around [`StHashMap::remove_entry`] that wraps a bare `st_data_t`
+    /// in a key type that can be checked for equality.
     pub fn remove_entry_raw(&mut self, key: st_data_t) -> Option<(st_data_t, st_data_t)> {
         let hash_type = self.hasher().hash_type();
         // Safety
@@ -174,6 +191,7 @@ impl ExternStHashMap {
 ///
 /// ```
 /// # use core::mem::size_of;
+/// # use strudel::st_data_t;
 /// assert_eq!(size_of::<usize>(), size_of::<st_data_t>());
 /// ```
 #[cfg(target_pointer_width = "64")]
@@ -185,6 +203,7 @@ pub type st_data_t = u64;
 ///
 /// ```
 /// # use core::mem::size_of;
+/// # use strudel::st_data_t;
 /// assert_eq!(size_of::<usize>(), size_of::<st_data_t>());
 /// ```
 #[cfg(target_pointer_width = "32")]
