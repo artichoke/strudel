@@ -212,7 +212,7 @@ impl ExternStHashMap {
 ///
 /// ```
 /// # use core::mem::size_of;
-/// # use strudel::st_data_t;
+/// # use strudel::api::st_data_t;
 /// assert_eq!(size_of::<usize>(), size_of::<st_data_t>());
 /// ```
 #[cfg(target_pointer_width = "64")]
@@ -224,7 +224,7 @@ pub type st_data_t = u64;
 ///
 /// ```
 /// # use core::mem::size_of;
-/// # use strudel::st_data_t;
+/// # use strudel::api::st_data_t;
 /// assert_eq!(size_of::<usize>(), size_of::<st_data_t>());
 /// ```
 #[cfg(target_pointer_width = "32")]
