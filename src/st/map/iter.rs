@@ -1,59 +1,46 @@
 use core::iter::{FromIterator, FusedIterator};
-use std::collections::btree_map;
+use core::ops::Range;
+use core::slice;
 use std::vec;
 
-use crate::st::map::StHashMap;
+use crate::st::map::{OrderedPair, StHashMap};
 
 /// This struct is created by the [`iter`](StHashMap::iter) method on
 /// [`StHashMap`]. See its documentation for more.
 #[derive(Debug, Clone)]
-pub struct Iter<'a, K, V>(pub(crate) btree_map::Values<'a, usize, (K, V)>);
+pub struct Iter<'a, K, V>(pub(crate) slice::Iter<'a, OrderedPair<K, V>>);
 
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|(key, value)| (key, value))
+        loop {
+            match self.0.next() {
+                None => return None,
+                Some(OrderedPair::Dead) => continue,
+                Some(OrderedPair::Alive(key, value)) => return Some((key, value)),
+            }
+        }
     }
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.0.size_hint()
     }
-
-    #[inline]
-    fn count(self) -> usize {
-        self.0.count()
-    }
-
-    #[inline]
-    fn last(self) -> Option<Self::Item> {
-        self.0.last().map(|(key, value)| (key, value))
-    }
-
-    #[inline]
-    fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        self.0.nth(n).map(|(key, value)| (key, value))
-    }
-
-    #[inline]
-    fn collect<B: FromIterator<Self::Item>>(self) -> B {
-        self.0.map(|(key, value)| (key, value)).collect()
-    }
 }
 
 impl<'a, K, V> FusedIterator for Iter<'a, K, V> {}
 
-impl<'a, K, V> ExactSizeIterator for Iter<'a, K, V> {}
-
 impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.0.next_back().map(|(key, value)| (key, value))
-    }
-
-    fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
-        self.0.nth_back(n).map(|(key, value)| (key, value))
+        loop {
+            match self.0.next_back() {
+                None => return None,
+                Some(OrderedPair::Dead) => continue,
+                Some(OrderedPair::Alive(key, value)) => return Some((key, value)),
+            }
+        }
     }
 }
 
@@ -61,53 +48,39 @@ impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
 /// documentation for more.
 #[derive(Debug)]
 #[allow(clippy::module_name_repetitions)]
-pub struct IntoIter<K, V>(btree_map::IntoIter<usize, (K, V)>);
+pub struct IntoIter<K, V>(vec::IntoIter<OrderedPair<K, V>>);
 
 impl<K, V> Iterator for IntoIter<K, V> {
     type Item = (K, V);
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|(_, (key, value))| (key, value))
+        loop {
+            match self.0.next() {
+                None => return None,
+                Some(OrderedPair::Dead) => continue,
+                Some(OrderedPair::Alive(key, value)) => return Some((key, value)),
+            }
+        }
     }
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.0.size_hint()
     }
-
-    #[inline]
-    fn count(self) -> usize {
-        self.0.count()
-    }
-
-    #[inline]
-    fn last(self) -> Option<Self::Item> {
-        self.0.last().map(|(_, (key, value))| (key, value))
-    }
-
-    #[inline]
-    fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        self.0.nth(n).map(|(_, (key, value))| (key, value))
-    }
-
-    #[inline]
-    fn collect<B: FromIterator<Self::Item>>(self) -> B {
-        self.0.map(|(_, (key, value))| (key, value)).collect()
-    }
 }
 
 impl<K, V> FusedIterator for IntoIter<K, V> {}
 
-impl<K, V> ExactSizeIterator for IntoIter<K, V> {}
-
 impl<K, V> DoubleEndedIterator for IntoIter<K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.0.next_back().map(|(_, (key, value))| (key, value))
-    }
-
-    fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
-        self.0.nth_back(n).map(|(_, (key, value))| (key, value))
+        loop {
+            match self.0.next_back() {
+                None => return None,
+                Some(OrderedPair::Dead) => continue,
+                Some(OrderedPair::Alive(key, value)) => return Some((key, value)),
+            }
+        }
     }
 }
 
@@ -151,8 +124,6 @@ impl<'a, K, V> Iterator for Keys<'a, K, V> {
 }
 
 impl<'a, K, V> FusedIterator for Keys<'a, K, V> {}
-
-impl<'a, K, V> ExactSizeIterator for Keys<'a, K, V> {}
 
 impl<'a, K, V> DoubleEndedIterator for Keys<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
@@ -205,8 +176,6 @@ impl<'a, K, V> Iterator for Values<'a, K, V> {
 
 impl<'a, K, V> FusedIterator for Values<'a, K, V> {}
 
-impl<'a, K, V> ExactSizeIterator for Values<'a, K, V> {}
-
 impl<'a, K, V> DoubleEndedIterator for Values<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.next_back().map(|(_, value)| value)
@@ -222,7 +191,7 @@ impl<'a, K, V> DoubleEndedIterator for Values<'a, K, V> {
 ///
 /// [`insert_ranks_from`]: StHashMap::insert_ranks_from
 #[derive(Debug, Clone)]
-pub struct InsertRanks(pub(crate) vec::IntoIter<usize>);
+pub struct InsertRanks(pub(crate) Range<usize>);
 
 impl<'a> Iterator for InsertRanks {
     type Item = usize;

@@ -3,7 +3,7 @@ use core::hash::{BuildHasher, Hash, Hasher};
 use core::mem::size_of;
 use core::ops::Index;
 use std::collections::hash_map::{Entry as HashEntry, RandomState};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 mod entry;
 mod iter;
@@ -66,6 +66,12 @@ impl<T> Borrow<T> for Key<T> {
     }
 }
 
+#[derive(Debug, Clone)]
+pub(crate) enum OrderedPair<K, V> {
+    Alive(K, V),
+    Dead,
+}
+
 /// An insertion-ordered hash map implemented with [`HashMap`] and [`BTreeMap`].
 ///
 /// `StHashMap` is designed to implement the `st_hash` C API and be
@@ -87,8 +93,7 @@ impl<T> Borrow<T> for Key<T> {
 #[allow(clippy::module_name_repetitions)]
 pub struct StHashMap<K, V, S = RandomState> {
     map: HashMap<Key<K>, V, S>,
-    ordered: BTreeMap<usize, (K, V)>,
-    max_insert_rank: usize,
+    ordered: Vec<OrderedPair<K, V>>,
 }
 
 impl<K, V, S> PartialEq for StHashMap<K, V, S>
@@ -146,12 +151,8 @@ impl<K, V> StHashMap<K, V, RandomState> {
     #[must_use]
     pub fn new() -> Self {
         let map = HashMap::new();
-        let ordered = BTreeMap::new();
-        Self {
-            map,
-            ordered,
-            max_insert_rank: 0,
-        }
+        let ordered = Vec::new();
+        Self { map, ordered }
     }
 
     /// Creates an empty `StHashMap` with the specified capacity.
@@ -170,12 +171,8 @@ impl<K, V> StHashMap<K, V, RandomState> {
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
         let map = HashMap::with_capacity(capacity);
-        let ordered = BTreeMap::new();
-        Self {
-            map,
-            ordered,
-            max_insert_rank: 0,
-        }
+        let ordered = Vec::with_capacity(capacity);
+        Self { map, ordered }
     }
 }
 
@@ -208,12 +205,8 @@ impl<K, V, S> StHashMap<K, V, S> {
     #[must_use]
     pub fn with_hasher(hash_builder: S) -> Self {
         let map = HashMap::with_hasher(hash_builder);
-        let ordered = BTreeMap::new();
-        Self {
-            map,
-            ordered,
-            max_insert_rank: 0,
-        }
+        let ordered = Vec::new();
+        Self { map, ordered }
     }
 
     /// Creates an empty `StHashMap` with the specified capacity, using the
@@ -245,12 +238,8 @@ impl<K, V, S> StHashMap<K, V, S> {
     #[must_use]
     pub fn with_capacity_and_hasher(capacity: usize, hash_builder: S) -> Self {
         let map = HashMap::with_capacity_and_hasher(capacity, hash_builder);
-        let ordered = BTreeMap::new();
-        Self {
-            map,
-            ordered,
-            max_insert_rank: 0,
-        }
+        let ordered = Vec::with_capacity(capacity);
+        Self { map, ordered }
     }
 
     /// Returns the number of elements the map can hold without reallocating.
@@ -268,7 +257,7 @@ impl<K, V, S> StHashMap<K, V, S> {
     #[inline]
     #[must_use]
     pub fn capacity(&self) -> usize {
-        self.map.capacity()
+        self.map.capacity().min(self.ordered.capacity())
     }
 
     /// An iterator visiting all keys in insertion order. The iterator element
@@ -337,7 +326,7 @@ impl<K, V, S> StHashMap<K, V, S> {
     #[inline]
     #[must_use]
     pub fn iter(&self) -> Iter<'_, K, V> {
-        Iter(self.ordered.values())
+        Iter(self.ordered.iter())
     }
 
     /// An iterator for visiting all insertion counters in insertion order
@@ -378,10 +367,7 @@ impl<K, V, S> StHashMap<K, V, S> {
     #[inline]
     #[must_use]
     pub fn insert_ranks_from(&self, rank: usize) -> InsertRanks {
-        let ordered_range = self.ordered.range(rank..);
-        let ranks_from = ordered_range.map(|(&rank, _)| rank);
-        let ranks = ranks_from.collect::<Vec<_>>();
-        InsertRanks(ranks.into_iter())
+        InsertRanks(rank..self.ordered.len())
     }
 
     /// Returns the first key-value pair in the map. The key in this pair is
@@ -479,7 +465,10 @@ impl<K, V, S> StHashMap<K, V, S> {
     #[inline]
     #[must_use]
     pub fn get_nth(&self, n: usize) -> Option<(&K, &V)> {
-        self.ordered.get(&n).map(|(key, value)| (key, value))
+        match self.ordered.get(n) {
+            None | Some(OrderedPair::Dead) => None,
+            Some(OrderedPair::Alive(key, value)) => Some((key, value)),
+        }
     }
 
     /// Insertion counter for the [first](StHashMap::first) key-value pair in
@@ -505,7 +494,12 @@ impl<K, V, S> StHashMap<K, V, S> {
     #[inline]
     #[must_use]
     pub fn min_insert_rank(&self) -> usize {
-        self.ordered.keys().next().copied().unwrap_or_default()
+        for (idx, pair) in self.ordered.iter().enumerate() {
+            if let OrderedPair::Alive(_, _) = pair {
+                return idx;
+            }
+        }
+        0
     }
 
     /// Insertion counter for the [last](StHashMap::last) key-value pair in the
@@ -531,7 +525,12 @@ impl<K, V, S> StHashMap<K, V, S> {
     #[inline]
     #[must_use]
     pub fn max_insert_rank(&self) -> usize {
-        self.ordered.keys().last().copied().unwrap_or_default()
+        for (idx, pair) in self.ordered.iter().enumerate().rev() {
+            if let OrderedPair::Alive(_, _) = pair {
+                return idx;
+            }
+        }
+        0
     }
 
     /// Returns the number of elements in the map.
@@ -587,7 +586,6 @@ impl<K, V, S> StHashMap<K, V, S> {
     pub fn clear(&mut self) {
         self.map.clear();
         self.ordered.clear();
-        self.max_insert_rank = 0;
     }
 
     /// Returns a reference to the map's [`BuildHasher`].
@@ -654,6 +652,7 @@ where
     #[inline]
     pub fn reserve(&mut self, additional: usize) {
         self.map.reserve(additional);
+        self.ordered.reserve(additional);
     }
 
     /// Shrinks the capacity of the map as much as possible. It will drop down
@@ -674,6 +673,7 @@ where
     #[inline]
     pub fn shrink_to_fit(&mut self) {
         self.map.shrink_to_fit();
+        self.ordered.shrink_to_fit();
     }
 
     /// Returns `true` if the map contains a value for the specified key.
@@ -735,7 +735,7 @@ where
 impl<K, V, S> StHashMap<K, V, S>
 where
     K: Eq + Hash + Clone,
-    V: Clone,
+    V: PartialEq + Clone,
     S: BuildHasher,
 {
     /// Gets the given key's corresponding entry in the map for in-place
@@ -760,8 +760,7 @@ where
     /// ```
     #[inline]
     pub fn entry(&mut self, key: K) -> Entry<'_, K, V> {
-        let insert_rank = self.max_insert_rank;
-        self.max_insert_rank += 1;
+        let insert_rank = self.ordered.len();
 
         let key = Key {
             inner: key,
@@ -784,8 +783,7 @@ where
     #[inline]
     #[must_use]
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
-        let insert_rank = self.max_insert_rank;
-        self.max_insert_rank += 1;
+        let insert_rank = self.ordered.len();
 
         let key = Key {
             inner: key,
@@ -794,16 +792,24 @@ where
 
         match self.map.entry(key) {
             HashEntry::Occupied(mut base) => {
-                let rank = base.key().insert_rank();
-                self.ordered
-                    .insert(rank, (base.key().inner().clone(), value.clone()));
+                let insert_rank = base.key().insert_rank();
+                // Maintain insert rank with new key-value pair.
+                if let Some(OrderedPair::Alive(_, stored_value)) = self.ordered.get_mut(insert_rank)
+                {
+                    if *stored_value != value {
+                        *stored_value = value.clone();
+                    }
+                } else {
+                    panic!("already inserted pair not alive in ordered storage");
+                }
                 let old_value = base.insert(value);
                 Some(old_value)
             }
             HashEntry::Vacant(base) => {
-                let rank = base.key().insert_rank();
-                self.ordered
-                    .insert(rank, (base.key().inner().clone(), value.clone()));
+                self.ordered.push(OrderedPair::Alive(
+                    base.key().inner().clone(),
+                    value.clone(),
+                ));
                 base.insert(value);
                 None
             }
@@ -822,8 +828,18 @@ where
         if let Some((entry_key, _)) = self.map.remove_entry(&key) {
             let insert_rank = entry_key.insert_rank();
             // Maintain insert rank with new key-value pair.
-            self.ordered
-                .insert(insert_rank, (key.clone(), value.clone()));
+            if let Some(OrderedPair::Alive(stored_key, stored_value)) =
+                self.ordered.get_mut(insert_rank)
+            {
+                if *stored_key != key {
+                    *stored_key = key.clone();
+                }
+                if *stored_value != value {
+                    *stored_value = value.clone();
+                }
+            } else {
+                panic!("already inserted pair not alive in ordered storage");
+            }
             let key = Key {
                 inner: key,
                 insert_rank,
@@ -851,7 +867,7 @@ where
     #[must_use]
     pub fn remove(&mut self, key: &K) -> Option<V> {
         let (key, value) = self.map.remove_entry(key)?;
-        self.ordered.remove(&key.insert_rank());
+        self.ordered[key.insert_rank()] = OrderedPair::Dead;
         Some(value)
     }
 
@@ -872,7 +888,7 @@ where
     #[must_use]
     pub fn remove_entry(&mut self, key: &K) -> Option<(K, V)> {
         let (key, value) = self.map.remove_entry(key)?;
-        self.ordered.remove(&key.insert_rank());
+        self.ordered[key.insert_rank()] = OrderedPair::Dead;
         Some((key.into_inner(), value))
     }
 }
