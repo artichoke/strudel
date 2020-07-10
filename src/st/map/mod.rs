@@ -9,6 +9,10 @@ mod iter;
 
 pub use iter::{InsertRanks, IntoIter, Iter, Keys, Values};
 
+// Tables with `LINEAR_SCAN_THRESHOLD` or fewer insertions will perform lookups
+// by scanning the `ordered` insertion list.
+const LINEAR_SCAN_THRESHOLD: usize = 8;
+
 #[derive(Debug, Clone)]
 pub(crate) struct Key<T> {
     inner: T,
@@ -64,8 +68,40 @@ impl<T> Borrow<T> for Key<T> {
     }
 }
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct Value<T> {
+    inner: T,
+}
+
+impl<T> From<T> for Value<T> {
+    fn from(value: T) -> Self {
+        Self { inner: value }
+    }
+}
+
+impl<T> Value<T> {
+    #[inline]
+    #[must_use]
+    pub fn inner(&self) -> &T {
+        &self.inner
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn into_inner(self) -> T {
+        self.inner
+    }
+}
+
+impl<T> Borrow<T> for Value<T> {
+    #[inline]
+    fn borrow(&self) -> &T {
+        self.inner()
+    }
+}
+
 #[derive(Debug, Clone)]
-pub(crate) enum OrderedPair<K, V> {
+pub(crate) enum InsertionEntry<K, V> {
     Alive(K, V),
     Dead,
 }
@@ -90,8 +126,8 @@ pub(crate) enum OrderedPair<K, V> {
 #[derive(Default, Debug, Clone)]
 #[allow(clippy::module_name_repetitions)]
 pub struct StHashMap<K, V, S = RandomState> {
-    map: HashMap<Key<K>, V, S>,
-    ordered: Vec<OrderedPair<K, V>>,
+    map: HashMap<Key<K>, Value<V>, S>,
+    ordered: Vec<InsertionEntry<K, V>>,
 }
 
 impl<K, V, S> PartialEq for StHashMap<K, V, S>
@@ -330,6 +366,8 @@ impl<K, V, S> StHashMap<K, V, S> {
     /// An iterator for visiting all insertion counters in insertion order
     /// starting from the given rank. The iterator element type is `usize`.
     ///
+    /// This iterator may return insertion counters to dead elements.
+    ///
     /// The yielded elements may be passed to [`get_nth`] to retrieve the
     /// `(key, value)` pair in the nth insertion slot.
     ///
@@ -351,7 +389,7 @@ impl<K, V, S> StHashMap<K, V, S> {
     /// map.insert("b", 100);
     ///
     /// let insert_ranks = map.insert_ranks_from(0).collect::<Vec<_>>();
-    /// assert_eq!(vec![1, 2], insert_ranks);
+    /// assert_eq!(vec![0, 1, 2], insert_ranks);
     ///
     /// assert_eq!(None, map.get_nth(0));
     /// assert_eq!(Some((&"b", &100)), map.get_nth(1));
@@ -449,7 +487,7 @@ impl<K, V, S> StHashMap<K, V, S> {
     /// map.insert("b", 100);
     ///
     /// let insert_ranks = map.insert_ranks_from(0).collect::<Vec<_>>();
-    /// assert_eq!(vec![1, 2], insert_ranks);
+    /// assert_eq!(vec![0, 1, 2], insert_ranks);
     ///
     /// assert_eq!(None, map.get_nth(0));
     /// assert_eq!(Some((&"b", &100)), map.get_nth(1));
@@ -464,8 +502,8 @@ impl<K, V, S> StHashMap<K, V, S> {
     #[must_use]
     pub fn get_nth(&self, n: usize) -> Option<(&K, &V)> {
         match self.ordered.get(n) {
-            None | Some(OrderedPair::Dead) => None,
-            Some(OrderedPair::Alive(key, value)) => Some((key, value)),
+            None | Some(InsertionEntry::Dead) => None,
+            Some(InsertionEntry::Alive(key, value)) => Some((key, value)),
         }
     }
 
@@ -493,7 +531,7 @@ impl<K, V, S> StHashMap<K, V, S> {
     #[must_use]
     pub fn min_insert_rank(&self) -> usize {
         for (idx, pair) in self.ordered.iter().enumerate() {
-            if let OrderedPair::Alive(_, _) = pair {
+            if let InsertionEntry::Alive(_, _) = pair {
                 return idx;
             }
         }
@@ -524,7 +562,7 @@ impl<K, V, S> StHashMap<K, V, S> {
     #[must_use]
     pub fn max_insert_rank(&self) -> usize {
         for (idx, pair) in self.ordered.iter().enumerate().rev() {
-            if let OrderedPair::Alive(_, _) = pair {
+            if let InsertionEntry::Alive(_, _) = pair {
                 return idx;
             }
         }
@@ -707,7 +745,16 @@ where
     #[inline]
     #[must_use]
     pub fn get(&self, key: &K) -> Option<&V> {
-        self.map.get(key)
+        if self.ordered.len() < LINEAR_SCAN_THRESHOLD {
+            self.ordered.iter().find_map(|entry| match entry {
+                InsertionEntry::Alive(entry_key, entry_value) if entry_key == key => {
+                    Some(entry_value)
+                }
+                _ => None,
+            })
+        } else {
+            self.map.get(key).map(Value::inner)
+        }
     }
 
     /// Returns the key-value pair corresponding to the supplied key.
@@ -726,7 +773,7 @@ where
     #[must_use]
     pub fn get_key_value(&self, key: &K) -> Option<(&K, &V)> {
         let (key, value) = self.map.get_key_value(key)?;
-        Some((key.inner(), value))
+        Some((key.inner(), value.inner()))
     }
 }
 
@@ -757,7 +804,8 @@ where
             HashEntry::Occupied(mut base) => {
                 let insert_rank = base.key().insert_rank();
                 // Maintain insert rank with new key-value pair.
-                if let Some(OrderedPair::Alive(_, stored_value)) = self.ordered.get_mut(insert_rank)
+                if let Some(InsertionEntry::Alive(_, stored_value)) =
+                    self.ordered.get_mut(insert_rank)
                 {
                     if *stored_value != value {
                         *stored_value = value.clone();
@@ -765,15 +813,14 @@ where
                 } else {
                     panic!("already inserted pair not alive in ordered storage");
                 }
-                let old_value = base.insert(value);
-                Some(old_value)
+                Some(base.insert(value.into()).into_inner())
             }
             HashEntry::Vacant(base) => {
-                self.ordered.push(OrderedPair::Alive(
+                self.ordered.push(InsertionEntry::Alive(
                     base.key().inner().clone(),
                     value.clone(),
                 ));
-                base.insert(value);
+                base.insert(value.into());
                 None
             }
         }
@@ -791,7 +838,7 @@ where
         if let Some((entry_key, _)) = self.map.remove_entry(&key) {
             let insert_rank = entry_key.insert_rank();
             // Maintain insert rank with new key-value pair.
-            if let Some(OrderedPair::Alive(stored_key, stored_value)) =
+            if let Some(InsertionEntry::Alive(stored_key, stored_value)) =
                 self.ordered.get_mut(insert_rank)
             {
                 if *stored_key != key {
@@ -807,7 +854,7 @@ where
                 inner: key,
                 insert_rank,
             };
-            self.map.insert(key, value);
+            self.map.insert(key, value.into());
         } else {
             let _ = self.insert(key, value);
         }
@@ -829,9 +876,7 @@ where
     #[inline]
     #[must_use]
     pub fn remove(&mut self, key: &K) -> Option<V> {
-        let (key, value) = self.map.remove_entry(key)?;
-        self.ordered[key.insert_rank()] = OrderedPair::Dead;
-        Some(value)
+        self.remove_entry(key).map(|(_, value)| value)
     }
 
     /// Removes a key from the map, returning the stored key and value if the
@@ -851,7 +896,7 @@ where
     #[must_use]
     pub fn remove_entry(&mut self, key: &K) -> Option<(K, V)> {
         let (key, value) = self.map.remove_entry(key)?;
-        self.ordered[key.insert_rank()] = OrderedPair::Dead;
-        Some((key.into_inner(), value))
+        self.ordered[key.insert_rank()] = InsertionEntry::Dead;
+        Some((key.into_inner(), value.into_inner()))
     }
 }

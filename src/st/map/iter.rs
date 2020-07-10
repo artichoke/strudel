@@ -3,12 +3,12 @@ use core::ops::Range;
 use core::slice;
 use std::vec;
 
-use crate::st::map::{OrderedPair, StHashMap};
+use crate::st::map::{InsertionEntry, StHashMap};
 
 /// This struct is created by the [`iter`](StHashMap::iter) method on
 /// [`StHashMap`]. See its documentation for more.
 #[derive(Debug, Clone)]
-pub struct Iter<'a, K, V>(pub(crate) slice::Iter<'a, OrderedPair<K, V>>);
+pub struct Iter<'a, K, V>(pub(crate) slice::Iter<'a, InsertionEntry<K, V>>);
 
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
@@ -18,8 +18,8 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
         loop {
             match self.0.next() {
                 None => return None,
-                Some(OrderedPair::Dead) => continue,
-                Some(OrderedPair::Alive(key, value)) => return Some((key, value)),
+                Some(InsertionEntry::Dead) => continue,
+                Some(InsertionEntry::Alive(key, value)) => return Some((key, value)),
             }
         }
     }
@@ -37,8 +37,8 @@ impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
         loop {
             match self.0.next_back() {
                 None => return None,
-                Some(OrderedPair::Dead) => continue,
-                Some(OrderedPair::Alive(key, value)) => return Some((key, value)),
+                Some(InsertionEntry::Dead) => continue,
+                Some(InsertionEntry::Alive(key, value)) => return Some((key, value)),
             }
         }
     }
@@ -48,7 +48,7 @@ impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
 /// documentation for more.
 #[derive(Debug)]
 #[allow(clippy::module_name_repetitions)]
-pub struct IntoIter<K, V>(vec::IntoIter<OrderedPair<K, V>>);
+pub struct IntoIter<K, V>(vec::IntoIter<InsertionEntry<K, V>>);
 
 impl<K, V> Iterator for IntoIter<K, V> {
     type Item = (K, V);
@@ -58,8 +58,8 @@ impl<K, V> Iterator for IntoIter<K, V> {
         loop {
             match self.0.next() {
                 None => return None,
-                Some(OrderedPair::Dead) => continue,
-                Some(OrderedPair::Alive(key, value)) => return Some((key, value)),
+                Some(InsertionEntry::Dead) => continue,
+                Some(InsertionEntry::Alive(key, value)) => return Some((key, value)),
             }
         }
     }
@@ -77,8 +77,8 @@ impl<K, V> DoubleEndedIterator for IntoIter<K, V> {
         loop {
             match self.0.next_back() {
                 None => return None,
-                Some(OrderedPair::Dead) => continue,
-                Some(OrderedPair::Alive(key, value)) => return Some((key, value)),
+                Some(InsertionEntry::Dead) => continue,
+                Some(InsertionEntry::Alive(key, value)) => return Some((key, value)),
             }
         }
     }
