@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 ITERATIONS = 10
 KEYS = 1_000_000
@@ -28,7 +29,7 @@ h.each_pair do |key, value|
 end
 
 reject = true
-h.reject! do |key, value|
+h.reject! do |_key, _value|
   reject_this = reject
   reject = !reject
   reject_this
@@ -36,10 +37,10 @@ end
 
 h.each_pair do |key, value|
   raise unless key == value
-  raise unless key % 2 == 1
+  raise unless key % 2 == 1 # rubocop:disable Style/EvenOdd
 end
 
-h.each_pair do |key, value|
+h.each_pair do |key, _value|
   h.delete(key)
 end
 

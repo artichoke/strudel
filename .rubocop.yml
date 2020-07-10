@@ -1,0 +1,18 @@
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 2.6
+  DisplayCopNames: true
+  Exclude:
+    - "**/build/**/*"
+    - "**/node_modules/**/*"
+    - "**/target/**/*"
+    - "**/vendor/**/*"
+Layout/LineLength:
+  Enabled: true
+  Exclude:
+    - "**/Rakefile"
+    - "**/extn/**/*"
+Metrics:
+  Enabled: false
+Style/Documentation:
+  Enabled: false
