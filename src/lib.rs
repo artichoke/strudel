@@ -114,12 +114,21 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 
 //! Insertion-ordered hash table suitable for embedding via FFI.
 //!
-//! Drop-in replacement for `st_hash` originally written by Peter Moore @ UCB
-//! and used in [Ruby]'s [implementation][st.c] of the [`Hash`][hash] core
-//! class.
+//! Drop-in replacement for `st_hash` originally written by Peter Moore @ UCB and
+//! used in [Ruby]'s [implementation][st.c] of the [`Hash`][hash] core class.
 //!
-//! `StHashMap`, and `StHashSet` which builds on top of it, support in-place
-//! updates of hash keys. No mutable iterators are provided.
+//! `StHashMap` is designed to implement the `st_hash` C API and be FFI-friendly.
+//!
+//! `StHashMap` is built on top of the high performance [`HashMap`] and [`BTreeMap`]
+//! in Rust `std`.
+//!
+//! `StHashMap`, and `StHashSet` which builds on top of it, support in-place updates
+//! of hash keys. No mutable iterators are provided.
+//!
+//! The optional `api` and `capi` modules in `strudel` build on top of `StHashMap`
+//! to implement a compatible C API to `st_hash`. This API includes support for
+//! iterating over a mutable map and in-place updates of `(key, value)` pairs. These
+//! features distinguish it from the [`HashMap`] in Rust `std`.
 //!
 //! ## Crate features
 //!
@@ -127,15 +136,19 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 //!
 //! - **api** - Enables a Rust API that closely mirrors the C API defined in
 //!   `ruby/st.h`. Disabling this feature drops the [`libc`] dependency.
-//! - **capi** - Enables a C API suitable for embedding `strudel` with FFI.
-//!   Linking in the `libstrudel` cdylib will implement the functions defined in
+//! - **capi** - Enables a C API suitable for embedding `strudel` with FFI. Linking
+//!   in the `libstrudel` cdylib will implement the functions defined in
 //!   `ruby/st.h`. Disabling this feature drops the [`fnv`] dependency.
 //! - **capi-specialized-init** - Enables additional `st_init_table` C APIs with
 //!   known `st_hash_type`s for tables with numeric and string keys.
 //!
-//! [Ruby]: https://github.com/ruby/ruby
+//! [ruby]: https://github.com/ruby/ruby
 //! [st.c]: https://github.com/ruby/ruby/blob/v2_6_3/st.c
 //! [hash]: https://ruby-doc.org/core-2.6.3/Hash.html
+//! [`hashmap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
+//! [`btreemap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
+//! [`libc`]: https://crates.io/crates/libc
+//! [`fnv`]: https://crates.io/crates/fnv
 
 mod st;
 
