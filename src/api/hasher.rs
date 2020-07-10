@@ -1,6 +1,5 @@
 use core::hash::{BuildHasher, Hasher};
 use core::mem::size_of;
-use std::collections::hash_map::{DefaultHasher, RandomState};
 
 use crate::api::typedefs::{st_hash_t, st_hash_type};
 
@@ -9,14 +8,9 @@ use crate::api::typedefs::{st_hash_t, st_hash_type};
 /// A particular instance of `StBuildHasher` will create the same instances of
 /// [`Hasher`], but hashers created by two different `StBuildHasher` instances
 /// are unlikely to produce the same result for the same values.
-///
-/// `StBuildHasher` uses a DoS resistant hasher (see [`RandomState`]), but may
-/// offer weaker guarantees since it only feeds one `usize` to the `RandomState`
-/// after the supplied hash function does work.
 #[derive(Debug, Clone)]
 #[allow(clippy::module_name_repetitions)]
 pub struct StBuildHasher {
-    inner: RandomState,
     hash_type: *const st_hash_type,
 }
 
@@ -33,10 +27,7 @@ impl StBuildHasher {
 impl From<*const st_hash_type> for StBuildHasher {
     #[inline]
     fn from(hash_type: *const st_hash_type) -> Self {
-        Self {
-            inner: RandomState::new(),
-            hash_type,
-        }
+        Self { hash_type }
     }
 }
 
@@ -46,8 +37,8 @@ impl BuildHasher for StBuildHasher {
     #[inline]
     fn build_hasher(&self) -> Self::Hasher {
         Self::Hasher {
-            state: self.inner.build_hasher(),
             hash_type: self.hash_type,
+            state: 0,
         }
     }
 }
@@ -58,40 +49,35 @@ impl BuildHasher for Box<StBuildHasher> {
     #[inline]
     fn build_hasher(&self) -> Self::Hasher {
         Self::Hasher {
-            state: self.inner.build_hasher(),
             hash_type: self.hash_type,
+            state: 0,
         }
     }
 }
 
 /// The default [`Hasher`] used by [`StBuildHasher`].
-///
-/// This hasher feeds `usize` chunks of data to the given hash function and
-/// writes them into a [`DefaultHasher`] from the [`RandomState`].
 #[derive(Debug, Clone)]
 #[allow(clippy::module_name_repetitions)]
 pub struct StHasher {
-    state: DefaultHasher,
     hash_type: *const st_hash_type,
+    state: st_hash_t,
 }
 
 impl StHasher {
     #[inline]
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn add_to_hash(&mut self, i: st_hash_t) {
+        // `StHasher` should only be called with one round.
+        debug_assert!(self.state == 0);
         // Safety:
         //
-        // `StHash` assumes the `*const st_hash_type` pointer has `'static`
+        // `StHasher` assumes the `*const st_hash_type` pointer has `'static`
         // lifetime.
-        // `StHash` assumes that the `hash` function pointer is non-NULL.
-        let i = unsafe {
+        // `StHasher` assumes that the `hash` function pointer is non-NULL.
+        self.state += unsafe {
             let hash = (*self.hash_type).hash;
             (hash)(i)
         };
-        #[cfg(target_pointer_width = "32")]
-        self.state.write_u32(i);
-        #[cfg(target_pointer_width = "64")]
-        self.state.write_u64(i);
     }
 
     /// Return the underlying equality comparator and hash function used to
@@ -154,6 +140,6 @@ impl Hasher for StHasher {
 
     #[inline]
     fn finish(&self) -> u64 {
-        self.state.finish()
+        self.state as u64
     }
 }
