@@ -358,7 +358,7 @@ const PADDING_TO_END: usize = 32;
 #[cfg(target_pointer_width = "32")]
 const PADDING_TO_NUM_ENTRIES: usize = 4;
 #[cfg(target_pointer_width = "32")]
-const PADDING_TO_END: usize = 32;
+const PADDING_TO_END: usize = 16;
 
 /// C struct wrapper around an [`ExternStHashMap`].
 ///
