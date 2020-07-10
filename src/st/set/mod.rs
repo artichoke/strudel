@@ -184,8 +184,8 @@ impl<T, S> StHashSet<T, S> {
     /// An iterator for visiting all insertion counters in insertion order
     /// starting from the given rank. The iterator element type is `usize`.
     ///
-    /// The yielded elements may be passed to [`get_nth`](StHashSet::get_nth) to
-    /// retrieve the `element` in the nth insertion slot.
+    /// The yielded elements may be passed to [`get_nth`] to retrieve the
+    /// `element` in the nth insertion slot.
     ///
     /// This API can be used to build a mutable iterator over the set that can
     /// safely be invalidated. This is safe because new inserts always have
@@ -214,6 +214,8 @@ impl<T, S> StHashSet<T, S> {
     ///
     /// assert_eq!(0, set.insert_ranks_from(100).count());
     /// ```
+    ///
+    /// [`get_nth`]: StHashSet::get_nth
     #[inline]
     #[must_use]
     pub fn insert_ranks_from(&self, rank: usize) -> InsertRanks {
@@ -224,9 +226,8 @@ impl<T, S> StHashSet<T, S> {
     /// element inserted earliest into the set.
     ///
     /// Elements are ordered by insertion order. Insertion order is maintained
-    /// if there are deletions. Insertion order is by slot, so
-    /// [in-place updates to elements](StHashSet::update) maintain the same
-    /// insertion position.
+    /// if there are deletions. Insertion order is by slot, so [in-place updates
+    /// to elements] maintain the same insertion position.
     ///
     /// # Examples
     ///
@@ -243,6 +244,8 @@ impl<T, S> StHashSet<T, S> {
     /// set.insert("b");
     /// assert_eq!(Some(&"b"), set.first());
     /// ```
+    ///
+    /// [in-place updates to elements]: StHashSet::update
     #[inline]
     #[must_use]
     pub fn first(&self) -> Option<&T> {
@@ -253,9 +256,8 @@ impl<T, S> StHashSet<T, S> {
     /// inserted most recently into the set.
     ///
     /// Elements are ordered by insertion order. Insertion order is maintained
-    /// if there are deletions. Insertion order is by slot, so
-    /// [in-place updates to elements](StHashSet::update) maintain the same
-    /// insertion position.
+    /// if there are deletions. Insertion order is by slot, so [in-place updates
+    /// to elements] maintain the same insertion position.
     ///
     /// # Examples
     ///
@@ -272,6 +274,8 @@ impl<T, S> StHashSet<T, S> {
     /// set.insert("b");
     /// assert_eq!(Some(&"c"), set.last());
     /// ```
+    ///
+    /// [in-place updates to elements]: StHashSet::update
     #[inline]
     #[must_use]
     pub fn last(&self) -> Option<&T> {
@@ -282,9 +286,8 @@ impl<T, S> StHashSet<T, S> {
     /// inserted nth earliest into the set.
     ///
     /// Elements are ordered by insertion order. Insertion order is maintained
-    /// if there are deletions. Insertion order is by slot, so
-    /// [in-place updates to elements](StHashSet::update) maintain the same
-    /// insertion position.
+    /// if there are deletions. Insertion order is by slot, so [in-place updates
+    /// to elements] maintain the same insertion position.
     ///
     /// # Examples
     ///
@@ -310,7 +313,7 @@ impl<T, S> StHashSet<T, S> {
     /// assert_eq!(0, set.insert_ranks_from(100).count());
     /// ```
     ///
-    /// [in-place updates to keys]: StHash::update
+    /// [in-place updates to elements]: StHashSet::update
     #[inline]
     #[must_use]
     pub fn get_nth(&self, n: usize) -> Option<&T> {

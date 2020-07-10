@@ -1,10 +1,14 @@
 #![allow(non_upper_case_globals)]
 
-//! `st_hash`-compatible C API bindings for [`StHash`](crate::StHash).
+//! `st_hash`-compatible C API bindings for [`ExternStHashMap`].
+//!
+//! These bindings require activating the **capi** Cargo feature.
 //!
 //! This module's functions are exported via `#[no_mangle]` symbol bindings.
 //! These functions are callable from C by including `st.h` and linking in
 //! `libstrudel`.
+//!
+//! [`ExternStHashMap`]: crate::api::ExternStHashMap
 
 use core::ffi::c_void;
 

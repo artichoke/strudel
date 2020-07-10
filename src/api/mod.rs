@@ -1,23 +1,27 @@
 #![allow(non_upper_case_globals)]
 
-//! `st_hash`-compatible Rust API bindings for [`StHashMap`].
+//! `st_hash`-compatible Rust API bindings for [`ExternStHashMap`].
 //!
-//! For the C API bindings, see the [`capi`](crate::capi) module. These bindings
-//! require activating the **capi** Cargo feature.
+//! These bindings require activating the **api** Cargo feature.
+//!
+//! For the C API bindings, see the `capi` module. The C bindings require
+//! activating the **capi** Cargo feature.
 
 use core::ffi::c_void;
 use core::hash::Hasher;
 use core::mem;
 use core::ptr;
 use core::slice;
+use fnv::FnvHasher;
 
 mod hasher;
 mod typedefs;
 
-use crate::fnv::Fnv1a32;
-
 pub use hasher::{StBuildHasher, StHasher};
-pub use typedefs::*;
+pub use typedefs::{
+    st_data_t, st_foreach_callback_func, st_hash_t, st_hash_type, st_index_t, st_retval, st_table,
+    st_update_callback_func, ExternStHashMap,
+};
 
 /// Create and return table with `type` which can hold a minimal number of
 /// entries.
@@ -659,7 +663,8 @@ pub unsafe fn st_values_check(
 ///
 /// # Notes
 ///
-/// This implementation delegates to [`StHashMap::insert`] directly.
+/// This implementation delegates to
+/// [`StHashMap::insert`](crate::StHashMap::insert) directly.
 ///
 /// # Header declaration
 ///
@@ -766,7 +771,8 @@ pub unsafe fn st_copy(old_table: *mut st_table) -> *mut st_table {
 /// # Notes
 ///
 /// This implementation is a best effort approximation because Rust collection
-/// types do not expose their memsize. See [`StHashMap::estimated_memsize`].
+/// types do not expose their memsize. See
+/// [`StHashMap::estimated_memsize`](crate::StHashMap::estimated_memsize).
 ///
 /// # Header declaration
 ///
@@ -801,7 +807,7 @@ pub unsafe fn st_memsize(table: *const st_table) -> libc::size_t {
 #[inline]
 #[must_use]
 pub unsafe fn st_hash(ptr: *const c_void, len: libc::size_t, h: st_index_t) -> st_index_t {
-    let mut hasher = Fnv1a32::with_seed(h as u32);
+    let mut hasher = FnvHasher::with_key(h as u64);
     let data = slice::from_raw_parts(ptr as *const u8, len as usize);
     hasher.write(data);
     hasher.finish() as st_index_t
@@ -817,7 +823,7 @@ pub unsafe fn st_hash(ptr: *const c_void, len: libc::size_t, h: st_index_t) -> s
 #[inline]
 #[must_use]
 pub fn st_hash_uint32(h: st_index_t, i: u32) -> st_index_t {
-    let mut hasher = Fnv1a32::with_seed(h as u32);
+    let mut hasher = FnvHasher::with_key(h as u64);
     hasher.write_u32(i);
     hasher.finish() as st_index_t
 }
@@ -832,7 +838,7 @@ pub fn st_hash_uint32(h: st_index_t, i: u32) -> st_index_t {
 #[inline]
 #[must_use]
 pub fn st_hash_uint(h: st_index_t, i: st_index_t) -> st_index_t {
-    let mut hasher = Fnv1a32::with_seed(h as u32);
+    let mut hasher = FnvHasher::with_key(h as u64);
     hasher.write_u64(i as u64);
     hasher.finish() as st_index_t
 }
@@ -860,7 +866,7 @@ pub const fn st_hash_end(h: st_index_t) -> st_index_t {
 #[inline]
 #[must_use]
 pub fn st_hash_start(h: st_index_t) -> st_index_t {
-    let mut hasher = Fnv1a32::new();
+    let mut hasher = FnvHasher::default();
     hasher.write_u64(h as u64);
     hasher.finish() as st_index_t
 }

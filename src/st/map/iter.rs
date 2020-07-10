@@ -57,8 +57,8 @@ impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
     }
 }
 
-/// This struct is created by the [`into_iter`](StHashMap::into_iter) method on
-/// [`StHashMap`]. See its documentation for more.
+/// This struct is created by the `into_iter` method on [`StHashMap`]. See its
+/// documentation for more.
 #[derive(Debug)]
 pub struct IntoIter<K, V>(btree_map::IntoIter<usize, (K, V)>);
 
@@ -216,9 +216,10 @@ impl<'a, K, V> DoubleEndedIterator for Values<'a, K, V> {
     }
 }
 
-/// This struct is created by the
-/// [`insert_ranks_from`](StHashMap::insert_ranks_from) method on [`StHashMap`].
+/// This struct is created by the [`insert_ranks_from`] method on [`StHashMap`].
 /// See its documentation for more.
+///
+/// [`insert_ranks_from`]: StHashMap::insert_ranks_from
 #[derive(Debug, Clone)]
 pub struct InsertRanks(pub(crate) vec::IntoIter<usize>);
 

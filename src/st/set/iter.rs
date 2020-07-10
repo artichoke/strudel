@@ -56,8 +56,8 @@ impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
     }
 }
 
-/// This struct is created by the [`into_iter`](StHashSet::into_iter) method on
-/// [`StHashSet`]. See its documentation for more.
+/// This struct is created by the `into_iter` method on [`StHashSet`]. See its
+/// documentation for more.
 #[derive(Debug)]
 pub struct IntoIter<T>(map::IntoIter<T, ()>);
 
@@ -109,9 +109,10 @@ impl<T> DoubleEndedIterator for IntoIter<T> {
     }
 }
 
-/// This struct is created by the
-/// [`insert_ranks_from`](StHashSet::insert_ranks_from) method on [`StHashSet`].
+/// This struct is created by the [`insert_ranks_from`] method on [`StHashSet`].
 /// See its documentation for more.
+///
+/// [`insert_ranks_from`]: StHashSet::insert_ranks_from
 #[derive(Debug)]
 pub struct InsertRanks(pub(crate) map::InsertRanks);
 

@@ -117,25 +117,28 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 //! Insertion-ordered hash table suitable for embedding via FFI.
 //!
 //! Drop-in replacement for `st_hash` originally written by Peter Moore @ UCB
-//! and used in [Ruby](https://github.com/ruby/ruby)'s [implementation][st.c] of
-//! the [`Hash`][hash] core class.
+//! and used in [Ruby]'s [implementation][st.c] of the [`Hash`][hash] core
+//! class.
+//!
+//! `StHashMap`, and `StHashSet` which builds on top of it, support in-place
+//! updates of hash keys. No mutable iterators are provided.
 //!
 //! ## Crate features
 //!
 //! All features are enabled by default.
 //!
 //! - **api** - Enables a Rust API that closely mirrors the C API defined in
-//!   `ruby/st.h`.
+//!   `ruby/st.h`. Disabling this feature drops the [`libc`] dependency.
 //! - **capi** - Enables a C API suitable for embedding `strudel` with FFI.
 //!   Linking in the `libstrudel` cdylib will implement the functions defined in
-//!   `ruby/st.h`. Disabling this drops the [`libc`] dependency.
+//!   `ruby/st.h`. Disabling this feature drops the [`fnv`] dependency.
 //! - **capi-specialized-init** - Enables additional `st_init_table` C APIs with
 //!   known `st_hash_type`s for tables with numeric and string keys.
 //!
+//! [Ruby]: https://github.com/ruby/ruby
 //! [st.c]: https://github.com/ruby/ruby/blob/v2_6_3/st.c
 //! [hash]: https://ruby-doc.org/core-2.6.3/Hash.html
 
-mod fnv;
 mod st;
 
 #[cfg(feature = "api")]
@@ -148,16 +151,20 @@ pub use st::map::StHashMap;
 pub use st::set::StHashSet;
 
 pub mod st_hash_map {
-    //! An insertion-ordered hash map implemented with
-    //! [`HashMap`](std::collections::HashMap) and
-    //! [`BTreeMap`](std::collections::BTreeMap).
+    //! An insertion-ordered hash map implemented with [`HashMap`] and
+    //! [`BTreeMap`].
+    //!
+    //! [`HashMap`]: std::collections::HashMap
+    //! [`BTreeMap`]: std::collections::BTreeMap
 
     pub use super::st::map::*;
 }
 
 pub mod st_hash_set {
-    //! An insertion-ordered hash set implemented as a
-    //! [`StHashMap`](crate::StHashMap) where the value is `()`.
+    //! An insertion-ordered hash set implemented as a [`StHashMap`] where the
+    //! value is `()`.
+    //!
+    //! [`StHashMap`]: crate::StHashMap
 
     pub use super::st::set::*;
 }

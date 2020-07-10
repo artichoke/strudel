@@ -65,6 +65,10 @@ impl Hash for ExternKey {
 
 /// Type alias for an [`StHashMap`] that stores opaque pointers with a
 /// [`st_hash_type`] derived [`StBuildHasher`].
+///
+/// `ExternStHashMap` stores pointers to its keys and values. It owns hasher and
+/// comaparator functions given at construction time to implement [`Hash`] and
+/// [`Eq`] for these opaque keys. See [`StHashMap::with_hash_type`].
 pub type ExternStHashMap = StHashMap<ExternKey, st_data_t, StBuildHasher>;
 
 impl ExternStHashMap {
@@ -236,7 +240,7 @@ pub type st_hash_func = unsafe extern "C" fn(st_data_t) -> st_index_t;
 // typedef char st_check_for_sizeof_st_index_t[SIZEOF_VOIDP == (int)sizeof(st_index_t) ? 1 : -1];
 const _: () = [()][(size_of::<usize>() == size_of::<st_index_t>()) as usize - 1];
 
-/// Equality comparator and hash function used to build a [`StHash`] hasher.
+/// Equality comparator and hash function used to build a [`StHashMap`] hasher.
 ///
 /// These functions are `unsafe extern "C" fn` and expected to be supplied via
 /// FFI.
@@ -244,7 +248,7 @@ const _: () = [()][(size_of::<usize>() == size_of::<st_index_t>()) as usize - 1]
 /// # Safety
 ///
 /// `st_hash_type` are expected to have `'static` lifetime. This assumption is
-/// exploited by [`StHashMap`](StHashMap) and [`StBuildHasher`](StBuildHasher).
+/// exploited by [`StHashMap`] and [`StBuildHasher`].
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct st_hash_type {
@@ -278,13 +282,16 @@ pub enum st_retval {
     /// Stop iteration.
     ST_STOP,
 
-    /// Delete current iteration (`key`, `value`) pair and continue iteration.
+    /// Delete current iteration `(key, value)` pair and continue iteration.
     ST_DELETE,
 
     /// Continue or stop iteration.
     ///
     /// This return value has slightly different behavior depending on API. See
-    /// `api::st_foreach` and `api::st_foreach_check`.
+    /// [`st_foreach`] and [`st_foreach_check`].
+    ///
+    /// [`st_foreach`]: crate::api::st_foreach
+    /// [`st_foreach_check`]: crate::api::st_foreach_check
     ST_CHECK,
 }
 
@@ -300,23 +307,28 @@ impl PartialEq<st_retval> for i32 {
     }
 }
 
-/// `api::st_update` callback function.
+/// [`st_update`] callback function.
 ///
 /// # Header declaration
 ///
 /// ```c
 /// typedef int st_update_callback_func(st_data_t *key, st_data_t *value, st_data_t arg, int existing);
 /// ```
+///
+/// [`st_update`]: crate::api::st_update
 pub type st_update_callback_func =
     unsafe extern "C" fn(*mut st_data_t, *mut st_data_t, st_data_t, i32) -> i32;
 
-/// `api::st_foreach` and `api::st_foreach_check` callback function.
+/// [`st_foreach`] and [`st_foreach_check`] callback function.
 ///
 /// # Header declaration
 ///
 /// ```c
 /// int (*)(ANYARGS)
 /// ```
+///
+/// [`st_foreach`]: crate::api::st_foreach
+/// [`st_foreach_check`]: crate::api::st_foreach_check
 pub type st_foreach_callback_func =
     unsafe extern "C" fn(st_data_t, st_data_t, st_data_t, i32) -> i32;
 
@@ -324,14 +336,14 @@ pub type st_foreach_callback_func =
 const PADDING_TO_NUM_ENTRIES: usize = 0;
 const PADDING_TO_END: usize = 32;
 
-/// C struct wrapper around an `StHashMap`.
+/// C struct wrapper around an [`ExternStHashMap`].
 ///
 /// This wrapper is FFI compatible with the C definition for access to the
 /// `hash->type` and `hash->num_entries` struct fields.
 ///
 /// This wrapper has the same `size_of` the C definition.
 ///
-/// `st_table` `deref`s and `deref_mut`s to [`StHashMap`]
+/// `st_table` `deref`s and `deref_mut`s to [`ExternStHashMap`]
 #[repr(C)]
 pub struct st_table {
     table: *mut ExternStHashMap,
@@ -458,7 +470,7 @@ impl DerefMut for st_table {
 mod tests {
     use core::mem::size_of;
 
-    use crate::typedefs::{ffi_types, st_table};
+    use crate::api::typedefs::{ffi_types, st_table};
 
     #[test]
     fn num_entries_offset_ffi_compat() {
@@ -484,7 +496,7 @@ mod tests {
 
 #[cfg(test)]
 mod ffi_types {
-    use crate::typedefs::*;
+    use crate::api::typedefs::{st_data_t, st_hash_t, st_hash_type, st_index_t};
 
     /// `st_table` struct definition from C in `st.h`.
     ///

@@ -1,7 +1,9 @@
-//! `StHashMap` [Entry API](crate::StHashMap::entry).
+//! `StHashMap` [Entry API].
 //!
 //! The entry API allows for more complex methods of getting, setting, updating
 //! and removing keys and their values.
+//!
+//! [Entry API]: crate::StHashMap::entry
 
 use std::collections::hash_map::{
     OccupiedEntry as OccupiedHashEntry, VacantEntry as VacantHashEntry,
@@ -11,10 +13,10 @@ use crate::st::map::Key;
 
 /// A view into a single entry in a map, which may either be vacant or occupied.
 ///
-/// This enum is constructed from the [`entry`] method on [`StHash`].
+/// This enum is constructed from the [`entry`] method on [`StHashMap`].
 ///
-/// [`entry`]: crate::StHash::entry
-/// [`StHash`]: crate::StHash
+/// [`entry`]: crate::StHashMap::entry
+/// [`StHashMap`]: crate::StHashMap
 #[derive(Debug)]
 pub enum Entry<'a, K, V> {
     /// An occupied entry.
@@ -127,7 +129,7 @@ impl<'a, K, V> OccupiedEntry<'a, K, V> {
     /// If you need a reference to the `OccupiedEntry` which may outlive the
     /// destruction of the `Entry` value, see [`into_mut`].
     ///
-    /// [`into_mut`]: #method.into_mut
+    /// [`into_mut`]: OccupiedEntry::into_mut
     #[inline]
     pub fn get_mut(&mut self) -> &mut V {
         self.0.get_mut()
@@ -138,7 +140,7 @@ impl<'a, K, V> OccupiedEntry<'a, K, V> {
     ///
     /// If you need multiple references to the `OccupiedEntry`, see [`get_mut`].
     ///
-    /// [`get_mut`]: #method.get_mut
+    /// [`get_mut`]: OccupiedEntry::get_mut
     #[inline]
     #[must_use]
     pub fn into_mut(self) -> &'a mut V {

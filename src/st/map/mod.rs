@@ -66,29 +66,23 @@ impl<T> Borrow<T> for Key<T> {
     }
 }
 
-/// An insertion-ordered hash map that implements the `st_hash` API.
+/// An insertion-ordered hash map implemented with [`HashMap`] and [`BTreeMap`].
 ///
-/// `StHash` stores pointers to its keys and values and owns hasher and
-/// comaparator functions given at construction time to implement [`Hash`] and
-/// [`Eq`] for these opaque keys. See [`StHash::with_hash_type`].
+/// `StHashMap` is designed to implement the `st_hash` C API and be
+/// FFI-friendly.
 ///
-/// `StHash` is built on top of a hashing algorithm selected to provide
+/// `StHashMap` is built on top of a hashing algorithm selected to provide
 /// resistance against HashDoS attacks. See [`RandomState`].
 ///
-/// `StHash` supports updating keys in place. See [`StHash::update`].
+/// `StHashMap` supports updating keys in place. See [`StHashMap::update`].
 ///
-/// The hashing algorithm must be set on a per-`StHash` basis using the
-/// [`with_hash_type`] or `with_capacity_and_hash_type` methods. See
-/// [`st_hash_type`].
-///
-/// The optional `api` and `capi` modules in `strudel` build on top of `StHash`
-/// to implement a compatible C API to `st_hash`. This API includes support for
-/// iterating over a mutable map and inplace updates of (`key`, `value`) pairs.
-/// These features distinguish it from the [`HashMap`] in Rust `std`.
+/// The optional `api` and `capi` modules in `strudel` build on top of
+/// `StHashMap` to implement a compatible C API to `st_hash`. This API includes
+/// support for iterating over a mutable map and inplace updates of
+/// `(key, value)` pairs. These features distinguish it from the [`HashMap`] in
+/// Rust `std`.
 ///
 /// [`RandomState`]: std::collections::hash_map::RandomState
-/// [`with_hash_type`]: StHash::with_hash_type
-/// [`with_capacity_and_hash_type`]: StHash::with_capacity_and_hash_type
 #[derive(Default, Debug, Clone)]
 pub struct StHashMap<K, V, S = RandomState> {
     map: HashMap<Key<K>, V, S>,
@@ -348,8 +342,8 @@ impl<K, V, S> StHashMap<K, V, S> {
     /// An iterator for visiting all insertion counters in insertion order
     /// starting from the given rank. The iterator element type is `usize`.
     ///
-    /// The yielded elements may be passed to [`get_nth`](StHashMap::get_nth) to
-    /// retrieve the (`key`, `value`) pair in the nth insertion slot.
+    /// The yielded elements may be passed to [`get_nth`] to retrieve the
+    /// `(key, value)` pair in the nth insertion slot.
     ///
     /// This API can be used to build a mutable iterator over the map that can
     /// safely be invalidated. This is safe because new inserts always have
@@ -378,6 +372,8 @@ impl<K, V, S> StHashMap<K, V, S> {
     ///
     /// assert_eq!(0, map.insert_ranks_from(100).count());
     /// ```
+    ///
+    /// [`get_nth`]: StHashMap::get_nth
     #[inline]
     #[must_use]
     pub fn insert_ranks_from(&self, rank: usize) -> InsertRanks {
@@ -392,8 +388,7 @@ impl<K, V, S> StHashMap<K, V, S> {
     ///
     /// Key-value pairs are ordered by insertion order. Insertion order is
     /// maintained if there are deletions. Insertion order is by slot, so
-    /// [in-place updates to keys](StHashMap::update) maintain the same
-    /// insertion position.
+    /// [in-place updates to keys] maintain the same insertion position.
     ///
     /// # Examples
     ///
@@ -410,6 +405,8 @@ impl<K, V, S> StHashMap<K, V, S> {
     /// map.insert("b", 100);
     /// assert_eq!(Some((&"b", &100)), map.first());
     /// ```
+    ///
+    /// [in-place updates to keys]: StHashMap::update
     #[inline]
     #[must_use]
     pub fn first(&self) -> Option<(&K, &V)> {
@@ -421,8 +418,7 @@ impl<K, V, S> StHashMap<K, V, S> {
     ///
     /// Key-value pairs are ordered by insertion order. Insertion order is
     /// maintained if there are deletions. Insertion order is by slot, so
-    /// [in-place updates to keys](StHashMap::update) maintain the same
-    /// insertion position.
+    /// [in-place updates to keys] maintain the same insertion position.
     ///
     /// # Examples
     ///
@@ -439,6 +435,8 @@ impl<K, V, S> StHashMap<K, V, S> {
     /// map.insert("b", 100);
     /// assert_eq!(Some((&"c", &3)), map.last());
     /// ```
+    ///
+    /// [in-place updates to keys]: StHashMap::update
     #[inline]
     #[must_use]
     pub fn last(&self) -> Option<(&K, &V)> {
@@ -450,8 +448,7 @@ impl<K, V, S> StHashMap<K, V, S> {
     ///
     /// Key-value pairs are ordered by insertion order. Insertion order is
     /// maintained if there are deletions. Insertion order is by slot, so
-    /// [in-place updates to keys](StHashMap::update) maintain the same
-    /// insertion position.
+    /// [in-place updates to keys] maintain the same insertion position.
     ///
     /// # Examples
     ///
@@ -476,6 +473,8 @@ impl<K, V, S> StHashMap<K, V, S> {
     ///
     /// assert_eq!(0, map.insert_ranks_from(100).count());
     /// ```
+    ///
+    /// [in-place updates to keys]: StHashMap::update
     #[inline]
     #[must_use]
     pub fn get_nth(&self, n: usize) -> Option<(&K, &V)> {
@@ -837,9 +836,6 @@ where
     /// Removes a key from the map, returning the stored key if the key was
     /// previously in the map.
     ///
-    /// The key may be any borrowed form of the map's key type, but [`Hash`] and
-    /// [`Eq`] on the borrowed form _must_ match those for the key type.
-    ///
     /// # Examples
     ///
     /// ```
@@ -860,9 +856,6 @@ where
 
     /// Removes a key from the map, returning the stored key and value if the
     /// key was previously in the map.
-    ///
-    /// The key may be any borrowed form of the map's key type, but [`Hash`] and
-    /// [`Eq`] on the borrowed form _must_ match those for the key type.
     ///
     /// # Examples
     ///
