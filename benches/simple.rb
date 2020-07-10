@@ -38,34 +38,32 @@ ITERATIONS.times do
   end
 end
 
-=begin
-KEYS.times do |i|
-  h[i] = i
-end
-
-KEYS.times do |i|
-  raise unless h[i] == i
+ITERATIONS.times do
+  indexes.each do |i|
+    raise unless h[i] == i
+  end
 end
 
 h.each_pair do |key, value|
   raise unless key == value
 end
 
-reject = true
-h.reject! do |_key, _value|
-  reject_this = reject
-  reject = !reject
-  reject_this
+h.reject! do |key, _value|
+  next false if key == indexes[0]
+  next false if key == indexes[-1]
+  true
 end
 
-h.each_pair do |key, value|
-  raise unless key == value
-  raise unless key % 2 == 1 # rubocop:disable Style/EvenOdd
+ITERATIONS.times do
+  h.each_pair do |key, value|
+    raise unless key == value
+  end
 end
 
-h.each_pair do |key, _value|
-  h.delete(key)
+ITERATIONS.times do
+  h.each_pair do |key, _value|
+    h.delete(key)
+  end
 end
 
 raise unless h.empty?
-=end
