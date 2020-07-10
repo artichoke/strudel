@@ -350,7 +350,14 @@ pub type st_foreach_callback_func =
     unsafe extern "C" fn(st_data_t, st_data_t, st_data_t, i32) -> i32;
 
 // These values enforced by test.
+#[cfg(target_pointer_width = "64")]
 const PADDING_TO_NUM_ENTRIES: usize = 0;
+#[cfg(target_pointer_width = "64")]
+const PADDING_TO_END: usize = 32;
+
+#[cfg(target_pointer_width = "32")]
+const PADDING_TO_NUM_ENTRIES: usize = 4;
+#[cfg(target_pointer_width = "32")]
 const PADDING_TO_END: usize = 32;
 
 /// C struct wrapper around an [`ExternStHashMap`].
