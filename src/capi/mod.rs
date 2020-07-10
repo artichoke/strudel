@@ -8,8 +8,10 @@
 
 use core::ffi::c_void;
 
-use crate::api;
-use crate::typedefs::*;
+use crate::api::{
+    self, st_data_t, st_foreach_callback_func, st_hash_t, st_hash_type, st_index_t, st_table,
+    st_update_callback_func,
+};
 
 #[cfg(feature = "capi-specialized-init")]
 mod specialized_init;

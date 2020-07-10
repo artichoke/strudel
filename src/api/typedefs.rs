@@ -3,7 +3,7 @@ use core::hash::{Hash, Hasher};
 use core::mem::size_of;
 use core::ops::{Deref, DerefMut};
 
-use crate::hasher::StBuildHasher;
+use crate::api::StBuildHasher;
 use crate::StHashMap;
 
 /// A wrapper around a raw `st_data_t` key that includes a vtable for equality

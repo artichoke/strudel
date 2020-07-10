@@ -2,9 +2,9 @@ use core::hash::Hasher;
 use core::slice;
 use std::ffi::CStr;
 
+use crate::api::{st_data_t, st_hash_type, st_index_t, st_table};
 use crate::capi::{st_init_table, st_init_table_with_size};
 use crate::fnv::{self, Fnv1a32};
-use crate::typedefs::*;
 
 /// # Header declaration
 ///

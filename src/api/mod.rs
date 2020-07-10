@@ -11,8 +11,13 @@ use core::mem;
 use core::ptr;
 use core::slice;
 
+mod hasher;
+mod typedefs;
+
 use crate::fnv::Fnv1a32;
-use crate::typedefs::*;
+
+pub use hasher::{StBuildHasher, StHasher};
+pub use typedefs::*;
 
 /// Create and return table with `type` which can hold a minimal number of
 /// entries.

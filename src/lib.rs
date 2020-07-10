@@ -135,22 +135,14 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 //! [st.c]: https://github.com/ruby/ruby/blob/v2_6_3/st.c
 //! [hash]: https://ruby-doc.org/core-2.6.3/Hash.html
 
+mod fnv;
 mod st;
 
 #[cfg(feature = "api")]
 pub mod api;
-#[cfg(feature = "api")]
-mod fnv;
 
 #[cfg(feature = "capi")]
 pub mod capi;
-#[cfg(feature = "capi")]
-mod hasher;
-#[cfg(feature = "capi")]
-mod typedefs;
-
-#[cfg(feature = "capi")]
-pub use typedefs::*;
 
 pub use st::map::StHashMap;
 pub use st::set::StHashSet;
