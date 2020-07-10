@@ -105,8 +105,6 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 #![warn(clippy::cargo)]
 #![allow(clippy::cast_lossless)]
 #![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::wildcard_imports)]
-#![allow(clippy::enum_glob_use)]
 #![warn(missing_docs, intra_doc_link_resolution_failure)]
 #![warn(missing_debug_implementations)]
 #![warn(rust_2018_idioms)]
@@ -116,39 +114,52 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 
 //! Insertion-ordered hash table suitable for embedding via FFI.
 //!
-//! Drop-in replacement for `st_hash` originally written by Peter Moore @ UCB
-//! and used in [Ruby](https://github.com/ruby/ruby)'s [implementation][st.c] of
-//! the [`Hash`][hash] core class.
+//! Drop-in replacement for `st_hash` originally written by Peter Moore @ UCB and
+//! used in [Ruby]'s [implementation][st.c] of the [`Hash`][hash] core class.
+//!
+//! `StHashMap` is designed to implement the `st_hash` C API and be FFI-friendly.
+//!
+//! `StHashMap` is built on top of the high performance [`HashMap`] and [`BTreeMap`]
+//! in Rust `std`.
+//!
+//! `StHashMap`, and `StHashSet` which builds on top of it, support in-place updates
+//! of hash keys. No mutable iterators are provided.
+//!
+//! The optional `api` and `capi` modules in `strudel` build on top of `StHashMap`
+//! to implement a compatible C API to `st_hash`. This API includes support for
+//! iterating over a mutable map and in-place updates of `(key, value)` pairs. These
+//! features distinguish it from the [`HashMap`] in Rust `std`.
 //!
 //! ## Crate features
 //!
 //! All features are enabled by default.
 //!
 //! - **api** - Enables a Rust API that closely mirrors the C API defined in
-//!   `ruby/st.h`.
-//! - **capi** - Enables a C API suitable for embedding `strudel` with FFI.
-//!   Linking in the `libstrudel` cdylib will implement the functions defined in
-//!   `ruby/st.h`. Disabling this drops the [`libc`] dependency.
+//!   `ruby/st.h`. Disabling this feature drops the [`libc`] dependency.
+//! - **capi** - Enables a C API suitable for embedding `strudel` with FFI. Linking
+//!   in the `libstrudel` cdylib will implement the functions defined in
+//!   `ruby/st.h`. Disabling this feature drops the [`fnv`] dependency.
 //! - **capi-specialized-init** - Enables additional `st_init_table` C APIs with
 //!   known `st_hash_type`s for tables with numeric and string keys.
 //!
+//! [ruby]: https://github.com/ruby/ruby
 //! [st.c]: https://github.com/ruby/ruby/blob/v2_6_3/st.c
 //! [hash]: https://ruby-doc.org/core-2.6.3/Hash.html
+//! [`hashmap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
+//! [`btreemap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
+//! [`libc`]: https://crates.io/crates/libc
+//! [`fnv`]: https://crates.io/crates/fnv
+
+mod st;
 
 #[cfg(feature = "api")]
 pub mod api;
+
 #[cfg(feature = "capi")]
 pub mod capi;
-mod entry;
-#[cfg(feature = "api")]
-mod fnv;
-mod hasher;
-mod iter;
-mod st;
-mod typedefs;
 
-pub use st::StHash;
-pub use typedefs::*;
+pub use st::map::StHashMap;
+pub use st::set::StHashSet;
 
 pub mod st_hash_map {
     //! An insertion-ordered hash map implemented with [`HashMap`] and
@@ -157,5 +168,14 @@ pub mod st_hash_map {
     //! [`HashMap`]: std::collections::HashMap
     //! [`BTreeMap`]: std::collections::BTreeMap
 
-    pub use super::st::*;
+    pub use super::st::map::*;
+}
+
+pub mod st_hash_set {
+    //! An insertion-ordered hash set implemented as a [`StHashMap`] where the
+    //! value is `()`.
+    //!
+    //! [`StHashMap`]: crate::StHashMap
+
+    pub use super::st::set::*;
 }

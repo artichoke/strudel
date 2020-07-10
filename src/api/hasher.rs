@@ -2,8 +2,17 @@ use core::hash::{BuildHasher, Hasher};
 use core::mem::size_of;
 use std::collections::hash_map::{DefaultHasher, RandomState};
 
-use crate::typedefs::*;
+use crate::api::typedefs::{st_hash_t, st_hash_type};
 
+/// `StBuildHasher` is the default state for `ExternStHashMap`s.
+///
+/// A particular instance of `StBuildHasher` will create the same instances of
+/// [`Hasher`], but hashers created by two different `StBuildHasher` instances
+/// are unlikely to produce the same result for the same values.
+///
+/// `StBuildHasher` uses a DoS resistant hasher (see [`RandomState`]), but may
+/// offer weaker guarantees since it only feeds one `usize` to the `RandomState`
+/// after the supplied hash function does work.
 #[derive(Debug, Clone)]
 #[allow(clippy::module_name_repetitions)]
 pub struct StBuildHasher {
@@ -55,6 +64,10 @@ impl BuildHasher for Box<StBuildHasher> {
     }
 }
 
+/// The default [`Hasher`] used by [`StBuildHasher`].
+///
+/// This hasher feeds `usize` chunks of data to the given hash function and
+/// writes them into a [`DefaultHasher`] from the [`RandomState`].
 #[derive(Debug, Clone)]
 #[allow(clippy::module_name_repetitions)]
 pub struct StHasher {

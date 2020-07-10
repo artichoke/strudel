@@ -1,10 +1,10 @@
 use core::hash::Hasher;
 use core::slice;
+use fnv::FnvHasher;
 use std::ffi::CStr;
 
+use crate::api::{st_data_t, st_hash_type, st_index_t, st_table};
 use crate::capi::{st_init_table, st_init_table_with_size};
-use crate::fnv::{self, Fnv1a32};
-use crate::typedefs::*;
 
 /// # Header declaration
 ///
@@ -53,7 +53,9 @@ unsafe extern "C" fn strhash(arg: st_data_t) -> st_index_t {
     dbg!("strhash");
 
     let string = CStr::from_ptr(arg as *const libc::c_char);
-    fnv::hash(string.to_bytes()) as st_index_t
+    let mut hasher = FnvHasher::default();
+    hasher.write(string.to_bytes());
+    hasher.finish() as st_index_t
 }
 
 static type_strhash: st_hash_type = st_hash_type {
@@ -66,7 +68,7 @@ unsafe extern "C" fn strcasehash(arg: st_data_t) -> st_index_t {
     dbg!("strcasehash");
 
     let string = CStr::from_ptr(arg as *const libc::c_char);
-    let mut hasher = Fnv1a32::default();
+    let mut hasher = FnvHasher::default();
     for byte in string.to_bytes() {
         hasher.write_u8(byte.to_ascii_lowercase());
     }
