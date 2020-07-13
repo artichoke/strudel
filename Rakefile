@@ -28,26 +28,6 @@ namespace :lint do
     sh "npx prettier --write '**/*'"
   end
 
-  desc 'Check markdown links'
-  task :links do
-    markdown = [
-      'BUILD.md',
-      'CONTRIBUTING.md',
-      'README.md',
-      'RUBYSPEC.md',
-      'VISION.md',
-      'artichoke-backend/README.md',
-      'artichoke-backend/src/extn/stdlib/gen/README.md',
-      'artichoke-backend/vendor/README.md',
-      'artichoke-core/README.md',
-      'spec-runner/README.md',
-      'spec-runner/vendor/README.md'
-    ]
-    markdown.each do |source|
-      sh "npx markdown-link-check --config .github/markdown-link-check.json #{source}"
-    end
-  end
-
   desc 'Lint with Clippy restriction pass (unenforced lints)'
   task :restriction do
     sh 'cargo clippy -- ' \
