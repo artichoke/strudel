@@ -4,7 +4,7 @@
 ITERATIONS = 10_000
 KEYS = 1_000
 
-indexes = KEYS.times.map { |i| rand(KEYS) }
+indexes = KEYS.times.map { |_i| rand(KEYS) }
 
 h = {}
 
@@ -51,6 +51,7 @@ end
 h.reject! do |key, _value|
   next false if key == indexes[0]
   next false if key == indexes[-1]
+
   true
 end
 

@@ -377,10 +377,8 @@ pub unsafe fn st_update(
                 table.update_raw(key, value);
             }
         }
-    } else if update == ST_DELETE {
-        if existing {
-            let _ = table.remove_raw(old_key);
-        }
+    } else if update == ST_DELETE && existing {
+        let _ = table.remove_raw(old_key);
     }
     table.ensure_num_entries_is_consistent_after_writes();
     mem::forget(table);
