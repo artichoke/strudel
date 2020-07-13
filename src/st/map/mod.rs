@@ -106,7 +106,7 @@ pub(crate) enum InsertionEntry<K, V> {
     Dead,
 }
 
-/// An insertion-ordered hash map implemented with [`HashMap`] and [`BTreeMap`].
+/// An insertion-ordered hash map implemented with [`HashMap`] and [`Vec`].
 ///
 /// `StHashMap` is designed to implement the `st_hash` C API and be
 /// FFI-friendly.
@@ -657,9 +657,9 @@ impl<K, V, S> StHashMap<K, V, S> {
     pub fn estimated_memsize(&self) -> usize {
         let stack_size = size_of::<Self>();
         let hashmap_size = (size_of::<Key<K>>() + size_of::<V>()) * self.map.capacity();
-        let btreemap_size = (size_of::<usize>() + size_of::<(K, V)>()) * self.ordered.len();
+        let vec_size = size_of::<InsertionEntry<K, V>>() * self.ordered.len();
 
-        stack_size + hashmap_size + btreemap_size
+        stack_size + hashmap_size + vec_size
     }
 }
 
