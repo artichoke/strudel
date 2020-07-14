@@ -15,14 +15,19 @@
     "description": "Area: Compile-time features or attributes."
   },
   {
-    "name": "A-hash-table",
+    "name": "A-data-structure",
     "color": "f7e101",
-    "description": "Area: st_table."
+    "description": "Area: StHashMap and StHashSet."
   },
   {
     "name": "A-deps",
     "color": "f7e101",
     "description": "Area: Source and library dependencies."
+  },
+  {
+    "name": "A-hash-table",
+    "color": "f7e101",
+    "description": "Area: st_table."
   },
   {
     "name": "A-performance",
@@ -38,6 +43,11 @@
     "name": "A-release",
     "color": "f7e101",
     "description": "Area: crates.io releases and version bumps."
+  },
+  {
+    "name": "A-Rust-API",
+    "color": "f7e101",
+    "description": "Area: Rust API wrapper around core data structure."
   },
   {
     "name": "A-security",
