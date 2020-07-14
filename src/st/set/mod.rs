@@ -185,6 +185,8 @@ impl<T, S> StHashSet<T, S> {
     /// An iterator for visiting all insertion counters in insertion order
     /// starting from the given rank. The iterator element type is `usize`.
     ///
+    /// This iterator may return insertion counters to dead elements.
+    ///
     /// The yielded elements may be passed to [`get_nth`] to retrieve the
     /// `element` in the nth insertion slot.
     ///
@@ -206,7 +208,7 @@ impl<T, S> StHashSet<T, S> {
     /// set.insert("b");
     ///
     /// let insert_ranks = set.insert_ranks_from(0).collect::<Vec<_>>();
-    /// assert_eq!(vec![1, 2], insert_ranks);
+    /// assert_eq!(vec![0, 1, 2], insert_ranks);
     ///
     /// assert_eq!(None, set.get_nth(0));
     /// assert_eq!(Some(&"b"), set.get_nth(1));
@@ -304,7 +306,7 @@ impl<T, S> StHashSet<T, S> {
     /// set.insert("b");
     ///
     /// let insert_ranks = set.insert_ranks_from(0).collect::<Vec<_>>();
-    /// assert_eq!(vec![1, 2], insert_ranks);
+    /// assert_eq!(vec![0, 1, 2], insert_ranks);
     ///
     /// assert_eq!(None, set.get_nth(0));
     /// assert_eq!(Some(&"b"), set.get_nth(1));

@@ -23,6 +23,8 @@ pub use typedefs::{
     st_update_callback_func, ExternStHashMap,
 };
 
+const DEFAULT_CAPACITY: usize = 8;
+
 /// Create and return table with `type` which can hold a minimal number of
 /// entries.
 ///
@@ -34,7 +36,7 @@ pub use typedefs::{
 #[inline]
 #[must_use]
 pub fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
-    let table = ExternStHashMap::with_hash_type(hash_type);
+    let table = ExternStHashMap::with_capacity_and_hash_type(DEFAULT_CAPACITY, hash_type);
     st_table::into_raw(table.into())
 }
 
@@ -337,45 +339,47 @@ pub unsafe fn st_update(
 ) -> libc::c_int {
     use st_retval::{ST_CONTINUE, ST_DELETE};
 
-    let table = st_table::from_raw(table);
+    let mut table = st_table::from_raw(table);
+
     let (existing, mut key, mut value) =
         if let Some((&entry_key, &entry_value)) = table.get_key_value_raw(key) {
             (true, entry_key, entry_value)
         } else {
             (false, key, 0)
         };
+
     let old_key = key;
-    let table = st_table::boxed_into_raw(table);
+    let old_value = value;
     let update = func(&mut key, &mut value, arg, existing as libc::c_int);
-    let mut table = st_table::from_raw(table);
-    match update {
-        ret if ret == ST_CONTINUE && !existing => {
-            // In the MRI implementation, `st_add_direct_with_hash` is called in
-            // this position, which has the following docs:
-            //
-            // > Insert (KEY, VALUE, HASH) into table TAB. The table should not
-            // > have entry with KEY before the insertion.
-            //
-            // Rust maps do not expose direct insert with hash APIs, so we go
-            // through the normal insert route. This is semantically different
-            // behavior because `hash` of `key` might have changed when calling
-            // `func`.
-            //
-            // # Header declaration
-            //
-            // ```c
-            // st_add_direct_with_hash(table, key, value, hash);
-            // ```
-            let _ = table.insert_raw(key, value);
+    if update == ST_CONTINUE {
+        match (key, value) {
+            (key, value) if existing && key == old_key && value == old_value => {}
+            (key, value) if key == old_key => {
+                let _ = table.insert_raw(key, value);
+            }
+            (key, value) => {
+                // In the MRI implementation, `st_add_direct_with_hash` is called in
+                // this position, which has the following docs:
+                //
+                // > Insert (KEY, VALUE, HASH) into table TAB. The table should not
+                // > have entry with KEY before the insertion.
+                //
+                // Rust maps do not expose direct insert with hash APIs, so we go
+                // through the normal insert route. This is semantically different
+                // behavior because `hash` of `key` might have changed when calling
+                // `func`.
+                //
+                // # Header declaration
+                //
+                // ```c
+                // st_add_direct_with_hash(table, key, value, hash);
+                // ```
+                table.update_raw(key, value);
+            }
         }
-        ret if ret == ST_CONTINUE => {
-            table.update_raw(key, value);
-        }
-        ret if ret == ST_DELETE && existing => {
-            let _ = table.remove_raw(old_key);
-        }
-        _ => {}
-    };
+    } else if update == ST_DELETE && existing {
+        let _ = table.remove_raw(old_key);
+    }
     table.ensure_num_entries_is_consistent_after_writes();
     mem::forget(table);
     existing as libc::c_int
@@ -412,56 +416,38 @@ pub unsafe fn st_foreach(
 ) -> libc::c_int {
     use st_retval::{ST_CHECK, ST_CONTINUE, ST_DELETE, ST_STOP};
 
-    let table_ptr = table;
-    let table = st_table::from_raw(table_ptr);
-    let mut insertion_ranks = table.insert_ranks_from(0).peekable();
+    let mut table = st_table::from_raw(table);
+    let mut insertion_ranks = table.insert_ranks_from(0);
     let mut last_seen_rank = 0;
-    mem::forget(table);
 
     loop {
-        let table = st_table::from_raw(table_ptr);
-
-        // skip any ranks that have been removed from the table.
-        let min = table.min_insert_rank();
-        if last_seen_rank < min {
-            insertion_ranks = table.insert_ranks_from(min).peekable();
-        }
-        mem::forget(table);
-
         if let Some(rank) = insertion_ranks.next() {
-            let table = st_table::from_raw(table_ptr);
             last_seen_rank = rank;
             let nth = table
                 .get_nth(rank)
                 .map(|(key, &value)| (*key.inner(), value));
-            mem::forget(table);
 
             if let Some((key, value)) = nth {
-                let key = key;
                 let retval = func(key, value, arg, 0);
                 match retval {
                     retval if ST_CONTINUE == retval => {}
                     retval if ST_CHECK == retval || ST_STOP == retval => return 0,
                     retval if ST_DELETE == retval => {
-                        let mut table = st_table::from_raw(table_ptr);
                         let _ = table.remove_raw(key);
                         table.ensure_num_entries_is_consistent_after_writes();
-                        mem::forget(table);
                     }
                     _ => {}
                 }
             }
         } else {
-            let table = st_table::from_raw(table_ptr);
             let current_max = table.max_insert_rank();
             if current_max <= last_seen_rank {
-                mem::forget(table);
                 break;
             }
-            insertion_ranks = table.insert_ranks_from(last_seen_rank).peekable();
-            mem::forget(table);
+            insertion_ranks = table.insert_ranks_from(last_seen_rank);
         }
     }
+    mem::forget(table);
     0
 }
 
@@ -497,29 +483,16 @@ pub unsafe fn st_foreach_check(
 ) -> libc::c_int {
     use st_retval::{ST_CHECK, ST_CONTINUE, ST_DELETE, ST_STOP};
 
-    let table_ptr = table;
-    let table = st_table::from_raw(table_ptr);
-    let mut insertion_ranks = table.insert_ranks_from(0).peekable();
+    let mut table = st_table::from_raw(table);
+    let mut insertion_ranks = table.insert_ranks_from(0);
     let mut last_seen_rank = 0;
-    mem::forget(table);
 
     loop {
-        let table = st_table::from_raw(table_ptr);
-
-        // skip any ranks that have been removed from the table.
-        let min = table.min_insert_rank();
-        if last_seen_rank < min {
-            insertion_ranks = table.insert_ranks_from(min).peekable();
-        }
-        mem::forget(table);
-
         if let Some(rank) = insertion_ranks.next() {
-            let table = st_table::from_raw(table_ptr);
             last_seen_rank = rank;
             let nth = table
                 .get_nth(rank)
                 .map(|(key, &value)| (*key.inner(), value));
-            mem::forget(table);
 
             if let Some((key, value)) = nth {
                 let retval = func(key, value, arg, 0);
@@ -527,25 +500,21 @@ pub unsafe fn st_foreach_check(
                     retval if ST_CONTINUE == retval || ST_CHECK == retval => {}
                     retval if ST_STOP == retval => return 0,
                     retval if ST_DELETE == retval => {
-                        let mut table = st_table::from_raw(table_ptr);
                         let _ = table.remove_raw(key);
                         table.ensure_num_entries_is_consistent_after_writes();
-                        mem::forget(table);
                     }
                     _ => {}
                 }
             }
         } else {
-            let table = st_table::from_raw(table_ptr);
             let current_max = table.max_insert_rank();
             if current_max <= last_seen_rank {
-                mem::forget(table);
                 break;
             }
-            insertion_ranks = table.insert_ranks_from(last_seen_rank).peekable();
-            mem::forget(table);
+            insertion_ranks = table.insert_ranks_from(last_seen_rank);
         }
     }
+    mem::forget(table);
     0
 }
 

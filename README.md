@@ -15,8 +15,8 @@ used in [Ruby]'s [implementation][st.c] of the [`Hash`][hash] core class.
 
 `StHashMap` is designed to implement the `st_hash` C API and be FFI-friendly.
 
-`StHashMap` is built on top of the high performance [`HashMap`] and [`BTreeMap`]
-in Rust `std`.
+`StHashMap` is built on top of the high performance [`HashMap`] and [`Vec`] in
+Rust `std`.
 
 `StHashMap`, and `StHashSet` which builds on top of it, support in-place updates
 of hash keys. No mutable iterators are provided.
@@ -68,6 +68,6 @@ The `st_hash` implementation in Ruby includes the following notice:
 [st.c]: https://github.com/ruby/ruby/blob/v2_6_3/st.c
 [hash]: https://ruby-doc.org/core-2.6.3/Hash.html
 [`hashmap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
-[`btreemap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
+[`vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html
 [`libc`]: https://crates.io/crates/libc
 [`fnv`]: https://crates.io/crates/fnv

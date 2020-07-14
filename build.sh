@@ -47,8 +47,9 @@ if [ ! -d ruby-strudel-build-root ]; then
 fi
 
 pushd ruby-strudel-build-root
-make
-make install
+make miniruby
+# make
+# make install
 popd
 
 if [ ! -d ruby-st_hash-build-root ]; then

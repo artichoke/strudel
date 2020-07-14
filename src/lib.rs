@@ -119,7 +119,7 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 //!
 //! `StHashMap` is designed to implement the `st_hash` C API and be FFI-friendly.
 //!
-//! `StHashMap` is built on top of the high performance [`HashMap`] and [`BTreeMap`]
+//! `StHashMap` is built on top of the high performance [`HashMap`] and [`Vec`]
 //! in Rust `std`.
 //!
 //! `StHashMap`, and `StHashSet` which builds on top of it, support in-place updates
@@ -146,7 +146,6 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 //! [st.c]: https://github.com/ruby/ruby/blob/v2_6_3/st.c
 //! [hash]: https://ruby-doc.org/core-2.6.3/Hash.html
 //! [`hashmap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
-//! [`btreemap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
 //! [`libc`]: https://crates.io/crates/libc
 //! [`fnv`]: https://crates.io/crates/fnv
 
@@ -162,11 +161,10 @@ pub use st::map::StHashMap;
 pub use st::set::StHashSet;
 
 pub mod st_hash_map {
-    //! An insertion-ordered hash map implemented with [`HashMap`] and
-    //! [`BTreeMap`].
+    //! An insertion-ordered hash map implemented with [`HashMap`] and [`Vec`].
     //!
     //! [`HashMap`]: std::collections::HashMap
-    //! [`BTreeMap`]: std::collections::BTreeMap
+    //! [`Vec`]: std::vec::Vec
 
     pub use super::st::map::*;
 }
