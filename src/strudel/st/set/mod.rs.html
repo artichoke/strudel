@@ -595,6 +595,8 @@
 <span id="595">595</span>
 <span id="596">596</span>
 <span id="597">597</span>
+<span id="598">598</span>
+<span id="599">599</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">hash</span>::{<span class="ident">BuildHasher</span>, <span class="ident">Hash</span>};
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">mem</span>::<span class="ident">size_of</span>;
@@ -783,6 +785,8 @@
     <span class="doccomment">/// An iterator for visiting all insertion counters in insertion order</span>
     <span class="doccomment">/// starting from the given rank. The iterator element type is `usize`.</span>
     <span class="doccomment">///</span>
+    <span class="doccomment">/// This iterator may return insertion counters to dead elements.</span>
+    <span class="doccomment">///</span>
     <span class="doccomment">/// The yielded elements may be passed to [`get_nth`] to retrieve the</span>
     <span class="doccomment">/// `element` in the nth insertion slot.</span>
     <span class="doccomment">///</span>
@@ -804,7 +808,7 @@
     <span class="doccomment">/// set.insert(&quot;b&quot;);</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// let insert_ranks = set.insert_ranks_from(0).collect::&lt;Vec&lt;_&gt;&gt;();</span>
-    <span class="doccomment">/// assert_eq!(vec![1, 2], insert_ranks);</span>
+    <span class="doccomment">/// assert_eq!(vec![0, 1, 2], insert_ranks);</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// assert_eq!(None, set.get_nth(0));</span>
     <span class="doccomment">/// assert_eq!(Some(&amp;&quot;b&quot;), set.get_nth(1));</span>
@@ -902,7 +906,7 @@
     <span class="doccomment">/// set.insert(&quot;b&quot;);</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// let insert_ranks = set.insert_ranks_from(0).collect::&lt;Vec&lt;_&gt;&gt;();</span>
-    <span class="doccomment">/// assert_eq!(vec![1, 2], insert_ranks);</span>
+    <span class="doccomment">/// assert_eq!(vec![0, 1, 2], insert_ranks);</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// assert_eq!(None, set.get_nth(0));</span>
     <span class="doccomment">/// assert_eq!(Some(&amp;&quot;b&quot;), set.get_nth(1));</span>

@@ -177,8 +177,6 @@
 <span id="177">177</span>
 <span id="178">178</span>
 <span id="179">179</span>
-<span id="180">180</span>
-<span id="181">181</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="comment">/* This is a public domain general purpose hash table package
 originally written by Peter Moore @ UCB.
@@ -301,7 +299,7 @@ rewritten by Vladimir Makarov &lt;vmakarov@redhat.com&gt;.  */</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! `StHashMap` is designed to implement the `st_hash` C API and be FFI-friendly.</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! `StHashMap` is built on top of the high performance [`HashMap`] and [`BTreeMap`]</span>
+<span class="doccomment">//! `StHashMap` is built on top of the high performance [`HashMap`] and [`Vec`]</span>
 <span class="doccomment">//! in Rust `std`.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! `StHashMap`, and `StHashSet` which builds on top of it, support in-place updates</span>
@@ -328,7 +326,6 @@ rewritten by Vladimir Makarov &lt;vmakarov@redhat.com&gt;.  */</span>
 <span class="doccomment">//! [st.c]: https://github.com/ruby/ruby/blob/v2_6_3/st.c</span>
 <span class="doccomment">//! [hash]: https://ruby-doc.org/core-2.6.3/Hash.html</span>
 <span class="doccomment">//! [`hashmap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html</span>
-<span class="doccomment">//! [`btreemap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html</span>
 <span class="doccomment">//! [`libc`]: https://crates.io/crates/libc</span>
 <span class="doccomment">//! [`fnv`]: https://crates.io/crates/fnv</span>
 
@@ -344,11 +341,10 @@ rewritten by Vladimir Makarov &lt;vmakarov@redhat.com&gt;.  */</span>
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">st</span>::<span class="ident">set</span>::<span class="ident">StHashSet</span>;
 
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">st_hash_map</span> {
-    <span class="doccomment">//! An insertion-ordered hash map implemented with [`HashMap`] and</span>
-    <span class="doccomment">//! [`BTreeMap`].</span>
+    <span class="doccomment">//! An insertion-ordered hash map implemented with [`HashMap`] and [`Vec`].</span>
     <span class="doccomment">//!</span>
     <span class="doccomment">//! [`HashMap`]: std::collections::HashMap</span>
-    <span class="doccomment">//! [`BTreeMap`]: std::collections::BTreeMap</span>
+    <span class="doccomment">//! [`Vec`]: std::vec::Vec</span>
 
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">st</span>::<span class="ident">map</span>::<span class="kw-2">*</span>;
 }

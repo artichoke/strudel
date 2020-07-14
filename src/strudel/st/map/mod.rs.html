@@ -876,19 +876,45 @@
 <span id="876">876</span>
 <span id="877">877</span>
 <span id="878">878</span>
+<span id="879">879</span>
+<span id="880">880</span>
+<span id="881">881</span>
+<span id="882">882</span>
+<span id="883">883</span>
+<span id="884">884</span>
+<span id="885">885</span>
+<span id="886">886</span>
+<span id="887">887</span>
+<span id="888">888</span>
+<span id="889">889</span>
+<span id="890">890</span>
+<span id="891">891</span>
+<span id="892">892</span>
+<span id="893">893</span>
+<span id="894">894</span>
+<span id="895">895</span>
+<span id="896">896</span>
+<span id="897">897</span>
+<span id="898">898</span>
+<span id="899">899</span>
+<span id="900">900</span>
+<span id="901">901</span>
+<span id="902">902</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">borrow</span>::<span class="ident">Borrow</span>;
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">hash</span>::{<span class="ident">BuildHasher</span>, <span class="ident">Hash</span>, <span class="ident">Hasher</span>};
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">mem</span>::<span class="ident">size_of</span>;
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">ops</span>::<span class="ident">Index</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">hash_map</span>::{<span class="ident">Entry</span> <span class="kw">as</span> <span class="ident">HashEntry</span>, <span class="ident">RandomState</span>};
-<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::{<span class="ident">BTreeMap</span>, <span class="ident">HashMap</span>};
+<span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">HashMap</span>;
 
-<span class="kw">mod</span> <span class="ident">entry</span>;
 <span class="kw">mod</span> <span class="ident">iter</span>;
 
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">entry</span>::{<span class="ident">Entry</span>, <span class="ident">OccupiedEntry</span>, <span class="ident">VacantEntry</span>};
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">iter</span>::{<span class="ident">InsertRanks</span>, <span class="ident">IntoIter</span>, <span class="ident">Iter</span>, <span class="ident">Keys</span>, <span class="ident">Values</span>};
+
+<span class="comment">// Tables with `LINEAR_SCAN_THRESHOLD` or fewer insertions will perform lookups</span>
+<span class="comment">// by scanning the `ordered` insertion list.</span>
+<span class="kw">const</span> <span class="ident">LINEAR_SCAN_THRESHOLD</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">8</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct</span> <span class="ident">Key</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
@@ -945,7 +971,45 @@
     }
 }
 
-<span class="doccomment">/// An insertion-ordered hash map implemented with [`HashMap`] and [`BTreeMap`].</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>, <span class="ident">Hash</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">PartialOrd</span>, <span class="ident">Ord</span>)]</span>
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct</span> <span class="ident">Value</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="ident">inner</span>: <span class="ident">T</span>,
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Value</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">value</span>: <span class="ident">T</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="self">Self</span> { <span class="ident">inner</span>: <span class="ident">value</span> }
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">Value</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="attribute">#[<span class="ident">must_use</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">inner</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">T</span> {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">inner</span>
+    }
+
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="attribute">#[<span class="ident">must_use</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">into_inner</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">T</span> {
+        <span class="self">self</span>.<span class="ident">inner</span>
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">Borrow</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Value</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">borrow</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">T</span> {
+        <span class="self">self</span>.<span class="ident">inner</span>()
+    }
+}
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum</span> <span class="ident">InsertionEntry</span><span class="op">&lt;</span><span class="ident">K</span>, <span class="ident">V</span><span class="op">&gt;</span> {
+    <span class="ident">Alive</span>(<span class="ident">K</span>, <span class="ident">V</span>),
+    <span class="ident">Dead</span>,
+}
+
+<span class="doccomment">/// An insertion-ordered hash map implemented with [`HashMap`] and [`Vec`].</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// `StHashMap` is designed to implement the `st_hash` C API and be</span>
 <span class="doccomment">/// FFI-friendly.</span>
@@ -965,9 +1029,8 @@
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Default</span>, <span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy</span>::<span class="ident">module_name_repetitions</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">StHashMap</span><span class="op">&lt;</span><span class="ident">K</span>, <span class="ident">V</span>, <span class="ident">S</span> <span class="op">=</span> <span class="ident">RandomState</span><span class="op">&gt;</span> {
-    <span class="ident">map</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">Key</span><span class="op">&lt;</span><span class="ident">K</span><span class="op">&gt;</span>, <span class="ident">V</span>, <span class="ident">S</span><span class="op">&gt;</span>,
-    <span class="ident">ordered</span>: <span class="ident">BTreeMap</span><span class="op">&lt;</span><span class="ident">usize</span>, (<span class="ident">K</span>, <span class="ident">V</span>)<span class="op">&gt;</span>,
-    <span class="ident">max_insert_rank</span>: <span class="ident">usize</span>,
+    <span class="ident">map</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">Key</span><span class="op">&lt;</span><span class="ident">K</span><span class="op">&gt;</span>, <span class="ident">Value</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>, <span class="ident">S</span><span class="op">&gt;</span>,
+    <span class="ident">ordered</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">InsertionEntry</span><span class="op">&lt;</span><span class="ident">K</span>, <span class="ident">V</span><span class="op">&gt;</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">K</span>, <span class="ident">V</span>, <span class="ident">S</span><span class="op">&gt;</span> <span class="ident">PartialEq</span> <span class="kw">for</span> <span class="ident">StHashMap</span><span class="op">&lt;</span><span class="ident">K</span>, <span class="ident">V</span>, <span class="ident">S</span><span class="op">&gt;</span>
@@ -1025,12 +1088,8 @@
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="kw">let</span> <span class="ident">map</span> <span class="op">=</span> <span class="ident">HashMap</span>::<span class="ident">new</span>();
-        <span class="kw">let</span> <span class="ident">ordered</span> <span class="op">=</span> <span class="ident">BTreeMap</span>::<span class="ident">new</span>();
-        <span class="self">Self</span> {
-            <span class="ident">map</span>,
-            <span class="ident">ordered</span>,
-            <span class="ident">max_insert_rank</span>: <span class="number">0</span>,
-        }
+        <span class="kw">let</span> <span class="ident">ordered</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">new</span>();
+        <span class="self">Self</span> { <span class="ident">map</span>, <span class="ident">ordered</span> }
     }
 
     <span class="doccomment">/// Creates an empty `StHashMap` with the specified capacity.</span>
@@ -1049,12 +1108,8 @@
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">with_capacity</span>(<span class="ident">capacity</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="kw">let</span> <span class="ident">map</span> <span class="op">=</span> <span class="ident">HashMap</span>::<span class="ident">with_capacity</span>(<span class="ident">capacity</span>);
-        <span class="kw">let</span> <span class="ident">ordered</span> <span class="op">=</span> <span class="ident">BTreeMap</span>::<span class="ident">new</span>();
-        <span class="self">Self</span> {
-            <span class="ident">map</span>,
-            <span class="ident">ordered</span>,
-            <span class="ident">max_insert_rank</span>: <span class="number">0</span>,
-        }
+        <span class="kw">let</span> <span class="ident">ordered</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">with_capacity</span>(<span class="ident">capacity</span>);
+        <span class="self">Self</span> { <span class="ident">map</span>, <span class="ident">ordered</span> }
     }
 }
 
@@ -1087,12 +1142,8 @@
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">with_hasher</span>(<span class="ident">hash_builder</span>: <span class="ident">S</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="kw">let</span> <span class="ident">map</span> <span class="op">=</span> <span class="ident">HashMap</span>::<span class="ident">with_hasher</span>(<span class="ident">hash_builder</span>);
-        <span class="kw">let</span> <span class="ident">ordered</span> <span class="op">=</span> <span class="ident">BTreeMap</span>::<span class="ident">new</span>();
-        <span class="self">Self</span> {
-            <span class="ident">map</span>,
-            <span class="ident">ordered</span>,
-            <span class="ident">max_insert_rank</span>: <span class="number">0</span>,
-        }
+        <span class="kw">let</span> <span class="ident">ordered</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">new</span>();
+        <span class="self">Self</span> { <span class="ident">map</span>, <span class="ident">ordered</span> }
     }
 
     <span class="doccomment">/// Creates an empty `StHashMap` with the specified capacity, using the</span>
@@ -1124,12 +1175,8 @@
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">with_capacity_and_hasher</span>(<span class="ident">capacity</span>: <span class="ident">usize</span>, <span class="ident">hash_builder</span>: <span class="ident">S</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="kw">let</span> <span class="ident">map</span> <span class="op">=</span> <span class="ident">HashMap</span>::<span class="ident">with_capacity_and_hasher</span>(<span class="ident">capacity</span>, <span class="ident">hash_builder</span>);
-        <span class="kw">let</span> <span class="ident">ordered</span> <span class="op">=</span> <span class="ident">BTreeMap</span>::<span class="ident">new</span>();
-        <span class="self">Self</span> {
-            <span class="ident">map</span>,
-            <span class="ident">ordered</span>,
-            <span class="ident">max_insert_rank</span>: <span class="number">0</span>,
-        }
+        <span class="kw">let</span> <span class="ident">ordered</span> <span class="op">=</span> <span class="ident">Vec</span>::<span class="ident">with_capacity</span>(<span class="ident">capacity</span>);
+        <span class="self">Self</span> { <span class="ident">map</span>, <span class="ident">ordered</span> }
     }
 
     <span class="doccomment">/// Returns the number of elements the map can hold without reallocating.</span>
@@ -1147,7 +1194,7 @@
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">capacity</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span> {
-        <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">capacity</span>()
+        <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">capacity</span>().<span class="ident">min</span>(<span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">capacity</span>())
     }
 
     <span class="doccomment">/// An iterator visiting all keys in insertion order. The iterator element</span>
@@ -1216,11 +1263,13 @@
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">iter</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">K</span>, <span class="ident">V</span><span class="op">&gt;</span> {
-        <span class="ident">Iter</span>(<span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">values</span>())
+        <span class="ident">Iter</span>(<span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">iter</span>())
     }
 
     <span class="doccomment">/// An iterator for visiting all insertion counters in insertion order</span>
     <span class="doccomment">/// starting from the given rank. The iterator element type is `usize`.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This iterator may return insertion counters to dead elements.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// The yielded elements may be passed to [`get_nth`] to retrieve the</span>
     <span class="doccomment">/// `(key, value)` pair in the nth insertion slot.</span>
@@ -1243,7 +1292,7 @@
     <span class="doccomment">/// map.insert(&quot;b&quot;, 100);</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// let insert_ranks = map.insert_ranks_from(0).collect::&lt;Vec&lt;_&gt;&gt;();</span>
-    <span class="doccomment">/// assert_eq!(vec![1, 2], insert_ranks);</span>
+    <span class="doccomment">/// assert_eq!(vec![0, 1, 2], insert_ranks);</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// assert_eq!(None, map.get_nth(0));</span>
     <span class="doccomment">/// assert_eq!(Some((&amp;&quot;b&quot;, &amp;100)), map.get_nth(1));</span>
@@ -1257,10 +1306,7 @@
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">insert_ranks_from</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">rank</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">InsertRanks</span> {
-        <span class="kw">let</span> <span class="ident">ordered_range</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">range</span>(<span class="ident">rank</span>..);
-        <span class="kw">let</span> <span class="ident">ranks_from</span> <span class="op">=</span> <span class="ident">ordered_range</span>.<span class="ident">map</span>(<span class="op">|</span>(<span class="kw-2">&amp;</span><span class="ident">rank</span>, <span class="kw">_</span>)<span class="op">|</span> <span class="ident">rank</span>);
-        <span class="kw">let</span> <span class="ident">ranks</span> <span class="op">=</span> <span class="ident">ranks_from</span>.<span class="ident">collect</span>::<span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="kw">_</span><span class="op">&gt;</span><span class="op">&gt;</span>();
-        <span class="ident">InsertRanks</span>(<span class="ident">ranks</span>.<span class="ident">into_iter</span>())
+        <span class="ident">InsertRanks</span>(<span class="ident">rank</span>..<span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">len</span>())
     }
 
     <span class="doccomment">/// Returns the first key-value pair in the map. The key in this pair is</span>
@@ -1344,7 +1390,7 @@
     <span class="doccomment">/// map.insert(&quot;b&quot;, 100);</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// let insert_ranks = map.insert_ranks_from(0).collect::&lt;Vec&lt;_&gt;&gt;();</span>
-    <span class="doccomment">/// assert_eq!(vec![1, 2], insert_ranks);</span>
+    <span class="doccomment">/// assert_eq!(vec![0, 1, 2], insert_ranks);</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// assert_eq!(None, map.get_nth(0));</span>
     <span class="doccomment">/// assert_eq!(Some((&amp;&quot;b&quot;, &amp;100)), map.get_nth(1));</span>
@@ -1358,7 +1404,10 @@
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_nth</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">n</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="kw-2">&amp;</span><span class="ident">K</span>, <span class="kw-2">&amp;</span><span class="ident">V</span>)<span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">n</span>).<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">key</span>, <span class="ident">value</span>)<span class="op">|</span> (<span class="ident">key</span>, <span class="ident">value</span>))
+        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">get</span>(<span class="ident">n</span>) {
+            <span class="prelude-val">None</span> <span class="op">|</span> <span class="prelude-val">Some</span>(<span class="ident">InsertionEntry</span>::<span class="ident">Dead</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">None</span>,
+            <span class="prelude-val">Some</span>(<span class="ident">InsertionEntry</span>::<span class="ident">Alive</span>(<span class="ident">key</span>, <span class="ident">value</span>)) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Some</span>((<span class="ident">key</span>, <span class="ident">value</span>)),
+        }
     }
 
     <span class="doccomment">/// Insertion counter for the [first](StHashMap::first) key-value pair in</span>
@@ -1384,7 +1433,12 @@
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">min_insert_rank</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span> {
-        <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">keys</span>().<span class="ident">next</span>().<span class="ident">copied</span>().<span class="ident">unwrap_or_default</span>()
+        <span class="kw">for</span> (<span class="ident">idx</span>, <span class="ident">pair</span>) <span class="kw">in</span> <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">iter</span>().<span class="ident">enumerate</span>() {
+            <span class="kw">if</span> <span class="kw">let</span> <span class="ident">InsertionEntry</span>::<span class="ident">Alive</span>(<span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">pair</span> {
+                <span class="kw">return</span> <span class="ident">idx</span>;
+            }
+        }
+        <span class="number">0</span>
     }
 
     <span class="doccomment">/// Insertion counter for the [last](StHashMap::last) key-value pair in the</span>
@@ -1410,7 +1464,12 @@
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">max_insert_rank</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span> {
-        <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">keys</span>().<span class="ident">last</span>().<span class="ident">copied</span>().<span class="ident">unwrap_or_default</span>()
+        <span class="kw">for</span> (<span class="ident">idx</span>, <span class="ident">pair</span>) <span class="kw">in</span> <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">iter</span>().<span class="ident">enumerate</span>().<span class="ident">rev</span>() {
+            <span class="kw">if</span> <span class="kw">let</span> <span class="ident">InsertionEntry</span>::<span class="ident">Alive</span>(<span class="kw">_</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">pair</span> {
+                <span class="kw">return</span> <span class="ident">idx</span>;
+            }
+        }
+        <span class="number">0</span>
     }
 
     <span class="doccomment">/// Returns the number of elements in the map.</span>
@@ -1466,7 +1525,6 @@
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">clear</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
         <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">clear</span>();
         <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">clear</span>();
-        <span class="self">self</span>.<span class="ident">max_insert_rank</span> <span class="op">=</span> <span class="number">0</span>;
     }
 
     <span class="doccomment">/// Returns a reference to the map&#39;s [`BuildHasher`].</span>
@@ -1502,9 +1560,9 @@
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">estimated_memsize</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">usize</span> {
         <span class="kw">let</span> <span class="ident">stack_size</span> <span class="op">=</span> <span class="ident">size_of</span>::<span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>();
         <span class="kw">let</span> <span class="ident">hashmap_size</span> <span class="op">=</span> (<span class="ident">size_of</span>::<span class="op">&lt;</span><span class="ident">Key</span><span class="op">&lt;</span><span class="ident">K</span><span class="op">&gt;</span><span class="op">&gt;</span>() <span class="op">+</span> <span class="ident">size_of</span>::<span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>()) <span class="op">*</span> <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">capacity</span>();
-        <span class="kw">let</span> <span class="ident">btreemap_size</span> <span class="op">=</span> (<span class="ident">size_of</span>::<span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>() <span class="op">+</span> <span class="ident">size_of</span>::<span class="op">&lt;</span>(<span class="ident">K</span>, <span class="ident">V</span>)<span class="op">&gt;</span>()) <span class="op">*</span> <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">len</span>();
+        <span class="kw">let</span> <span class="ident">vec_size</span> <span class="op">=</span> <span class="ident">size_of</span>::<span class="op">&lt;</span><span class="ident">InsertionEntry</span><span class="op">&lt;</span><span class="ident">K</span>, <span class="ident">V</span><span class="op">&gt;</span><span class="op">&gt;</span>() <span class="op">*</span> <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">len</span>();
 
-        <span class="ident">stack_size</span> <span class="op">+</span> <span class="ident">hashmap_size</span> <span class="op">+</span> <span class="ident">btreemap_size</span>
+        <span class="ident">stack_size</span> <span class="op">+</span> <span class="ident">hashmap_size</span> <span class="op">+</span> <span class="ident">vec_size</span>
     }
 }
 
@@ -1533,6 +1591,7 @@
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">reserve</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">additional</span>: <span class="ident">usize</span>) {
         <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">reserve</span>(<span class="ident">additional</span>);
+        <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">reserve</span>(<span class="ident">additional</span>);
     }
 
     <span class="doccomment">/// Shrinks the capacity of the map as much as possible. It will drop down</span>
@@ -1553,6 +1612,7 @@
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">shrink_to_fit</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
         <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">shrink_to_fit</span>();
+        <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">shrink_to_fit</span>();
     }
 
     <span class="doccomment">/// Returns `true` if the map contains a value for the specified key.</span>
@@ -1588,7 +1648,16 @@
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">key</span>: <span class="kw-2">&amp;</span><span class="ident">K</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">V</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">get</span>(<span class="ident">key</span>)
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">len</span>() <span class="op">&lt;</span> <span class="ident">LINEAR_SCAN_THRESHOLD</span> {
+            <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">iter</span>().<span class="ident">find_map</span>(<span class="op">|</span><span class="ident">entry</span><span class="op">|</span> <span class="kw">match</span> <span class="ident">entry</span> {
+                <span class="ident">InsertionEntry</span>::<span class="ident">Alive</span>(<span class="ident">entry_key</span>, <span class="ident">entry_value</span>) <span class="kw">if</span> <span class="ident">entry_key</span> <span class="op">=</span><span class="op">=</span> <span class="ident">key</span> <span class="op">=</span><span class="op">&gt;</span> {
+                    <span class="prelude-val">Some</span>(<span class="ident">entry_value</span>)
+                }
+                <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">None</span>,
+            })
+        } <span class="kw">else</span> {
+            <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">get</span>(<span class="ident">key</span>).<span class="ident">map</span>(<span class="ident">Value</span>::<span class="ident">inner</span>)
+        }
     }
 
     <span class="doccomment">/// Returns the key-value pair corresponding to the supplied key.</span>
@@ -1607,52 +1676,16 @@
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_key_value</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">key</span>: <span class="kw-2">&amp;</span><span class="ident">K</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="kw-2">&amp;</span><span class="ident">K</span>, <span class="kw-2">&amp;</span><span class="ident">V</span>)<span class="op">&gt;</span> {
         <span class="kw">let</span> (<span class="ident">key</span>, <span class="ident">value</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">get_key_value</span>(<span class="ident">key</span>)<span class="question-mark">?</span>;
-        <span class="prelude-val">Some</span>((<span class="ident">key</span>.<span class="ident">inner</span>(), <span class="ident">value</span>))
+        <span class="prelude-val">Some</span>((<span class="ident">key</span>.<span class="ident">inner</span>(), <span class="ident">value</span>.<span class="ident">inner</span>()))
     }
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">K</span>, <span class="ident">V</span>, <span class="ident">S</span><span class="op">&gt;</span> <span class="ident">StHashMap</span><span class="op">&lt;</span><span class="ident">K</span>, <span class="ident">V</span>, <span class="ident">S</span><span class="op">&gt;</span>
 <span class="kw">where</span>
     <span class="ident">K</span>: <span class="ident">Eq</span> <span class="op">+</span> <span class="ident">Hash</span> <span class="op">+</span> <span class="ident">Clone</span>,
-    <span class="ident">V</span>: <span class="ident">Clone</span>,
+    <span class="ident">V</span>: <span class="ident">PartialEq</span> <span class="op">+</span> <span class="ident">Clone</span>,
     <span class="ident">S</span>: <span class="ident">BuildHasher</span>,
 {
-    <span class="doccomment">/// Gets the given key&#39;s corresponding entry in the map for in-place</span>
-    <span class="doccomment">/// manipulation.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// # Examples</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// ```</span>
-    <span class="doccomment">/// use strudel::StHashMap;</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// let mut letters = StHashMap::new();</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// for ch in &quot;a short treatise on fungi&quot;.chars() {</span>
-    <span class="doccomment">///     let counter = letters.entry(ch).or_insert(0);</span>
-    <span class="doccomment">///     *counter += 1;</span>
-    <span class="doccomment">/// }</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// assert_eq!(letters[&amp;&#39;s&#39;], 2);</span>
-    <span class="doccomment">/// assert_eq!(letters[&amp;&#39;t&#39;], 3);</span>
-    <span class="doccomment">/// assert_eq!(letters[&amp;&#39;u&#39;], 1);</span>
-    <span class="doccomment">/// assert_eq!(letters.get(&amp;&#39;y&#39;), None);</span>
-    <span class="doccomment">/// ```</span>
-    <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">entry</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">key</span>: <span class="ident">K</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Entry</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">K</span>, <span class="ident">V</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">insert_rank</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">max_insert_rank</span>;
-        <span class="self">self</span>.<span class="ident">max_insert_rank</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
-
-        <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="ident">Key</span> {
-            <span class="ident">inner</span>: <span class="ident">key</span>,
-            <span class="ident">insert_rank</span>,
-        };
-
-        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">entry</span>(<span class="ident">key</span>) {
-            <span class="ident">HashEntry</span>::<span class="ident">Occupied</span>(<span class="ident">base</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Entry</span>::<span class="ident">Occupied</span>(<span class="ident">OccupiedEntry</span>(<span class="ident">base</span>)),
-            <span class="ident">HashEntry</span>::<span class="ident">Vacant</span>(<span class="ident">base</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Entry</span>::<span class="ident">Vacant</span>(<span class="ident">VacantEntry</span>(<span class="ident">base</span>)),
-        }
-    }
-
     <span class="doccomment">/// Inserts a key-value pair into the map.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// If the map did not have this key present, [`None`] is returned.</span>
@@ -1663,8 +1696,7 @@
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">insert</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">key</span>: <span class="ident">K</span>, <span class="ident">value</span>: <span class="ident">V</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">insert_rank</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">max_insert_rank</span>;
-        <span class="self">self</span>.<span class="ident">max_insert_rank</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
+        <span class="kw">let</span> <span class="ident">insert_rank</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">len</span>();
 
         <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="ident">Key</span> {
             <span class="ident">inner</span>: <span class="ident">key</span>,
@@ -1673,17 +1705,25 @@
 
         <span class="kw">match</span> <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">entry</span>(<span class="ident">key</span>) {
             <span class="ident">HashEntry</span>::<span class="ident">Occupied</span>(<span class="kw-2">mut</span> <span class="ident">base</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="kw">let</span> <span class="ident">rank</span> <span class="op">=</span> <span class="ident">base</span>.<span class="ident">key</span>().<span class="ident">insert_rank</span>();
-                <span class="self">self</span>.<span class="ident">ordered</span>
-                    .<span class="ident">insert</span>(<span class="ident">rank</span>, (<span class="ident">base</span>.<span class="ident">key</span>().<span class="ident">inner</span>().<span class="ident">clone</span>(), <span class="ident">value</span>.<span class="ident">clone</span>()));
-                <span class="kw">let</span> <span class="ident">old_value</span> <span class="op">=</span> <span class="ident">base</span>.<span class="ident">insert</span>(<span class="ident">value</span>);
-                <span class="prelude-val">Some</span>(<span class="ident">old_value</span>)
+                <span class="kw">let</span> <span class="ident">insert_rank</span> <span class="op">=</span> <span class="ident">base</span>.<span class="ident">key</span>().<span class="ident">insert_rank</span>();
+                <span class="comment">// Maintain insert rank with new key-value pair.</span>
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">InsertionEntry</span>::<span class="ident">Alive</span>(<span class="kw">_</span>, <span class="ident">stored_value</span>)) <span class="op">=</span>
+                    <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">get_mut</span>(<span class="ident">insert_rank</span>)
+                {
+                    <span class="kw">if</span> <span class="kw-2">*</span><span class="ident">stored_value</span> <span class="op">!</span><span class="op">=</span> <span class="ident">value</span> {
+                        <span class="kw-2">*</span><span class="ident">stored_value</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">clone</span>();
+                    }
+                } <span class="kw">else</span> {
+                    <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;already inserted pair not alive in ordered storage&quot;</span>);
+                }
+                <span class="prelude-val">Some</span>(<span class="ident">base</span>.<span class="ident">insert</span>(<span class="ident">value</span>.<span class="ident">into</span>()).<span class="ident">into_inner</span>())
             }
             <span class="ident">HashEntry</span>::<span class="ident">Vacant</span>(<span class="ident">base</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="kw">let</span> <span class="ident">rank</span> <span class="op">=</span> <span class="ident">base</span>.<span class="ident">key</span>().<span class="ident">insert_rank</span>();
-                <span class="self">self</span>.<span class="ident">ordered</span>
-                    .<span class="ident">insert</span>(<span class="ident">rank</span>, (<span class="ident">base</span>.<span class="ident">key</span>().<span class="ident">inner</span>().<span class="ident">clone</span>(), <span class="ident">value</span>.<span class="ident">clone</span>()));
-                <span class="ident">base</span>.<span class="ident">insert</span>(<span class="ident">value</span>);
+                <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">push</span>(<span class="ident">InsertionEntry</span>::<span class="ident">Alive</span>(
+                    <span class="ident">base</span>.<span class="ident">key</span>().<span class="ident">inner</span>().<span class="ident">clone</span>(),
+                    <span class="ident">value</span>.<span class="ident">clone</span>(),
+                ));
+                <span class="ident">base</span>.<span class="ident">insert</span>(<span class="ident">value</span>.<span class="ident">into</span>());
                 <span class="prelude-val">None</span>
             }
         }
@@ -1701,13 +1741,23 @@
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>((<span class="ident">entry_key</span>, <span class="kw">_</span>)) <span class="op">=</span> <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">remove_entry</span>(<span class="kw-2">&amp;</span><span class="ident">key</span>) {
             <span class="kw">let</span> <span class="ident">insert_rank</span> <span class="op">=</span> <span class="ident">entry_key</span>.<span class="ident">insert_rank</span>();
             <span class="comment">// Maintain insert rank with new key-value pair.</span>
-            <span class="self">self</span>.<span class="ident">ordered</span>
-                .<span class="ident">insert</span>(<span class="ident">insert_rank</span>, (<span class="ident">key</span>.<span class="ident">clone</span>(), <span class="ident">value</span>.<span class="ident">clone</span>()));
+            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">InsertionEntry</span>::<span class="ident">Alive</span>(<span class="ident">stored_key</span>, <span class="ident">stored_value</span>)) <span class="op">=</span>
+                <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">get_mut</span>(<span class="ident">insert_rank</span>)
+            {
+                <span class="kw">if</span> <span class="kw-2">*</span><span class="ident">stored_key</span> <span class="op">!</span><span class="op">=</span> <span class="ident">key</span> {
+                    <span class="kw-2">*</span><span class="ident">stored_key</span> <span class="op">=</span> <span class="ident">key</span>.<span class="ident">clone</span>();
+                }
+                <span class="kw">if</span> <span class="kw-2">*</span><span class="ident">stored_value</span> <span class="op">!</span><span class="op">=</span> <span class="ident">value</span> {
+                    <span class="kw-2">*</span><span class="ident">stored_value</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">clone</span>();
+                }
+            } <span class="kw">else</span> {
+                <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;already inserted pair not alive in ordered storage&quot;</span>);
+            }
             <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="ident">Key</span> {
                 <span class="ident">inner</span>: <span class="ident">key</span>,
                 <span class="ident">insert_rank</span>,
             };
-            <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">insert</span>(<span class="ident">key</span>, <span class="ident">value</span>);
+            <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">insert</span>(<span class="ident">key</span>, <span class="ident">value</span>.<span class="ident">into</span>());
         } <span class="kw">else</span> {
             <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">insert</span>(<span class="ident">key</span>, <span class="ident">value</span>);
         }
@@ -1729,9 +1779,7 @@
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">remove</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">key</span>: <span class="kw-2">&amp;</span><span class="ident">K</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> (<span class="ident">key</span>, <span class="ident">value</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">remove_entry</span>(<span class="ident">key</span>)<span class="question-mark">?</span>;
-        <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">remove</span>(<span class="kw-2">&amp;</span><span class="ident">key</span>.<span class="ident">insert_rank</span>());
-        <span class="prelude-val">Some</span>(<span class="ident">value</span>)
+        <span class="self">self</span>.<span class="ident">remove_entry</span>(<span class="ident">key</span>).<span class="ident">map</span>(<span class="op">|</span>(<span class="kw">_</span>, <span class="ident">value</span>)<span class="op">|</span> <span class="ident">value</span>)
     }
 
     <span class="doccomment">/// Removes a key from the map, returning the stored key and value if the</span>
@@ -1751,8 +1799,8 @@
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">remove_entry</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">key</span>: <span class="kw-2">&amp;</span><span class="ident">K</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">K</span>, <span class="ident">V</span>)<span class="op">&gt;</span> {
         <span class="kw">let</span> (<span class="ident">key</span>, <span class="ident">value</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">remove_entry</span>(<span class="ident">key</span>)<span class="question-mark">?</span>;
-        <span class="self">self</span>.<span class="ident">ordered</span>.<span class="ident">remove</span>(<span class="kw-2">&amp;</span><span class="ident">key</span>.<span class="ident">insert_rank</span>());
-        <span class="prelude-val">Some</span>((<span class="ident">key</span>.<span class="ident">into_inner</span>(), <span class="ident">value</span>))
+        <span class="self">self</span>.<span class="ident">ordered</span>[<span class="ident">key</span>.<span class="ident">insert_rank</span>()] <span class="op">=</span> <span class="ident">InsertionEntry</span>::<span class="ident">Dead</span>;
+        <span class="prelude-val">Some</span>((<span class="ident">key</span>.<span class="ident">into_inner</span>(), <span class="ident">value</span>.<span class="ident">into_inner</span>()))
     }
 }
 </pre></div>
