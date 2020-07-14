@@ -10,8 +10,16 @@
 
 Insertion-ordered hash table suitable for embedding via FFI.
 
-Drop-in replacement for `st_hash` originally written by Peter Moore @ UCB and
-used in [Ruby]'s [implementation][st.c] of the [`Hash`][hash] core class.
+Status: Work in progress.
+
+Strudel was conceived as a drop-in replacement for `st_hash`, a hash map
+implemented in C originally written by Peter Moore @ UCB and used in [Ruby]'s
+[implementation][st.c] of the [`Hash`][hash] core class.
+
+This crate is an exercise in implementing an insertion-ordered hash map in Rust
+that cannot use the built-in `Hasher` infrastructure. The implementation uses
+[Ruby's `Hash` backend][sthash-notes] and [Python's dict][pydict-notes] as prior
+art.
 
 `StHashMap` is designed to implement the `st_hash` C API and be FFI-friendly.
 
@@ -47,6 +55,32 @@ All features are enabled by default.
 - **capi-specialized-init** - Enables additional `st_init_table` C APIs with
   known `st_hash_type`s for tables with numeric and string keys.
 
+## Building Ruby with Strudel
+
+Strudel exports most of the symbols implemented by `st.c` in MRI 2.6.3. The
+[included patch](strudelify-mri.patch) and some
+[`configure` arguments](build.sh) can build the bootstrapping phase of MRI 2.6.3
+with Strudel as the hash backend.
+
+To build `miniruby` with Strudel, run:
+
+```sh
+./build.sh
+```
+
+The resulting Ruby is in `./build/ruby-strudel-build-root/miniruby`. `miniruby`
+can run simple scripts involving `Hash`, for example:
+
+```console
+$ ./build/ruby-strudel-build-root/miniruby -e 'h = {}' -e '1000.times { |i| h[i] = i }' -e 'puts h.length'
+1000
+```
+
+`miniruby` successfully executes the benchmarks in [`benches`](benches).
+
+NOTE: Strudel cannot build a full Ruby due to bugs in the implementation of the
+`st_hash` API.
+
 ## License
 
 `strudel` is licensed under the [MIT License](LICENSE) (c) Ryan Lopopolo.
@@ -67,6 +101,9 @@ The `st_hash` implementation in Ruby includes the following notice:
 [ruby]: https://github.com/ruby/ruby
 [st.c]: https://github.com/ruby/ruby/blob/v2_6_3/st.c
 [hash]: https://ruby-doc.org/core-2.6.3/Hash.html
+[sthash-notes]: https://github.com/ruby/ruby/blob/v2_6_3/st.c#L1-L101
+[pydict-notes]:
+  https://github.com/python/cpython/blob/v3.8.4/Objects/dictobject.c#L1-L110
 [`hashmap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
 [`vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html
 [`libc`]: https://crates.io/crates/libc
