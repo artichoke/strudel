@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `src/capi/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css"><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script src="../../../storage.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="shortcut icon" href="../../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../../strudel/index.html'><div class='logo-container'><img src='../../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source to the Rust file `src/capi/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs.html -- source</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled ><script src="../../../storage.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="shortcut icon" href="../../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../../strudel/index.html'><div class='logo-container'><img src='../../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1">  1</span>
 <span id="2">  2</span>
 <span id="3">  3</span>
 <span id="4">  4</span>
@@ -485,7 +485,7 @@
 <span class="doccomment">/// st_table *st_init_table(const struct st_hash_type *);</span>
 <span class="doccomment">/// ```</span>
 <span class="attribute">#[<span class="ident">no_mangle</span>]</span>
-<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_init_table</span>(<span class="ident">hash_type</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">st_hash_type</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span> {
+<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_init_table</span>(<span class="ident">hash_type</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">st_hash_type</span>) <span class="op">-&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_init_table&quot;</span>);
 
@@ -501,7 +501,7 @@
 <span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_init_table_with_size</span>(
     <span class="ident">hash_type</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">st_hash_type</span>,
     <span class="ident">size</span>: <span class="ident">st_index_t</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span> {
+) <span class="op">-&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_init_table_with_size&quot;</span>);
 
@@ -518,7 +518,7 @@
     <span class="ident">table</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span>,
     <span class="ident">key</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_data_t</span>,
     <span class="ident">value</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_data_t</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
+) <span class="op">-&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_delete&quot;</span>);
 
@@ -536,7 +536,7 @@
     <span class="ident">key</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_data_t</span>,
     <span class="ident">value</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_data_t</span>,
     <span class="ident">never</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">st_data_t</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
+) <span class="op">-&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_delete_safe&quot;</span>);
 
@@ -553,7 +553,7 @@
     <span class="ident">table</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span>,
     <span class="ident">key</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_data_t</span>,
     <span class="ident">value</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_data_t</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
+) <span class="op">-&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_shift&quot;</span>);
 
@@ -570,7 +570,7 @@
     <span class="ident">table</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span>,
     <span class="ident">key</span>: <span class="ident">st_data_t</span>,
     <span class="ident">value</span>: <span class="ident">st_data_t</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
+) <span class="op">-&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_insert&quot;</span>);
 
@@ -587,8 +587,8 @@
     <span class="ident">table</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span>,
     <span class="ident">key</span>: <span class="ident">st_data_t</span>,
     <span class="ident">value</span>: <span class="ident">st_data_t</span>,
-    <span class="ident">func</span>: <span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span>(<span class="ident">st_data_t</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">st_data_t</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
+    <span class="ident">func</span>: <span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span>(<span class="ident">st_data_t</span>) <span class="op">-&gt;</span> <span class="ident">st_data_t</span>,
+) <span class="op">-&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_insert2&quot;</span>);
 
@@ -605,7 +605,7 @@
     <span class="ident">table</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span>,
     <span class="ident">key</span>: <span class="ident">st_data_t</span>,
     <span class="ident">value</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_data_t</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
+) <span class="op">-&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_lookup&quot;</span>);
 
@@ -622,7 +622,7 @@
     <span class="ident">table</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span>,
     <span class="ident">key</span>: <span class="ident">st_data_t</span>,
     <span class="ident">result</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_data_t</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
+) <span class="op">-&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_get_key&quot;</span>);
 
@@ -640,7 +640,7 @@
     <span class="ident">key</span>: <span class="ident">st_data_t</span>,
     <span class="ident">func</span>: <span class="ident">st_update_callback_func</span>,
     <span class="ident">arg</span>: <span class="ident">st_data_t</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
+) <span class="op">-&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_update&quot;</span>);
 
@@ -657,7 +657,7 @@
     <span class="ident">table</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span>,
     <span class="ident">func</span>: <span class="ident">st_foreach_callback_func</span>,
     <span class="ident">arg</span>: <span class="ident">st_data_t</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
+) <span class="op">-&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_foreach&quot;</span>);
 
@@ -675,7 +675,7 @@
     <span class="ident">func</span>: <span class="ident">st_foreach_callback_func</span>,
     <span class="ident">arg</span>: <span class="ident">st_data_t</span>,
     <span class="ident">never</span>: <span class="ident">st_data_t</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
+) <span class="op">-&gt;</span> <span class="ident">libc</span>::<span class="ident">c_int</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_foreach_check&quot;</span>);
 
@@ -692,7 +692,7 @@
     <span class="ident">table</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span>,
     <span class="ident">keys</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_data_t</span>,
     <span class="ident">size</span>: <span class="ident">st_index_t</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">st_index_t</span> {
+) <span class="op">-&gt;</span> <span class="ident">st_index_t</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_keys&quot;</span>);
 
@@ -710,7 +710,7 @@
     <span class="ident">keys</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_data_t</span>,
     <span class="ident">size</span>: <span class="ident">st_index_t</span>,
     <span class="ident">never</span>: <span class="ident">st_data_t</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">st_index_t</span> {
+) <span class="op">-&gt;</span> <span class="ident">st_index_t</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_keys_check&quot;</span>);
 
@@ -727,7 +727,7 @@
     <span class="ident">table</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span>,
     <span class="ident">values</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_data_t</span>,
     <span class="ident">size</span>: <span class="ident">st_index_t</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">st_index_t</span> {
+) <span class="op">-&gt;</span> <span class="ident">st_index_t</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_values&quot;</span>);
 
@@ -745,7 +745,7 @@
     <span class="ident">values</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_data_t</span>,
     <span class="ident">size</span>: <span class="ident">st_index_t</span>,
     <span class="ident">never</span>: <span class="ident">st_data_t</span>,
-) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">st_index_t</span> {
+) <span class="op">-&gt;</span> <span class="ident">st_index_t</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_values_check&quot;</span>);
 
@@ -829,7 +829,7 @@
 <span class="doccomment">/// st_table *st_copy(st_table *);</span>
 <span class="doccomment">/// ```</span>
 <span class="attribute">#[<span class="ident">no_mangle</span>]</span>
-<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_copy</span>(<span class="ident">table</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span> {
+<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_copy</span>(<span class="ident">table</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span>) <span class="op">-&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_copy&quot;</span>);
 
@@ -842,7 +842,7 @@
 <span class="doccomment">/// PUREFUNC(size_t st_memsize(const st_table *));</span>
 <span class="doccomment">/// ```</span>
 <span class="attribute">#[<span class="ident">no_mangle</span>]</span>
-<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_memsize</span>(<span class="ident">table</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">st_table</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">libc</span>::<span class="ident">size_t</span> {
+<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_memsize</span>(<span class="ident">table</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">st_table</span>) <span class="op">-&gt;</span> <span class="ident">libc</span>::<span class="ident">size_t</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_memsize&quot;</span>);
 
@@ -855,7 +855,7 @@
 <span class="doccomment">/// PUREFUNC(st_index_t st_hash(const void *ptr, size_t len, st_index_t h));</span>
 <span class="doccomment">/// ```</span>
 <span class="attribute">#[<span class="ident">no_mangle</span>]</span>
-<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_hash</span>(<span class="ident">ptr</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">c_void</span>, <span class="ident">len</span>: <span class="ident">libc</span>::<span class="ident">size_t</span>, <span class="ident">h</span>: <span class="ident">st_index_t</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">st_index_t</span> {
+<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_hash</span>(<span class="ident">ptr</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">c_void</span>, <span class="ident">len</span>: <span class="ident">libc</span>::<span class="ident">size_t</span>, <span class="ident">h</span>: <span class="ident">st_index_t</span>) <span class="op">-&gt;</span> <span class="ident">st_index_t</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_hash&quot;</span>);
 
@@ -868,7 +868,7 @@
 <span class="doccomment">/// CONSTFUNC(st_index_t st_hash_uint32(st_index_t h, uint32_t i));</span>
 <span class="doccomment">/// ```</span>
 <span class="attribute">#[<span class="ident">no_mangle</span>]</span>
-<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_hash_uint32</span>(<span class="ident">h</span>: <span class="ident">st_index_t</span>, <span class="ident">i</span>: <span class="ident">u32</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">st_index_t</span> {
+<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_hash_uint32</span>(<span class="ident">h</span>: <span class="ident">st_index_t</span>, <span class="ident">i</span>: <span class="ident">u32</span>) <span class="op">-&gt;</span> <span class="ident">st_index_t</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_hash_uint32&quot;</span>);
 
@@ -881,7 +881,7 @@
 <span class="doccomment">/// CONSTFUNC(st_index_t st_hash_uint(st_index_t h, st_index_t i));</span>
 <span class="doccomment">/// ```</span>
 <span class="attribute">#[<span class="ident">no_mangle</span>]</span>
-<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_hash_uint</span>(<span class="ident">h</span>: <span class="ident">st_index_t</span>, <span class="ident">i</span>: <span class="ident">st_index_t</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">st_index_t</span> {
+<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_hash_uint</span>(<span class="ident">h</span>: <span class="ident">st_index_t</span>, <span class="ident">i</span>: <span class="ident">st_index_t</span>) <span class="op">-&gt;</span> <span class="ident">st_index_t</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_hash_uint&quot;</span>);
 
@@ -894,7 +894,7 @@
 <span class="doccomment">/// CONSTFUNC(st_index_t st_hash_end(st_index_t h));</span>
 <span class="doccomment">/// ```</span>
 <span class="attribute">#[<span class="ident">no_mangle</span>]</span>
-<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_hash_end</span>(<span class="ident">h</span>: <span class="ident">st_index_t</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">st_index_t</span> {
+<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_hash_end</span>(<span class="ident">h</span>: <span class="ident">st_index_t</span>) <span class="op">-&gt;</span> <span class="ident">st_index_t</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_hash_end&quot;</span>);
 
@@ -907,7 +907,7 @@
 <span class="doccomment">/// CONSTFUNC(st_index_t st_hash_start(st_index_t h));</span>
 <span class="doccomment">/// ```</span>
 <span class="attribute">#[<span class="ident">no_mangle</span>]</span>
-<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_hash_start</span>(<span class="ident">h</span>: <span class="ident">st_index_t</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">st_index_t</span> {
+<span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">st_hash_start</span>(<span class="ident">h</span>: <span class="ident">st_index_t</span>) <span class="op">-&gt;</span> <span class="ident">st_index_t</span> {
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
     <span class="macro">dbg</span><span class="macro">!</span>(<span class="string">&quot;st_hash_start&quot;</span>);
 
