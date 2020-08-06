@@ -1,4 +1,4 @@
 (function() {var implementors = {};
-implementors["fnv"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/hash/trait.Hasher.html\" title=\"trait core::hash::Hasher\">Hasher</a> for <a class=\"struct\" href=\"fnv/struct.FnvHasher.html\" title=\"struct fnv::FnvHasher\">FnvHasher</a>","synthetic":false,"types":["fnv::FnvHasher"]}];
-implementors["strudel"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/hash/trait.Hasher.html\" title=\"trait core::hash::Hasher\">Hasher</a> for <a class=\"struct\" href=\"strudel/api/struct.StHasher.html\" title=\"struct strudel::api::StHasher\">StHasher</a>","synthetic":false,"types":["strudel::api::hasher::StHasher"]}];
+implementors["fnv"] = [{"text":"impl Hasher for FnvHasher","synthetic":false,"types":[]}];
+implementors["strudel"] = [{"text":"impl Hasher for StHasher","synthetic":false,"types":[]}];
 if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

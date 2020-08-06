@@ -1,3 +1,3 @@
 (function() {var implementors = {};
-implementors["strudel"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/hash/trait.Hash.html\" title=\"trait core::hash::Hash\">Hash</a> for <a class=\"enum\" href=\"strudel/api/enum.st_retval.html\" title=\"enum strudel::api::st_retval\">st_retval</a>","synthetic":false,"types":["strudel::api::typedefs::st_retval"]}];
+implementors["strudel"] = [{"text":"impl Hash for st_retval","synthetic":false,"types":[]}];
 if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
