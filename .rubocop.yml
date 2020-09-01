@@ -14,5 +14,9 @@ Layout/LineLength:
     - "**/extn/**/*"
 Metrics:
   Enabled: false
+Style/CombinableLoops:
+  Enabled: true
+  Exclude:
+    - "**/benches/**/*.rb"
 Style/Documentation:
   Enabled: false
