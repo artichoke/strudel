@@ -135,6 +135,16 @@ jobs:
       - name: Lint and check formatting with Rubocop
         run: bundle exec rubocop
 
+  c:
+    name: Lint and format C
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Lint and check formatting with clang-format
+        run: npx github:artichoke/clang-format --check include
+
   text:
     name: Lint and format text
     runs-on: ubuntu-latest
