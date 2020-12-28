@@ -1,3 +1,3 @@
 (function() {var implementors = {};
-implementors["strudel"] = [{"text":"impl&lt;K, V, S, '_&gt; Index&lt;&amp;'_ K&gt; for StHashMap&lt;K, V, S&gt; <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;K: Eq + Hash,<br>&nbsp;&nbsp;&nbsp;&nbsp;S: BuildHasher,&nbsp;</span>","synthetic":false,"types":[]}];
+implementors["strudel"] = [{"text":"impl&lt;K, V, S&gt; Index&lt;&amp;'_ K&gt; for StHashMap&lt;K, V, S&gt; <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;K: Eq + Hash,<br>&nbsp;&nbsp;&nbsp;&nbsp;S: BuildHasher,&nbsp;</span>","synthetic":false,"types":[]}];
 if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
