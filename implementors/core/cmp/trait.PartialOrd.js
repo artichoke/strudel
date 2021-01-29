@@ -1,3 +1,3 @@
 (function() {var implementors = {};
-implementors["strudel"] = [{"text":"impl PartialOrd&lt;st_retval&gt; for st_retval","synthetic":false,"types":[]}];
+implementors["strudel"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/cmp/trait.PartialOrd.html\" title=\"trait core::cmp::PartialOrd\">PartialOrd</a>&lt;<a class=\"enum\" href=\"strudel/api/enum.st_retval.html\" title=\"enum strudel::api::st_retval\">st_retval</a>&gt; for <a class=\"enum\" href=\"strudel/api/enum.st_retval.html\" title=\"enum strudel::api::st_retval\">st_retval</a>","synthetic":false,"types":["strudel::api::typedefs::st_retval"]}];
 if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
