@@ -1535,7 +1535,7 @@
 <span class="doccomment">/// ```</span>
 <span class="attribute">#[<span class="ident">inline</span>]</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">st_cleanup_safe</span>(<span class="ident">table</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">st_table</span>, <span class="ident">_never</span>: <span class="ident">st_data_t</span>) {
-    <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">table</span>;
+    <span class="kw">let</span> <span class="ident">_no_op</span> <span class="op">=</span> <span class="ident">table</span>;
 }
 
 <span class="doccomment">/// Make table `table` empty.</span>
