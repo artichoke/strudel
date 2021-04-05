@@ -792,6 +792,7 @@ where
     /// in-place, use [`StHashMap::update`].
     #[inline]
     #[must_use]
+    #[allow(clippy::clippy::missing_panics_doc)]
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         let insert_rank = self.ordered.len();
 
@@ -833,6 +834,7 @@ where
     ///
     /// If you do not wish to update the key in-place, use
     /// [`StHashMap::insert`].
+    #[allow(clippy::clippy::missing_panics_doc)]
     #[inline]
     pub fn update(&mut self, key: K, value: V) {
         if let Some((entry_key, _)) = self.map.remove_entry(&key) {
