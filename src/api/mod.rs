@@ -776,7 +776,7 @@ pub unsafe fn st_memsize(table: *const st_table) -> libc::size_t {
 #[must_use]
 pub unsafe fn st_hash(ptr: *const c_void, len: libc::size_t, h: st_index_t) -> st_index_t {
     let mut hasher = FnvHasher::with_key(h as u64);
-    let data = slice::from_raw_parts(ptr as *const u8, len as usize);
+    let data = slice::from_raw_parts(ptr.cast::<u8>(), len as usize);
     hasher.write(data);
     hasher.finish() as st_index_t
 }

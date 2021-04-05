@@ -292,6 +292,7 @@ pub struct st_hash_type {
 /// [`st_update_callback_func`] callback function pointers.
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum st_retval {
     /// Continue iteration.
     ST_CONTINUE,
