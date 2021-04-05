@@ -580,6 +580,7 @@
 <span id="577">577</span>
 <span id="578">578</span>
 <span id="579">579</span>
+<span id="580">580</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">fmt</span>;
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">hash</span>::{<span class="ident">Hash</span>, <span class="ident">Hasher</span>};
@@ -875,6 +876,7 @@
 <span class="doccomment">/// [`st_update_callback_func`] callback function pointers.</span>
 <span class="attribute">#[<span class="ident">repr</span>(<span class="ident">C</span>)]</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>, <span class="ident">Hash</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">PartialOrd</span>, <span class="ident">Ord</span>)]</span>
+<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy</span>::<span class="ident">upper_case_acronyms</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">st_retval</span> {
     <span class="doccomment">/// Continue iteration.</span>
     <span class="ident">ST_CONTINUE</span>,
@@ -1036,7 +1038,7 @@
 
 <span class="kw">impl</span> <span class="ident">fmt</span>::<span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">st_table</span> {
     <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fmt</span>::<span class="ident">Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">fmt</span>::<span class="prelude-ty">Result</span> {
-        <span class="macro">write</span><span class="macro">!</span>(<span class="ident">f</span>, <span class="string">&quot;st_table {{ opaque FFI type }}&quot;</span>)
+        <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;st_table {{ opaque FFI type }}&quot;</span>)
     }
 }
 
@@ -1081,23 +1083,23 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">num_entries_offset_ffi_compat</span>() {
-        <span class="kw">let</span> <span class="ident">c_struct</span> <span class="op">=</span> <span class="ident">memoffset</span>::<span class="macro">offset_of</span><span class="macro">!</span>(<span class="ident">ffi_types</span>::<span class="ident">st_table</span>, <span class="ident">num_entries</span>);
-        <span class="kw">let</span> <span class="ident">rust_struct</span> <span class="op">=</span> <span class="ident">memoffset</span>::<span class="macro">offset_of</span><span class="macro">!</span>(<span class="ident">st_table</span>, <span class="ident">num_entries</span>);
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">c_struct</span>, <span class="ident">rust_struct</span>);
+        <span class="kw">let</span> <span class="ident">c_struct</span> <span class="op">=</span> <span class="ident">memoffset</span>::<span class="macro">offset_of!</span>(<span class="ident">ffi_types</span>::<span class="ident">st_table</span>, <span class="ident">num_entries</span>);
+        <span class="kw">let</span> <span class="ident">rust_struct</span> <span class="op">=</span> <span class="ident">memoffset</span>::<span class="macro">offset_of!</span>(<span class="ident">st_table</span>, <span class="ident">num_entries</span>);
+        <span class="macro">assert_eq!</span>(<span class="ident">c_struct</span>, <span class="ident">rust_struct</span>);
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">type_offset_ffi_compat</span>() {
-        <span class="kw">let</span> <span class="ident">c_struct</span> <span class="op">=</span> <span class="ident">memoffset</span>::<span class="macro">offset_of</span><span class="macro">!</span>(<span class="ident">ffi_types</span>::<span class="ident">st_table</span>, <span class="ident">type_</span>);
-        <span class="kw">let</span> <span class="ident">rust_struct</span> <span class="op">=</span> <span class="ident">memoffset</span>::<span class="macro">offset_of</span><span class="macro">!</span>(<span class="ident">st_table</span>, <span class="ident">type_</span>);
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">c_struct</span>, <span class="ident">rust_struct</span>);
+        <span class="kw">let</span> <span class="ident">c_struct</span> <span class="op">=</span> <span class="ident">memoffset</span>::<span class="macro">offset_of!</span>(<span class="ident">ffi_types</span>::<span class="ident">st_table</span>, <span class="ident">type_</span>);
+        <span class="kw">let</span> <span class="ident">rust_struct</span> <span class="op">=</span> <span class="ident">memoffset</span>::<span class="macro">offset_of!</span>(<span class="ident">st_table</span>, <span class="ident">type_</span>);
+        <span class="macro">assert_eq!</span>(<span class="ident">c_struct</span>, <span class="ident">rust_struct</span>);
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">size_of_ffi_compat</span>() {
         <span class="kw">let</span> <span class="ident">c_struct</span> <span class="op">=</span> <span class="ident">size_of</span>::<span class="op">&lt;</span><span class="ident">ffi_types</span>::<span class="ident">st_table</span><span class="op">&gt;</span>();
         <span class="kw">let</span> <span class="ident">rust_struct</span> <span class="op">=</span> <span class="ident">size_of</span>::<span class="op">&lt;</span><span class="ident">st_table</span><span class="op">&gt;</span>();
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">c_struct</span>, <span class="ident">rust_struct</span>);
+        <span class="macro">assert_eq!</span>(<span class="ident">c_struct</span>, <span class="ident">rust_struct</span>);
     }
 }
 

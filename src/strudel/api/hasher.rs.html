@@ -217,7 +217,7 @@
     <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy</span>::<span class="ident">not_unsafe_ptr_arg_deref</span>)]</span>
     <span class="kw">fn</span> <span class="ident">add_to_hash</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">i</span>: <span class="ident">st_hash_t</span>) {
         <span class="comment">// `StHasher` should only be called with one round.</span>
-        <span class="macro">debug_assert</span><span class="macro">!</span>(<span class="self">self</span>.<span class="ident">state</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span>);
+        <span class="macro">debug_assert!</span>(<span class="self">self</span>.<span class="ident">state</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span>);
         <span class="comment">// Safety:</span>
         <span class="comment">//</span>
         <span class="comment">// `StHasher` assumes the `*const st_hash_type` pointer has `&#39;static`</span>
