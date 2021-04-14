@@ -426,9 +426,9 @@
             <span class="kw">pub</span> <span class="kw">struct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> { $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field</span>)<span class="op">*</span> }
         }
         <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">deprecated</span>)]</span>
-        <span class="kw">impl</span> ::<span class="ident">Copy</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {}
+        <span class="kw">impl</span> <span class="ident">::Copy</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {}
         <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">deprecated</span>)]</span>
-        <span class="kw">impl</span> ::<span class="ident">Clone</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {
+        <span class="kw">impl</span> <span class="ident">::Clone</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {
             <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> { <span class="kw-2">*</span><span class="self">self</span> }
         }
     );
@@ -448,8 +448,8 @@
                     <span class="kw">pub</span> <span class="ident">union</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> { $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field</span>)<span class="op">*</span> }
                 }
 
-                <span class="kw">impl</span> ::<span class="ident">Copy</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {}
-                <span class="kw">impl</span> ::<span class="ident">Clone</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {
+                <span class="kw">impl</span> <span class="ident">::Copy</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {}
+                <span class="kw">impl</span> <span class="ident">::Clone</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {
                     <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> { <span class="kw-2">*</span><span class="self">self</span> }
                 }
             }
@@ -462,9 +462,9 @@
             <span class="kw">pub</span> <span class="kw">struct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> { $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field</span>)<span class="op">*</span> }
         }
         <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">deprecated</span>)]</span>
-        <span class="kw">impl</span> ::<span class="ident">Copy</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {}
+        <span class="kw">impl</span> <span class="ident">::Copy</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {}
         <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">deprecated</span>)]</span>
-        <span class="kw">impl</span> ::<span class="ident">Clone</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {
+        <span class="kw">impl</span> <span class="ident">::Clone</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {
             <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> { <span class="kw-2">*</span><span class="self">self</span> }
         }
     );
@@ -478,8 +478,8 @@
             $(<span class="attribute">#[<span class="macro-nonterminal">$</span><span class="macro-nonterminal">attr</span>]</span>)<span class="op">*</span>
             <span class="kw">pub</span> <span class="kw">enum</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> { $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field</span>)<span class="op">*</span> }
         }
-        <span class="kw">impl</span> ::<span class="ident">Copy</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {}
-        <span class="kw">impl</span> ::<span class="ident">Clone</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {
+        <span class="kw">impl</span> <span class="ident">::Copy</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {}
+        <span class="kw">impl</span> <span class="ident">::Clone</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {
             <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> { <span class="kw-2">*</span><span class="self">self</span> }
         }
     )<span class="kw-2">*</span>);
@@ -493,8 +493,8 @@
             $(<span class="attribute">#[<span class="macro-nonterminal">$</span><span class="macro-nonterminal">attr</span>]</span>)<span class="op">*</span>
             <span class="kw">pub</span> <span class="kw">struct</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> ( $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">field</span>)<span class="op">*</span> );
         }
-        <span class="kw">impl</span> ::<span class="ident">Copy</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {}
-        <span class="kw">impl</span> ::<span class="ident">Clone</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {
+        <span class="kw">impl</span> <span class="ident">::Copy</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {}
+        <span class="kw">impl</span> <span class="ident">::Clone</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> {
             <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">i</span> { <span class="kw-2">*</span><span class="self">self</span> }
         }
     )<span class="kw-2">*</span>);

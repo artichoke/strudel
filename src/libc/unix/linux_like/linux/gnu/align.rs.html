@@ -23,9 +23,9 @@
                <span class="ident">repr</span>(<span class="ident">align</span>(<span class="number">8</span>)))]</span>
     <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">sem_t</span> {
         <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">target_pointer_width</span> <span class="op">=</span> <span class="string">&quot;32&quot;</span>)]</span>
-        <span class="ident">__size</span>: [::<span class="ident">c_char</span>; <span class="number">16</span>],
+        <span class="ident">__size</span>: [<span class="ident">::c_char</span>; <span class="number">16</span>],
         <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">target_pointer_width</span> <span class="op">=</span> <span class="string">&quot;64&quot;</span>)]</span>
-        <span class="ident">__size</span>: [::<span class="ident">c_char</span>; <span class="number">32</span>],
+        <span class="ident">__size</span>: [<span class="ident">::c_char</span>; <span class="number">32</span>],
     }
 }
 </pre></div>

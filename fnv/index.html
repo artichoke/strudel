@@ -23,13 +23,13 @@ small—a perfect use case for FNV.</p>
 <code>HashMap</code> with FNV.</p>
 
 <div class="example-wrap"><pre class="rust rust-example-rendered">
-<span class="kw">use</span> <span class="ident">fnv</span>::<span class="ident">FnvHashMap</span>;
+<span class="kw">use</span> <span class="ident">fnv::FnvHashMap</span>;
 
-<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">map</span> <span class="op">=</span> <span class="ident">FnvHashMap</span>::<span class="ident">default</span>();
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">map</span> <span class="op">=</span> <span class="ident">FnvHashMap::default</span>();
 <span class="ident">map</span>.<span class="ident">insert</span>(<span class="number">1</span>, <span class="string">&quot;one&quot;</span>);
 <span class="ident">map</span>.<span class="ident">insert</span>(<span class="number">2</span>, <span class="string">&quot;two&quot;</span>);
 
-<span class="ident">map</span> <span class="op">=</span> <span class="ident">FnvHashMap</span>::<span class="ident">with_capacity_and_hasher</span>(<span class="number">10</span>, <span class="ident">Default</span>::<span class="ident">default</span>());
+<span class="ident">map</span> <span class="op">=</span> <span class="ident">FnvHashMap::with_capacity_and_hasher</span>(<span class="number">10</span>, <span class="ident">Default::default</span>());
 <span class="ident">map</span>.<span class="ident">insert</span>(<span class="number">1</span>, <span class="string">&quot;one&quot;</span>);
 <span class="ident">map</span>.<span class="ident">insert</span>(<span class="number">2</span>, <span class="string">&quot;two&quot;</span>);</pre></div>
 <p>Note, the standard library’s <code>HashMap::new</code> and <code>HashMap::with_capacity</code>
@@ -40,13 +40,13 @@ get the hasher is the next best option.</p>
 with FNV.</p>
 
 <div class="example-wrap"><pre class="rust rust-example-rendered">
-<span class="kw">use</span> <span class="ident">fnv</span>::<span class="ident">FnvHashSet</span>;
+<span class="kw">use</span> <span class="ident">fnv::FnvHashSet</span>;
 
-<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">set</span> <span class="op">=</span> <span class="ident">FnvHashSet</span>::<span class="ident">default</span>();
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">set</span> <span class="op">=</span> <span class="ident">FnvHashSet::default</span>();
 <span class="ident">set</span>.<span class="ident">insert</span>(<span class="number">1</span>);
 <span class="ident">set</span>.<span class="ident">insert</span>(<span class="number">2</span>);
 
-<span class="ident">set</span> <span class="op">=</span> <span class="ident">FnvHashSet</span>::<span class="ident">with_capacity_and_hasher</span>(<span class="number">10</span>, <span class="ident">Default</span>::<span class="ident">default</span>());
+<span class="ident">set</span> <span class="op">=</span> <span class="ident">FnvHashSet::with_capacity_and_hasher</span>(<span class="number">10</span>, <span class="ident">Default::default</span>());
 <span class="ident">set</span>.<span class="ident">insert</span>(<span class="number">1</span>);
 <span class="ident">set</span>.<span class="ident">insert</span>(<span class="number">2</span>);</pre></div>
 </div><h2 id="structs" class="section-header"><a href="#structs">Structs</a></h2>

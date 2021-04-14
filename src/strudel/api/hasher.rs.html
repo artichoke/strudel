@@ -147,10 +147,10 @@
 <span id="144">144</span>
 <span id="145">145</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="kw">use</span> <span class="ident">core</span>::<span class="ident">hash</span>::{<span class="ident">BuildHasher</span>, <span class="ident">Hasher</span>};
-<span class="kw">use</span> <span class="ident">core</span>::<span class="ident">mem</span>::<span class="ident">size_of</span>;
+<span class="kw">use</span> <span class="ident">core::hash</span>::{<span class="ident">BuildHasher</span>, <span class="ident">Hasher</span>};
+<span class="kw">use</span> <span class="ident">core::mem::size_of</span>;
 
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">api</span>::<span class="ident">typedefs</span>::{<span class="ident">st_hash_t</span>, <span class="ident">st_hash_type</span>};
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::api::typedefs</span>::{<span class="ident">st_hash_t</span>, <span class="ident">st_hash_type</span>};
 
 <span class="doccomment">/// `StBuildHasher` is the default state for `ExternStHashMap`s.</span>
 <span class="doccomment">///</span>
@@ -158,7 +158,7 @@
 <span class="doccomment">/// [`Hasher`], but hashers created by two different `StBuildHasher` instances</span>
 <span class="doccomment">/// are unlikely to produce the same result for the same values.</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
-<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy</span>::<span class="ident">module_name_repetitions</span>)]</span>
+<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::module_name_repetitions</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">StBuildHasher</span> {
     <span class="ident">hash_type</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">st_hash_type</span>,
 }
@@ -184,8 +184,8 @@
     <span class="kw">type</span> <span class="ident">Hasher</span> <span class="op">=</span> <span class="ident">StHasher</span>;
 
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">fn</span> <span class="ident">build_hasher</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">Hasher</span> {
-        <span class="self">Self</span>::<span class="ident">Hasher</span> {
+    <span class="kw">fn</span> <span class="ident">build_hasher</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span><span class="ident">::Hasher</span> {
+        <span class="self">Self</span><span class="ident">::Hasher</span> {
             <span class="ident">hash_type</span>: <span class="self">self</span>.<span class="ident">hash_type</span>,
             <span class="ident">state</span>: <span class="number">0</span>,
         }
@@ -196,8 +196,8 @@
     <span class="kw">type</span> <span class="ident">Hasher</span> <span class="op">=</span> <span class="ident">StHasher</span>;
 
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="kw">fn</span> <span class="ident">build_hasher</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">Hasher</span> {
-        <span class="self">Self</span>::<span class="ident">Hasher</span> {
+    <span class="kw">fn</span> <span class="ident">build_hasher</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span><span class="ident">::Hasher</span> {
+        <span class="self">Self</span><span class="ident">::Hasher</span> {
             <span class="ident">hash_type</span>: <span class="self">self</span>.<span class="ident">hash_type</span>,
             <span class="ident">state</span>: <span class="number">0</span>,
         }
@@ -206,7 +206,7 @@
 
 <span class="doccomment">/// The default [`Hasher`] used by [`StBuildHasher`].</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
-<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy</span>::<span class="ident">module_name_repetitions</span>)]</span>
+<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::module_name_repetitions</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">StHasher</span> {
     <span class="ident">hash_type</span>: <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">st_hash_type</span>,
     <span class="ident">state</span>: <span class="ident">st_hash_t</span>,
@@ -214,7 +214,7 @@
 
 <span class="kw">impl</span> <span class="ident">StHasher</span> {
     <span class="attribute">#[<span class="ident">inline</span>]</span>
-    <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy</span>::<span class="ident">not_unsafe_ptr_arg_deref</span>)]</span>
+    <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::not_unsafe_ptr_arg_deref</span>)]</span>
     <span class="kw">fn</span> <span class="ident">add_to_hash</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">i</span>: <span class="ident">st_hash_t</span>) {
         <span class="comment">// `StHasher` should only be called with one round.</span>
         <span class="macro">debug_assert!</span>(<span class="self">self</span>.<span class="ident">state</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span>);
@@ -245,12 +245,12 @@
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buf</span> <span class="op">=</span> [<span class="number">0_u8</span>; <span class="ident">size_of</span>::<span class="op">&lt;</span><span class="ident">st_hash_t</span><span class="op">&gt;</span>()];
         <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">chunk</span>) <span class="op">=</span> <span class="ident">iter</span>.<span class="ident">next</span>() {
             <span class="ident">buf</span>.<span class="ident">copy_from_slice</span>(<span class="ident">chunk</span>);
-            <span class="kw">let</span> <span class="ident">i</span> <span class="op">=</span> <span class="ident">st_hash_t</span>::<span class="ident">from_ne_bytes</span>(<span class="ident">buf</span>);
+            <span class="kw">let</span> <span class="ident">i</span> <span class="op">=</span> <span class="ident">st_hash_t::from_ne_bytes</span>(<span class="ident">buf</span>);
             <span class="self">self</span>.<span class="ident">add_to_hash</span>(<span class="ident">i</span>);
         }
         <span class="ident">buf</span> <span class="op">=</span> [<span class="number">0_u8</span>; <span class="ident">size_of</span>::<span class="op">&lt;</span><span class="ident">st_hash_t</span><span class="op">&gt;</span>()];
         <span class="ident">buf</span>[..<span class="ident">iter</span>.<span class="ident">remainder</span>().<span class="ident">len</span>()].<span class="ident">copy_from_slice</span>(<span class="ident">iter</span>.<span class="ident">remainder</span>());
-        <span class="kw">let</span> <span class="ident">i</span> <span class="op">=</span> <span class="ident">st_hash_t</span>::<span class="ident">from_ne_bytes</span>(<span class="ident">buf</span>);
+        <span class="kw">let</span> <span class="ident">i</span> <span class="op">=</span> <span class="ident">st_hash_t::from_ne_bytes</span>(<span class="ident">buf</span>);
         <span class="self">self</span>.<span class="ident">add_to_hash</span>(<span class="ident">i</span>);
     }
 

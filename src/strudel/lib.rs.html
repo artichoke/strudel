@@ -284,11 +284,11 @@ rewritten by Vladimir Makarov &lt;vmakarov@redhat.com&gt;.  */</span>
 
 */</span>
 
-<span class="attribute">#![<span class="ident">warn</span>(<span class="ident">clippy</span>::<span class="ident">all</span>)]</span>
-<span class="attribute">#![<span class="ident">warn</span>(<span class="ident">clippy</span>::<span class="ident">pedantic</span>)]</span>
-<span class="attribute">#![<span class="ident">warn</span>(<span class="ident">clippy</span>::<span class="ident">cargo</span>)]</span>
-<span class="attribute">#![<span class="ident">allow</span>(<span class="ident">clippy</span>::<span class="ident">cast_lossless</span>)]</span>
-<span class="attribute">#![<span class="ident">allow</span>(<span class="ident">clippy</span>::<span class="ident">cast_possible_truncation</span>)]</span>
+<span class="attribute">#![<span class="ident">warn</span>(<span class="ident">clippy::all</span>)]</span>
+<span class="attribute">#![<span class="ident">warn</span>(<span class="ident">clippy::pedantic</span>)]</span>
+<span class="attribute">#![<span class="ident">warn</span>(<span class="ident">clippy::cargo</span>)]</span>
+<span class="attribute">#![<span class="ident">allow</span>(<span class="ident">clippy::cast_lossless</span>)]</span>
+<span class="attribute">#![<span class="ident">allow</span>(<span class="ident">clippy::cast_possible_truncation</span>)]</span>
 <span class="attribute">#![<span class="ident">allow</span>(<span class="ident">unknown_lints</span>)]</span>
 <span class="attribute">#![<span class="ident">warn</span>(<span class="ident">missing_debug_implementations</span>)]</span>
 <span class="attribute">#![<span class="ident">warn</span>(<span class="ident">missing_docs</span>)]</span>
@@ -342,8 +342,8 @@ rewritten by Vladimir Makarov &lt;vmakarov@redhat.com&gt;.  */</span>
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;capi&quot;</span>)]</span>
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">capi</span>;
 
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">st</span>::<span class="ident">map</span>::<span class="ident">StHashMap</span>;
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">st</span>::<span class="ident">set</span>::<span class="ident">StHashSet</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">st::map::StHashMap</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">st::set::StHashSet</span>;
 
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">st_hash_map</span> {
     <span class="doccomment">//! An insertion-ordered hash map implemented with [`HashMap`] and [`Vec`].</span>
@@ -351,7 +351,7 @@ rewritten by Vladimir Makarov &lt;vmakarov@redhat.com&gt;.  */</span>
     <span class="doccomment">//! [`HashMap`]: std::collections::HashMap</span>
     <span class="doccomment">//! [`Vec`]: std::vec::Vec</span>
 
-    <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">st</span>::<span class="ident">map</span>::<span class="kw-2">*</span>;
+    <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">super</span><span class="ident">::st::map</span>::<span class="kw-2">*</span>;
 }
 
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">st_hash_set</span> {
@@ -360,7 +360,7 @@ rewritten by Vladimir Makarov &lt;vmakarov@redhat.com&gt;.  */</span>
     <span class="doccomment">//!</span>
     <span class="doccomment">//! [`StHashMap`]: crate::StHashMap</span>
 
-    <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">st</span>::<span class="ident">set</span>::<span class="kw-2">*</span>;
+    <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">super</span><span class="ident">::st::set</span>::<span class="kw-2">*</span>;
 }
 </pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="strudel" data-search-js="../../search-index.js"></div>
