@@ -13,17 +13,11 @@ namespace :lint do
 
   desc 'Lint Rust sources with Clippy'
   task :clippy do
-    FileList['**/{build,lib,main}.rs'].each do |root|
-      FileUtils.touch(root)
-    end
     sh 'cargo clippy --workspace --all-features'
   end
 
   desc 'Lint Rust sources with Clippy restriction pass (unenforced lints)'
   task :'clippy:restriction' do
-    FileList['**/{build,lib,main}.rs'].each do |root|
-      FileUtils.touch(root)
-    end
     lints = [
       'clippy::dbg_macro',
       'clippy::get_unwrap',
