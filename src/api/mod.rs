@@ -679,7 +679,7 @@ pub unsafe fn st_add_direct(table: *mut st_table, key: st_data_t, value: st_data
 #[inline]
 pub unsafe fn st_free_table(table: *mut st_table) {
     let table = st_table::from_raw(table);
-    drop(table)
+    drop(table);
 }
 
 /// No-op. See comments for function [`st_delete_safe`].

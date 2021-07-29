@@ -303,7 +303,7 @@ unsafe extern "C" fn st_add_direct(table: *mut st_table, key: st_data_t, value: 
     #[cfg(feature = "debug")]
     dbg!("st_add_direct");
 
-    api::st_add_direct(table, key, value)
+    api::st_add_direct(table, key, value);
 }
 
 /// # Header declaration
@@ -322,7 +322,7 @@ unsafe extern "C" fn st_add_direct_with_hash(
     #[cfg(feature = "debug")]
     dbg!("st_add_direct_with_hash");
 
-    api::st_add_direct(table, key, value)
+    api::st_add_direct(table, key, value);
 }
 
 /// # Header declaration
@@ -335,7 +335,7 @@ unsafe extern "C" fn st_free_table(table: *mut st_table) {
     #[cfg(feature = "debug")]
     dbg!("st_free_table");
 
-    api::st_free_table(table)
+    api::st_free_table(table);
 }
 
 /// # Header declaration
@@ -348,7 +348,7 @@ unsafe extern "C" fn st_cleanup_safe(table: *mut st_table, never: st_data_t) {
     #[cfg(feature = "debug")]
     dbg!("st_cleanup_safe");
 
-    api::st_cleanup_safe(table, never)
+    api::st_cleanup_safe(table, never);
 }
 
 /// # Header declaration
@@ -361,7 +361,7 @@ unsafe extern "C" fn st_clear(table: *mut st_table) {
     #[cfg(feature = "debug")]
     dbg!("St_clear");
 
-    api::st_clear(table)
+    api::st_clear(table);
 }
 
 /// # Header declaration

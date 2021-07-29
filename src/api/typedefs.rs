@@ -169,7 +169,7 @@ impl ExternStHashMap {
         // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
         let eq = unsafe { (*hash_type).compare };
         let key = ExternKey { record: key, eq };
-        self.update(key, value)
+        self.update(key, value);
     }
 
     /// Wrapper around [`StHashMap::remove`] that wraps a bare `st_data_t` in a

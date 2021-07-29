@@ -94,7 +94,7 @@ impl Hasher for StHasher {
     fn write(&mut self, bytes: &[u8]) {
         let mut iter = bytes.chunks_exact(size_of::<st_hash_t>());
         let mut buf = [0_u8; size_of::<st_hash_t>()];
-        while let Some(chunk) = iter.next() {
+        for chunk in &mut iter {
             buf.copy_from_slice(chunk);
             let i = st_hash_t::from_ne_bytes(buf);
             self.add_to_hash(i);
