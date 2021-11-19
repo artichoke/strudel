@@ -103,6 +103,7 @@ Bundler::Audit::Task.new
 namespace :release do
   link_check_files = FileList.new('**/*.md') do |f|
     f.exclude('node_modules/**/*')
+    f.exclude('**/build/**/*')
     f.exclude('**/target/**/*')
     f.exclude('**/vendor/**/*')
     f.include('*.md')
