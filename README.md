@@ -5,6 +5,7 @@
 [![Twitter](https://img.shields.io/twitter/follow/artichokeruby?label=Follow&style=social)](https://twitter.com/artichokeruby)
 <br>
 [![Crate](https://img.shields.io/crates/v/strudel.svg)](https://crates.io/crates/strudel)
+<!-- markdown-link-check-disable-next-line -->
 [![API](https://docs.rs/strudel/badge.svg)](https://docs.rs/strudel)
 [![API trunk](https://img.shields.io/badge/docs-trunk-blue.svg)](https://artichoke.github.io/strudel/strudel/)
 
