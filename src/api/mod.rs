@@ -691,7 +691,7 @@ pub unsafe fn st_free_table(table: *mut st_table) {
 /// ```
 #[inline]
 pub fn st_cleanup_safe(table: *mut st_table, _never: st_data_t) {
-    let _no_op = table;
+    let _ = table;
 }
 
 /// Make table `table` empty.
