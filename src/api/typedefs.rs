@@ -71,7 +71,12 @@ impl Hash for ExternKey {
 /// [`Eq`] for these opaque keys. See [`StHashMap::with_hash_type`].
 pub type ExternStHashMap = StHashMap<ExternKey, st_data_t, StBuildHasher>;
 
-impl ExternStHashMap {
+#[derive(Debug, Clone)]
+pub struct ExternHashMap {
+    pub(crate) inner: ExternStHashMap,
+}
+
+impl ExternHashMap {
     /// Creates an empty `StHashMap` which will use the given `st_hash_type` to
     /// hash keys.
     ///
@@ -82,7 +87,8 @@ impl ExternStHashMap {
     #[must_use]
     pub fn with_hash_type(hash_type: *const st_hash_type) -> Self {
         let hasher = StBuildHasher::from(hash_type);
-        Self::with_hasher(hasher)
+        let map = ExternStHashMap::with_hasher(hasher);
+        Self { inner: map }
     }
 
     /// Creates an empty `StHash` with the specified capacity which will use the
@@ -96,7 +102,8 @@ impl ExternStHashMap {
     #[must_use]
     pub fn with_capacity_and_hash_type(capacity: usize, hash_type: *const st_hash_type) -> Self {
         let hasher = StBuildHasher::from(hash_type);
-        Self::with_capacity_and_hasher(capacity, hasher)
+        let map = ExternStHashMap::with_capacity_and_hasher(capacity, hasher);
+        Self { inner: map }
     }
 
     /// Wrapper around [`StHashMap::first`] that wraps a bare `st_data_t` in a
@@ -104,7 +111,7 @@ impl ExternStHashMap {
     #[inline]
     #[must_use]
     pub fn first_raw(&self) -> Option<(&st_data_t, &st_data_t)> {
-        let (key, value) = self.first()?;
+        let (key, value) = self.inner.first()?;
         Some((&key.record, value))
     }
 
@@ -114,14 +121,14 @@ impl ExternStHashMap {
     #[must_use]
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn get_raw(&self, key: st_data_t) -> Option<&st_data_t> {
-        let hash_type = self.hasher().hash_type();
+        let hash_type = self.inner.hasher().hash_type();
         // Safety
         //
         // `StHashMap` assumes `hash_type` has `'static` lifetime.
         // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
         let eq = unsafe { (*hash_type).compare };
         let key = ExternKey { record: key, eq };
-        self.get(&key)
+        self.inner.get(&key)
     }
 
     /// Wrapper around [`StHashMap::get_key_value`] that wraps a bare
@@ -130,14 +137,14 @@ impl ExternStHashMap {
     #[must_use]
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn get_key_value_raw(&self, key: st_data_t) -> Option<(&st_data_t, &st_data_t)> {
-        let hash_type = self.hasher().hash_type();
+        let hash_type = self.inner.hasher().hash_type();
         // Safety
         //
         // `StHashMap` assumes `hash_type` has `'static` lifetime.
         // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
         let eq = unsafe { (*hash_type).compare };
         let key = ExternKey { record: key, eq };
-        let (key, value) = self.get_key_value(&key)?;
+        let (key, value) = self.inner.get_key_value(&key)?;
         Some((&key.record, value))
     }
 
@@ -147,14 +154,14 @@ impl ExternStHashMap {
     #[must_use]
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn insert_raw(&mut self, key: st_data_t, value: st_data_t) -> Option<st_data_t> {
-        let hash_type = self.hasher().hash_type();
+        let hash_type = self.inner.hasher().hash_type();
         // Safety
         //
         // `StHashMap` assumes `hash_type` has `'static` lifetime.
         // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
         let eq = unsafe { (*hash_type).compare };
         let key = ExternKey { record: key, eq };
-        self.insert(key, value)
+        self.inner.insert(key, value)
     }
 
     /// Wrapper around [`StHashMap::update`] that wraps a bare `st_data_t` in a
@@ -162,14 +169,14 @@ impl ExternStHashMap {
     #[inline]
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn update_raw(&mut self, key: st_data_t, value: st_data_t) {
-        let hash_type = self.hasher().hash_type();
+        let hash_type = self.inner.hasher().hash_type();
         // Safety
         //
         // `StHashMap` assumes `hash_type` has `'static` lifetime.
         // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
         let eq = unsafe { (*hash_type).compare };
         let key = ExternKey { record: key, eq };
-        self.update(key, value);
+        self.inner.update(key, value);
     }
 
     /// Wrapper around [`StHashMap::remove`] that wraps a bare `st_data_t` in a
@@ -178,14 +185,14 @@ impl ExternStHashMap {
     #[must_use]
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn remove_raw(&mut self, key: st_data_t) -> Option<st_data_t> {
-        let hash_type = self.hasher().hash_type();
+        let hash_type = self.inner.hasher().hash_type();
         // Safety
         //
         // `StHashMap` assumes `hash_type` has `'static` lifetime.
         // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
         let eq = unsafe { (*hash_type).compare };
         let key = ExternKey { record: key, eq };
-        self.remove(&key)
+        self.inner.remove(&key)
     }
 
     /// Wrapper around [`StHashMap::remove_entry`] that wraps a bare `st_data_t`
@@ -194,14 +201,14 @@ impl ExternStHashMap {
     #[must_use]
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn remove_entry_raw(&mut self, key: st_data_t) -> Option<(st_data_t, st_data_t)> {
-        let hash_type = self.hasher().hash_type();
+        let hash_type = self.inner.hasher().hash_type();
         // Safety
         //
         // `StHashMap` assumes `hash_type` has `'static` lifetime.
         // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
         let eq = unsafe { (*hash_type).compare };
         let key = ExternKey { record: key, eq };
-        let (key, value) = self.remove_entry(&key)?;
+        let (key, value) = self.inner.remove_entry(&key)?;
         Some((key.into(), value))
     }
 }
@@ -371,7 +378,7 @@ const PADDING_TO_END: usize = 16;
 /// `st_table` `deref`s and `deref_mut`s to [`ExternStHashMap`]
 #[repr(C)]
 pub struct st_table {
-    table: *mut ExternStHashMap,
+    table: *mut ExternHashMap,
     _padding: [u8; PADDING_TO_NUM_ENTRIES],
     type_: *const st_hash_type,
     num_entries: st_index_t,
@@ -386,7 +393,7 @@ impl st_table {
     /// [`StHashMap`].
     #[inline]
     pub fn ensure_num_entries_is_consistent_after_writes(&mut self) {
-        self.num_entries = self.len() as st_index_t;
+        self.num_entries = self.inner.len() as st_index_t;
     }
 
     /// Consumes the table, returning a wrapped raw pointer.
@@ -454,15 +461,15 @@ impl Drop for st_table {
 
 impl fmt::Debug for st_table {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "st_table {{ opaque FFI type }}")
+        f.write_str("st_table {{ opaque FFI type }}")
     }
 }
 
-impl From<ExternStHashMap> for st_table {
+impl From<ExternHashMap> for st_table {
     #[inline]
-    fn from(table: ExternStHashMap) -> Self {
-        let num_entries = table.len() as st_index_t;
-        let hash_type = table.hasher().hash_type();
+    fn from(table: ExternHashMap) -> Self {
+        let num_entries = table.inner.len() as st_index_t;
+        let hash_type = table.inner.hasher().hash_type();
         let table = Box::new(table);
         let table = Box::into_raw(table);
         Self {
@@ -476,7 +483,7 @@ impl From<ExternStHashMap> for st_table {
 }
 
 impl Deref for st_table {
-    type Target = ExternStHashMap;
+    type Target = ExternHashMap;
 
     #[inline]
     fn deref(&self) -> &Self::Target {

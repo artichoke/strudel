@@ -1,6 +1,6 @@
 #![allow(non_upper_case_globals)]
 
-//! `st_hash`-compatible Rust API bindings for [`ExternStHashMap`].
+//! `st_hash`-compatible Rust API bindings for [`ExternHashMap`].
 //!
 //! These bindings require activating the **api** Cargo feature.
 //!
@@ -18,9 +18,9 @@ mod hasher;
 mod typedefs;
 
 pub use hasher::{StBuildHasher, StHasher};
-pub use typedefs::{
+pub(crate) use typedefs::{
     st_data_t, st_foreach_callback_func, st_hash_t, st_hash_type, st_index_t, st_retval, st_table,
-    st_update_callback_func, ExternStHashMap,
+    st_update_callback_func, ExternHashMap,
 };
 
 const DEFAULT_CAPACITY: usize = 8;
@@ -36,7 +36,7 @@ const DEFAULT_CAPACITY: usize = 8;
 #[inline]
 #[must_use]
 pub fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
-    let table = ExternStHashMap::with_capacity_and_hash_type(DEFAULT_CAPACITY, hash_type);
+    let table = ExternHashMap::with_capacity_and_hash_type(DEFAULT_CAPACITY, hash_type);
     st_table::into_raw(table.into())
 }
 
@@ -52,7 +52,7 @@ pub fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
 #[inline]
 #[must_use]
 pub fn st_init_table_with_size(hash_type: *const st_hash_type, size: st_index_t) -> *mut st_table {
-    let table = ExternStHashMap::with_capacity_and_hash_type(size as usize, hash_type);
+    let table = ExternHashMap::with_capacity_and_hash_type(size as usize, hash_type);
     st_table::into_raw(table.into())
 }
 
@@ -417,13 +417,14 @@ pub unsafe fn st_foreach(
     use st_retval::{ST_CHECK, ST_CONTINUE, ST_DELETE, ST_STOP};
 
     let mut table = st_table::from_raw(table);
-    let mut insertion_ranks = table.insert_ranks_from(0);
+    let mut insertion_ranks = table.inner.insert_ranks_from(0);
     let mut last_seen_rank = 0;
 
     loop {
         if let Some(rank) = insertion_ranks.next() {
             last_seen_rank = rank;
             let nth = table
+                .inner
                 .get_nth(rank)
                 .map(|(key, &value)| (*key.inner(), value));
 
@@ -440,11 +441,11 @@ pub unsafe fn st_foreach(
                 }
             }
         } else {
-            let current_max = table.max_insert_rank();
+            let current_max = table.inner.max_insert_rank();
             if current_max <= last_seen_rank {
                 break;
             }
-            insertion_ranks = table.insert_ranks_from(last_seen_rank);
+            insertion_ranks = table.inner.insert_ranks_from(last_seen_rank);
         }
     }
     mem::forget(table);
@@ -484,13 +485,14 @@ pub unsafe fn st_foreach_check(
     use st_retval::{ST_CHECK, ST_CONTINUE, ST_DELETE, ST_STOP};
 
     let mut table = st_table::from_raw(table);
-    let mut insertion_ranks = table.insert_ranks_from(0);
+    let mut insertion_ranks = table.inner.insert_ranks_from(0);
     let mut last_seen_rank = 0;
 
     loop {
         if let Some(rank) = insertion_ranks.next() {
             last_seen_rank = rank;
             let nth = table
+                .inner
                 .get_nth(rank)
                 .map(|(key, &value)| (*key.inner(), value));
 
@@ -507,11 +509,11 @@ pub unsafe fn st_foreach_check(
                 }
             }
         } else {
-            let current_max = table.max_insert_rank();
+            let current_max = table.inner.max_insert_rank();
             if current_max <= last_seen_rank {
                 break;
             }
-            insertion_ranks = table.insert_ranks_from(last_seen_rank);
+            insertion_ranks = table.inner.insert_ranks_from(last_seen_rank);
         }
     }
     mem::forget(table);
@@ -538,7 +540,7 @@ pub unsafe fn st_keys(table: *mut st_table, keys: *mut st_data_t, size: st_index
     let table = st_table::from_raw(table);
     let keys = slice::from_raw_parts_mut(keys, size as usize);
     let mut count = 0;
-    for (counter, (slot, key)) in keys.iter_mut().zip(table.keys()).enumerate() {
+    for (counter, (slot, key)) in keys.iter_mut().zip(table.inner.keys()).enumerate() {
         ptr::write(slot, *key.inner());
         count = counter;
     }
@@ -594,7 +596,7 @@ pub unsafe fn st_values(
     let table = st_table::from_raw(table);
     let keys = slice::from_raw_parts_mut(values, size as usize);
     let mut count = 0;
-    for (counter, (slot, &value)) in keys.iter_mut().zip(table.values()).enumerate() {
+    for (counter, (slot, &value)) in keys.iter_mut().zip(table.inner.values()).enumerate() {
         ptr::write(slot, value);
         count = counter;
     }
@@ -709,7 +711,7 @@ pub fn st_cleanup_safe(table: *mut st_table, _never: st_data_t) {
 #[inline]
 pub unsafe fn st_clear(table: *mut st_table) {
     let mut table = st_table::from_raw(table);
-    table.clear();
+    table.inner.clear();
     table.ensure_num_entries_is_consistent_after_writes();
     mem::forget(table);
 }
@@ -756,7 +758,7 @@ pub unsafe fn st_copy(old_table: *mut st_table) -> *mut st_table {
 #[must_use]
 pub unsafe fn st_memsize(table: *const st_table) -> libc::size_t {
     let table = st_table::from_raw(table as *mut st_table);
-    let memsize = table.estimated_memsize();
+    let memsize = table.inner.estimated_memsize();
     mem::forget(table);
     memsize as _
 }
