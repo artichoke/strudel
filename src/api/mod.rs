@@ -15,6 +15,7 @@ use core::slice;
 use fnv::FnvHasher;
 
 mod hasher;
+mod primitives;
 mod typedefs;
 
 pub use hasher::{StBuildHasher, StHasher};
