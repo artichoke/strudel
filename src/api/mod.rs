@@ -2,10 +2,7 @@
 
 //! `st_hash`-compatible Rust API bindings for [`ExternHashMap`].
 //!
-//! These bindings require activating the **api** Cargo feature.
-//!
-//! For the C API bindings, see the `capi` module. The C bindings require
-//! activating the **capi** Cargo feature.
+//! For the C API bindings, see the `capi` module.
 
 use core::ffi::c_void;
 use core::hash::Hasher;
