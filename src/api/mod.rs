@@ -19,9 +19,10 @@ mod primitives;
 mod typedefs;
 
 pub use hasher::{StBuildHasher, StHasher};
+pub use primitives::{st_data_t, st_hash_t, st_index_t};
 pub(crate) use typedefs::{
-    st_data_t, st_foreach_callback_func, st_hash_t, st_hash_type, st_index_t, st_retval, st_table,
-    st_update_callback_func, ExternHashMap,
+    st_foreach_callback_func, st_hash_type, st_retval, st_table, st_update_callback_func,
+    ExternHashMap,
 };
 
 const DEFAULT_CAPACITY: usize = 8;
@@ -53,7 +54,7 @@ pub fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
 #[inline]
 #[must_use]
 pub fn st_init_table_with_size(hash_type: *const st_hash_type, size: st_index_t) -> *mut st_table {
-    let table = ExternHashMap::with_capacity_and_hash_type(size as usize, hash_type);
+    let table = ExternHashMap::with_capacity_and_hash_type(size.into(), hash_type);
     st_table::into_raw(table.into())
 }
 
@@ -88,7 +89,7 @@ pub unsafe fn st_delete(
         1
     } else {
         if !value.is_null() {
-            ptr::write(value, 0);
+            ptr::write(value, 0_usize.into());
         }
         0
     };
@@ -160,7 +161,7 @@ pub unsafe fn st_shift(
         }
     }
     if !value.is_null() {
-        ptr::write(value, 0);
+        ptr::write(value, 0_usize.into());
     }
     mem::forget(table);
     0
@@ -346,7 +347,7 @@ pub unsafe fn st_update(
         if let Some((&entry_key, &entry_value)) = table.get_key_value_raw(key) {
             (true, entry_key, entry_value)
         } else {
-            (false, key, 0)
+            (false, key, 0_usize.into())
         };
 
     let old_key = key;
@@ -539,14 +540,14 @@ pub unsafe fn st_foreach_check(
 #[inline]
 pub unsafe fn st_keys(table: *mut st_table, keys: *mut st_data_t, size: st_index_t) -> st_index_t {
     let table = st_table::from_raw(table);
-    let keys = slice::from_raw_parts_mut(keys, size as usize);
+    let keys = slice::from_raw_parts_mut(keys, size.into());
     let mut count = 0;
     for (counter, (slot, key)) in keys.iter_mut().zip(table.inner.keys()).enumerate() {
         ptr::write(slot, *key.inner());
         count = counter;
     }
     mem::forget(table);
-    count as st_index_t
+    count.into()
 }
 
 /// No-op. See comments for function [`st_delete_safe`].
@@ -595,14 +596,14 @@ pub unsafe fn st_values(
     size: st_index_t,
 ) -> st_index_t {
     let table = st_table::from_raw(table);
-    let keys = slice::from_raw_parts_mut(values, size as usize);
+    let keys = slice::from_raw_parts_mut(values, size.into());
     let mut count = 0;
     for (counter, (slot, &value)) in keys.iter_mut().zip(table.inner.values()).enumerate() {
         ptr::write(slot, value);
         count = counter;
     }
     mem::forget(table);
-    count as st_index_t
+    count.into()
 }
 
 /// No-op. See comments for function [`st_delete_safe`].
@@ -761,7 +762,7 @@ pub unsafe fn st_memsize(table: *const st_table) -> libc::size_t {
     let table = st_table::from_raw(table as *mut st_table);
     let memsize = table.inner.estimated_memsize();
     mem::forget(table);
-    memsize as _
+    memsize
 }
 
 /// Hash a byte array with FNV.
@@ -778,10 +779,10 @@ pub unsafe fn st_memsize(table: *const st_table) -> libc::size_t {
 #[inline]
 #[must_use]
 pub unsafe fn st_hash(ptr: *const c_void, len: libc::size_t, h: st_index_t) -> st_index_t {
-    let mut hasher = FnvHasher::with_key(h as u64);
-    let data = slice::from_raw_parts(ptr.cast::<u8>(), len as usize);
+    let mut hasher = FnvHasher::with_key(h.into());
+    let data = slice::from_raw_parts(ptr.cast::<u8>(), len);
     hasher.write(data);
-    hasher.finish() as st_index_t
+    hasher.finish().into()
 }
 
 /// Hash one round of FNV with `h` as the initial state.
@@ -794,9 +795,9 @@ pub unsafe fn st_hash(ptr: *const c_void, len: libc::size_t, h: st_index_t) -> s
 #[inline]
 #[must_use]
 pub fn st_hash_uint32(h: st_index_t, i: u32) -> st_index_t {
-    let mut hasher = FnvHasher::with_key(h as u64);
+    let mut hasher = FnvHasher::with_key(h.into());
     hasher.write_u32(i);
-    hasher.finish() as st_index_t
+    hasher.finish().into()
 }
 
 /// Hash one round of FNV with `h` as the initial state.
@@ -809,9 +810,9 @@ pub fn st_hash_uint32(h: st_index_t, i: u32) -> st_index_t {
 #[inline]
 #[must_use]
 pub fn st_hash_uint(h: st_index_t, i: st_index_t) -> st_index_t {
-    let mut hasher = FnvHasher::with_key(h as u64);
-    hasher.write_u64(i as u64);
-    hasher.finish() as st_index_t
+    let mut hasher = FnvHasher::with_key(h.into());
+    hasher.write_usize(i.into());
+    hasher.finish().into()
 }
 
 /// Finalize FNV hash.
@@ -838,6 +839,6 @@ pub const fn st_hash_end(h: st_index_t) -> st_index_t {
 #[must_use]
 pub fn st_hash_start(h: st_index_t) -> st_index_t {
     let mut hasher = FnvHasher::default();
-    hasher.write_u64(h as u64);
-    hasher.finish() as st_index_t
+    hasher.write_usize(h.into());
+    hasher.finish().into()
 }

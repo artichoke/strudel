@@ -1,8 +1,10 @@
 use core::fmt;
 use core::hash::{Hash, Hasher};
-use core::mem::size_of;
 use core::ops::{Deref, DerefMut};
 
+use std::os::raw::c_int;
+
+use crate::api::primitives::{st_data_t, st_index_t};
 use crate::api::StBuildHasher;
 use crate::StHashMap;
 
@@ -56,10 +58,7 @@ impl Eq for ExternKey {}
 impl Hash for ExternKey {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        #[cfg(target_pointer_width = "32")]
-        state.write_u32(self.record);
-        #[cfg(target_pointer_width = "64")]
-        state.write_u64(self.record);
+        state.write_usize(self.record.into());
     }
 }
 
@@ -213,36 +212,6 @@ impl ExternHashMap {
     }
 }
 
-/// Type alias for pointers to keys and values.
-///
-/// Assumed to be equivalent to `usize`.
-///
-/// ```
-/// # use core::mem::size_of;
-/// # use strudel::api::st_data_t;
-/// assert_eq!(size_of::<usize>(), size_of::<st_data_t>());
-/// ```
-#[cfg(target_pointer_width = "64")]
-pub type st_data_t = u64;
-
-/// Type alias for pointers to keys and values.
-///
-/// Assumed to be equivalent to `usize`.
-///
-/// ```
-/// # use core::mem::size_of;
-/// # use strudel::api::st_data_t;
-/// assert_eq!(size_of::<usize>(), size_of::<st_data_t>());
-/// ```
-#[cfg(target_pointer_width = "32")]
-pub type st_data_t = u32;
-
-/// Type alias for insertion order indexes.
-pub type st_index_t = st_data_t;
-
-/// Type alias for hash values.
-pub type st_hash_t = st_index_t;
-
 /// Equality comparator function for `StHash` keys.
 ///
 /// # Header declaration
@@ -250,7 +219,7 @@ pub type st_hash_t = st_index_t;
 /// ```c
 /// typedef int st_compare_func(st_data_t, st_data_t);
 /// ```
-pub type st_compare_func = unsafe extern "C" fn(st_data_t, st_data_t) -> i32;
+pub type st_compare_func = unsafe extern "C" fn(st_data_t, st_data_t) -> c_int;
 
 /// Hash function for `StHash` keys.
 ///
@@ -260,9 +229,6 @@ pub type st_compare_func = unsafe extern "C" fn(st_data_t, st_data_t) -> i32;
 /// typedef st_index_t st_hash_func(st_data_t);
 /// ```
 pub type st_hash_func = unsafe extern "C" fn(st_data_t) -> st_index_t;
-
-// typedef char st_check_for_sizeof_st_index_t[SIZEOF_VOIDP == (int)sizeof(st_index_t) ? 1 : -1];
-const _: () = [()][(size_of::<usize>() == size_of::<st_index_t>()) as usize - 1];
 
 /// Equality comparator and hash function used to build a [`StHashMap`] hasher.
 ///
@@ -342,7 +308,7 @@ impl PartialEq<st_retval> for i32 {
 ///
 /// [`st_update`]: crate::api::st_update
 pub type st_update_callback_func =
-    unsafe extern "C" fn(*mut st_data_t, *mut st_data_t, st_data_t, i32) -> i32;
+    unsafe extern "C" fn(*mut st_data_t, *mut st_data_t, st_data_t, c_int) -> c_int;
 
 /// [`st_foreach`] and [`st_foreach_check`] callback function.
 ///
@@ -393,7 +359,7 @@ impl st_table {
     /// [`StHashMap`].
     #[inline]
     pub fn ensure_num_entries_is_consistent_after_writes(&mut self) {
-        self.num_entries = self.inner.len() as st_index_t;
+        self.num_entries = self.inner.len().into();
     }
 
     /// Consumes the table, returning a wrapped raw pointer.
@@ -468,7 +434,7 @@ impl fmt::Debug for st_table {
 impl From<ExternHashMap> for st_table {
     #[inline]
     fn from(table: ExternHashMap) -> Self {
-        let num_entries = table.inner.len() as st_index_t;
+        let num_entries = st_index_t::from(table.inner.len());
         let hash_type = table.inner.hasher().hash_type();
         let table = Box::new(table);
         let table = Box::into_raw(table);
@@ -528,7 +494,8 @@ mod tests {
 
 #[cfg(test)]
 mod ffi_types {
-    use crate::api::typedefs::{st_data_t, st_hash_t, st_hash_type, st_index_t};
+    use crate::api::primitives::{st_data_t, st_hash_t, st_index_t};
+    use crate::api::typedefs::st_hash_type;
 
     /// `st_table` struct definition from C in `st.h`.
     ///

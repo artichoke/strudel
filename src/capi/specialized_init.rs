@@ -1,4 +1,5 @@
 use core::hash::Hasher;
+use core::mem::transmute;
 use core::slice;
 use fnv::FnvHasher;
 use std::ffi::CStr;
@@ -33,7 +34,7 @@ unsafe extern "C" fn st_numhash(n: st_data_t) -> st_index_t {
     #[cfg(feature = "debug")]
     dbg!("st_numhash");
 
-    n
+    n.into()
 }
 
 static st_hashtype_num: st_hash_type = st_hash_type {
@@ -41,21 +42,31 @@ static st_hashtype_num: st_hash_type = st_hash_type {
     hash: st_numhash,
 };
 
+/// # Declaration
+///
+/// ```c
+/// /* extern int strcmp(const char *, const char *); */
+/// ```
 unsafe extern "C" fn strcmp(x: st_data_t, y: st_data_t) -> libc::c_int {
     #[cfg(feature = "debug")]
     dbg!("strhash");
 
-    libc::strcmp(x as *const _, y as *const _)
+    libc::strcmp(x.as_const_c_char(), y.as_const_c_char())
 }
 
+/// # Declaration
+///
+/// ```c
+/// static st_index_t strhash(st_data_t);
+/// ```
 unsafe extern "C" fn strhash(arg: st_data_t) -> st_index_t {
     #[cfg(feature = "debug")]
     dbg!("strhash");
 
-    let string = CStr::from_ptr(arg as *const libc::c_char);
+    let string = CStr::from_ptr(arg.as_const_c_char());
     let mut hasher = FnvHasher::default();
     hasher.write(string.to_bytes());
-    hasher.finish() as st_index_t
+    hasher.finish().into()
 }
 
 static type_strhash: st_hash_type = st_hash_type {
@@ -67,12 +78,12 @@ unsafe extern "C" fn strcasehash(arg: st_data_t) -> st_index_t {
     #[cfg(feature = "debug")]
     dbg!("strcasehash");
 
-    let string = CStr::from_ptr(arg as *const libc::c_char);
+    let string = CStr::from_ptr(arg.as_const_c_char());
     let mut hasher = FnvHasher::default();
     for byte in string.to_bytes() {
         hasher.write_u8(byte.to_ascii_lowercase());
     }
-    hasher.finish() as st_index_t
+    hasher.finish().into()
 }
 
 static type_strcasehash: st_hash_type = st_hash_type {
@@ -168,8 +179,8 @@ unsafe extern "C" fn st_locale_insensitive_strcasecmp(s1: st_data_t, s2: st_data
     #[cfg(feature = "debug")]
     dbg!("st_locale_insensitive_strcasecmp");
 
-    let s1 = CStr::from_ptr(s1 as *const libc::c_char);
-    let s2 = CStr::from_ptr(s2 as *const libc::c_char);
+    let s1 = CStr::from_ptr(s1.as_const_c_char());
+    let s2 = CStr::from_ptr(s2.as_const_c_char());
     match (s1.to_bytes().len(), s2.to_bytes().len()) {
         (left, right) if left == right => {}
         (left, right) if left > right => return 1,
@@ -203,23 +214,19 @@ unsafe extern "C" fn st_locale_insensitive_strncasecmp(
     #[cfg(feature = "debug")]
     dbg!("st_locale_insensitive_strncasecmp");
 
-    let s1 = slice::from_raw_parts(s1 as *const u8, n as usize);
-    let s2 = slice::from_raw_parts(s2 as *const u8, n as usize);
+    let s1 = slice::from_raw_parts(s1.as_const_c_char(), n as usize);
+    let s2 = slice::from_raw_parts(s2.as_const_c_char(), n as usize);
 
     for (&left, &right) in s1.iter().zip(s2.iter()) {
-        match (left, right) {
+        match (transmute(left), transmute(right)) {
             (b'\0', b'\0') => return 0,
             (_, b'\0') => return 1,
             (b'\0', _) => return -1,
-            (mut c1, mut c2) => {
-                c1 = c1.to_ascii_lowercase();
-                c2 = c2.to_ascii_lowercase();
-                match (c1, c2) {
-                    (a, b) if a == b => {}
-                    (a, b) if a > b => return 1,
-                    _ => return -1,
-                }
-            }
+            (c1, c2) => match (c1.to_ascii_lowercase(), c2.to_ascii_lowercase()) {
+                (a, b) if a == b => {}
+                (a, b) if a > b => return 1,
+                _ => return -1,
+            },
         }
     }
     0
