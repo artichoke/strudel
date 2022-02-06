@@ -21,9 +21,10 @@ mod typedefs;
 pub use hasher::{StBuildHasher, StHasher};
 pub use primitives::{st_data_t, st_hash_t, st_index_t};
 pub(crate) use typedefs::{
-    st_foreach_callback_func, st_hash_type, st_retval, st_table, st_update_callback_func,
-    ExternHashMap,
+    st_foreach_callback_func, st_hash_type, st_retval, st_update_callback_func, ExternHashMap,
 };
+
+use crate::ffi::st_table;
 
 const DEFAULT_CAPACITY: usize = 8;
 

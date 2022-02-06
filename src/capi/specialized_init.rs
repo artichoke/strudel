@@ -4,8 +4,9 @@ use core::slice;
 use fnv::FnvHasher;
 use std::ffi::CStr;
 
-use crate::api::{st_data_t, st_hash_type, st_index_t, st_table};
+use crate::api::{st_data_t, st_hash_type, st_index_t};
 use crate::capi::{st_init_table, st_init_table_with_size};
+use crate::ffi::st_table;
 
 /// # Header declaration
 ///

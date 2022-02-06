@@ -141,6 +141,7 @@ mod st;
 
 pub mod api;
 pub mod capi;
+pub mod ffi;
 
 pub use st::map::StHashMap;
 pub use st::set::StHashSet;

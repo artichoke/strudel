@@ -13,9 +13,10 @@
 use core::ffi::c_void;
 
 use crate::api::{
-    self, st_data_t, st_foreach_callback_func, st_hash_t, st_hash_type, st_index_t, st_table,
+    self, st_data_t, st_foreach_callback_func, st_hash_t, st_hash_type, st_index_t,
     st_update_callback_func,
 };
+use crate::ffi::st_table;
 
 mod specialized_init;
 
