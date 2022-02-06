@@ -14,9 +14,6 @@ use crate::capi::{st_init_table, st_init_table_with_size};
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_numcmp(x: st_data_t, y: st_data_t) -> libc::c_int {
-    #[cfg(feature = "debug")]
-    dbg!("st_numcmp");
-
     if x == y {
         0
     } else {
@@ -31,9 +28,6 @@ unsafe extern "C" fn st_numcmp(x: st_data_t, y: st_data_t) -> libc::c_int {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_numhash(n: st_data_t) -> st_index_t {
-    #[cfg(feature = "debug")]
-    dbg!("st_numhash");
-
     n.into()
 }
 
@@ -48,9 +42,6 @@ static st_hashtype_num: st_hash_type = st_hash_type {
 /// /* extern int strcmp(const char *, const char *); */
 /// ```
 unsafe extern "C" fn strcmp(x: st_data_t, y: st_data_t) -> libc::c_int {
-    #[cfg(feature = "debug")]
-    dbg!("strhash");
-
     libc::strcmp(x.as_const_c_char(), y.as_const_c_char())
 }
 
@@ -60,9 +51,6 @@ unsafe extern "C" fn strcmp(x: st_data_t, y: st_data_t) -> libc::c_int {
 /// static st_index_t strhash(st_data_t);
 /// ```
 unsafe extern "C" fn strhash(arg: st_data_t) -> st_index_t {
-    #[cfg(feature = "debug")]
-    dbg!("strhash");
-
     let string = CStr::from_ptr(arg.as_const_c_char());
     let mut hasher = FnvHasher::default();
     hasher.write(string.to_bytes());
@@ -75,9 +63,6 @@ static type_strhash: st_hash_type = st_hash_type {
 };
 
 unsafe extern "C" fn strcasehash(arg: st_data_t) -> st_index_t {
-    #[cfg(feature = "debug")]
-    dbg!("strcasehash");
-
     let string = CStr::from_ptr(arg.as_const_c_char());
     let mut hasher = FnvHasher::default();
     for byte in string.to_bytes() {
@@ -98,9 +83,6 @@ static type_strcasehash: st_hash_type = st_hash_type {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_init_numtable() -> *mut st_table {
-    #[cfg(feature = "debug")]
-    dbg!("st_init_numtable");
-
     st_init_table(&st_hashtype_num)
 }
 
@@ -111,9 +93,6 @@ unsafe extern "C" fn st_init_numtable() -> *mut st_table {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_init_numtable_with_size(size: st_index_t) -> *mut st_table {
-    #[cfg(feature = "debug")]
-    dbg!("st_init_numtable_with_size");
-
     st_init_table_with_size(&st_hashtype_num, size)
 }
 
@@ -124,9 +103,6 @@ unsafe extern "C" fn st_init_numtable_with_size(size: st_index_t) -> *mut st_tab
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_init_strtable() -> *mut st_table {
-    #[cfg(feature = "debug")]
-    dbg!("st_init_strtable");
-
     st_init_table(&type_strhash)
 }
 
@@ -137,9 +113,6 @@ unsafe extern "C" fn st_init_strtable() -> *mut st_table {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_init_strtable_with_size(size: st_index_t) -> *mut st_table {
-    #[cfg(feature = "debug")]
-    dbg!("st_init_strtable_with_size");
-
     st_init_table_with_size(&type_strhash, size)
 }
 
@@ -150,9 +123,6 @@ unsafe extern "C" fn st_init_strtable_with_size(size: st_index_t) -> *mut st_tab
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_init_strcasetable() -> *mut st_table {
-    #[cfg(feature = "debug")]
-    dbg!("st_init_strcasetable");
-
     st_init_table(&type_strcasehash)
 }
 
@@ -163,9 +133,6 @@ unsafe extern "C" fn st_init_strcasetable() -> *mut st_table {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_init_strcasetable_with_size(size: st_index_t) -> *mut st_table {
-    #[cfg(feature = "debug")]
-    dbg!("st_init_strcasetable_with_size");
-
     st_init_table_with_size(&type_strcasehash, size)
 }
 
@@ -176,9 +143,6 @@ unsafe extern "C" fn st_init_strcasetable_with_size(size: st_index_t) -> *mut st
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_locale_insensitive_strcasecmp(s1: st_data_t, s2: st_data_t) -> libc::c_int {
-    #[cfg(feature = "debug")]
-    dbg!("st_locale_insensitive_strcasecmp");
-
     let s1 = CStr::from_ptr(s1.as_const_c_char());
     let s2 = CStr::from_ptr(s2.as_const_c_char());
     match (s1.to_bytes().len(), s2.to_bytes().len()) {
@@ -211,9 +175,6 @@ unsafe extern "C" fn st_locale_insensitive_strncasecmp(
     s2: st_data_t,
     n: libc::size_t,
 ) -> libc::c_int {
-    #[cfg(feature = "debug")]
-    dbg!("st_locale_insensitive_strncasecmp");
-
     let s1 = slice::from_raw_parts(s1.as_const_c_char(), n as usize);
     let s2 = slice::from_raw_parts(s2.as_const_c_char(), n as usize);
 

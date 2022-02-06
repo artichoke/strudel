@@ -43,18 +43,6 @@ Add this to your `Cargo.toml`:
 strudel = "1.0"
 ```
 
-## Crate features
-
-All features are enabled by default.
-
-- **api** - Enables a Rust API that closely mirrors the C API defined in
-  `ruby/st.h`. Disabling this feature drops the [`libc`] dependency.
-- **capi** - Enables a C API suitable for embedding `strudel` with FFI. Linking
-  in the `libstrudel` cdylib will implement the functions defined in
-  `ruby/st.h`. Disabling this feature drops the [`fnv`] dependency.
-- **capi-specialized-init** - Enables additional `st_init_table` C APIs with
-  known `st_hash_type`s for tables with numeric and string keys.
-
 ## Building Ruby with Strudel
 
 Strudel exports most of the symbols implemented by `st.c` in MRI 2.6.3. The
@@ -106,5 +94,3 @@ The `st_hash` implementation in Ruby includes the following notice:
   https://github.com/python/cpython/blob/v3.8.4/Objects/dictobject.c#L1-L110
 [`hashmap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
 [`vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html
-[`libc`]: https://crates.io/crates/libc
-[`fnv`]: https://crates.io/crates/fnv
