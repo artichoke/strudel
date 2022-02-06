@@ -8,6 +8,7 @@ use core::mem::size_of;
 ///
 /// ```
 /// # use core::mem;
+/// # use strudel::api::st_data_t;
 /// assert_eq!(mem::size_of::<st_data_t>(), mem::size_of::<usize>());
 /// let data = st_data_t::from(usize::MAX);
 /// assert_eq!(data, usize::MAX);
@@ -55,6 +56,18 @@ impl From<st_data_t> for usize {
     #[inline]
     fn from(data: st_data_t) -> Self {
         data.inner
+    }
+}
+
+impl PartialEq<usize> for st_data_t {
+    fn eq(&self, other: &usize) -> bool {
+        self.inner == *other
+    }
+}
+
+impl PartialEq<st_data_t> for usize {
+    fn eq(&self, other: &st_data_t) -> bool {
+        *self == other.inner
     }
 }
 
