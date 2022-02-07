@@ -1,6 +1,58 @@
+//! FFI helpers.
+
 use core::fmt;
+use std::mem::ManuallyDrop;
 
 use crate::api::{st_hash_type, st_index_t, ExternHashMap};
+
+/// Wrapper around an `st_table` that is owned by a foreign caller.
+///
+/// This struct will repack metadata on drop but will not free the underlying
+/// table.
+#[derive(Debug, Clone)]
+pub struct ForeignOwned {
+    inner: ManuallyDrop<Box<st_table>>,
+}
+
+impl ForeignOwned {
+    unsafe fn new_from_raw(table: *mut st_table) -> Self {
+        let table = Box::from_raw(table);
+        let inner = ManuallyDrop::new(table);
+        Self { inner }
+    }
+
+    /// Retrieve a mutable, potentially aliased pointer to the inner `StHashMap`.
+    ///
+    /// This pointer is guaranteed to not be modified as long as `st_free_table`
+    /// is not called.
+    ///
+    /// # Safety
+    ///
+    /// Callers must not create mutable references from the returned pointer as
+    /// it is not guaranteed to be unaliased.
+    pub unsafe fn as_inner_mut(&mut self) -> *mut ExternHashMap {
+        self.inner.table
+    }
+
+    /// Return the inner owned `st_table`.
+    ///
+    /// # Safety
+    ///
+    /// Callers must ensure the table is not owned by foreign code so it is not
+    /// prematurely dropped.
+    #[must_use]
+    pub unsafe fn take(mut self) -> Box<st_table> {
+        ManuallyDrop::take(&mut self.inner)
+    }
+}
+
+impl Drop for ForeignOwned {
+    fn drop(&mut self) {
+        unsafe {
+            self.inner.repack();
+        }
+    }
+}
 
 // These values enforced by test.
 #[cfg(target_pointer_width = "64")]
@@ -30,17 +82,14 @@ pub struct st_table {
     _padding_end: [u8; PADDING_TO_END],
 }
 
-impl st_table {
-    /// Retrieve a mutable, potentially aliased pointer to the inner `StHashMap`.
-    ///
-    /// # Safety
-    ///
-    /// Callers must not create mutable references from the returned pointer as
-    /// it is not guaranteed to be unaliased.
-    pub unsafe fn as_inner_mut(&mut self) -> *mut ExternHashMap {
-        self.table
+impl Clone for st_table {
+    fn clone(&self) -> Self {
+        let inner = unsafe { (*self.table).clone() };
+        inner.into()
     }
+}
 
+impl st_table {
     /// Sync the `num_entries` field on the FFI wrapper with the underlying
     /// table.
     ///
@@ -107,8 +156,8 @@ impl st_table {
     /// [`st_table::into_raw`] or [`st_table::boxed_into_raw`].
     #[inline]
     #[must_use]
-    pub unsafe fn from_raw(table: *mut Self) -> Box<Self> {
-        Box::from_raw(table)
+    pub unsafe fn from_raw(table: *mut Self) -> ForeignOwned {
+        ForeignOwned::new_from_raw(table)
     }
 }
 

@@ -103,6 +103,18 @@ impl ExternHashMap {
         Self { inner: map }
     }
 
+    #[inline]
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
     /// Wrapper around [`StHashMap::first`] that wraps a bare `st_data_t` in a
     /// key type that can be checked for equality.
     #[inline]
