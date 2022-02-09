@@ -85,6 +85,7 @@ impl StTable {
     /// A [`Hasher`] is constructed from an [`StBuildHasher`].
     #[inline]
     #[must_use]
+    #[allow(dead_code)]
     pub fn with_hash_type(hash_type: *const st_hash_type) -> Self {
         let hasher = StBuildHasher::from(hash_type);
         let map = Table::with_hasher(hasher);
@@ -110,12 +111,6 @@ impl StTable {
     #[must_use]
     pub fn len(&self) -> usize {
         self.inner.len()
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.inner.is_empty()
     }
 
     /// Wrapper around [`StHashMap::first`] that wraps a bare `st_data_t` in a
