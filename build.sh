@@ -34,6 +34,7 @@ if [ ! -d ruby-strudel-build-root ]; then
   git add .
   git commit -m "strudel hash map backend"
 
+  aclocal
   autoconf
   export cflags="-DSTRUDEL"
   export LDFLAGS="-L${root}/target/release/"

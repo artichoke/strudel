@@ -56,6 +56,14 @@ To build `miniruby` with Strudel, run:
 ./build.sh
 ```
 
+`build.sh` requires autoconf 2.69. On macOS with Homebrew, this can be done
+with:
+
+```sh
+brew install autoconf@2.69
+PATH="/usr/local/opt/autoconf@2.69/bin:$PATH" ./build.sh
+```
+
 The resulting Ruby is in `./build/ruby-strudel-build-root/miniruby`. `miniruby`
 can run simple scripts involving `Hash`, for example:
 
