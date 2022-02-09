@@ -8,7 +8,7 @@
 //! These functions are callable from C by including `st.h` and linking in
 //! `libstrudel`.
 //!
-//! [`StHashMap`]: crate::StHashMap
+//! [`StHashMap`]: strudel::StHashMap
 
 use core::ffi::c_void;
 use std::os::raw::c_int;

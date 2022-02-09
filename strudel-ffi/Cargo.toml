@@ -17,7 +17,7 @@ include = [
 
 [lib]
 crate-type = ["cdylib"]
-name = "strudel"
+name = "strudel_st"
 
 [dependencies]
 fnv = "1.0"
