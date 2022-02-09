@@ -6,7 +6,7 @@ unset CDPATH
 
 root="$(pwd)"
 
-cargo build --release
+cargo build --workspace --release
 
 mkdir -p build
 
@@ -38,7 +38,7 @@ if [ ! -d ruby-strudel-build-root ]; then
   autoconf
   export cflags="-DSTRUDEL"
   export LDFLAGS="-L${root}/target/release/"
-  export LIBS="-lstrudel"
+  export LIBS="-lstrudel_st"
   ./configure --prefix="${root}/build/rubies/2.6.3-strudel" --with-baseruby="$(which ruby)"
   unset cflags
   unset LDFLAGS

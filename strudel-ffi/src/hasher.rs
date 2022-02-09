@@ -3,8 +3,8 @@
 use core::hash::{BuildHasher, Hasher};
 use core::mem::size_of;
 
-use crate::api::primitives::st_data_t;
-use crate::api::typedefs::st_hash_type;
+use crate::bindings::st_hash_type;
+use crate::primitives::st_data_t;
 
 /// `StBuildHasher` is the default state for `ExternStHashMap`s.
 ///

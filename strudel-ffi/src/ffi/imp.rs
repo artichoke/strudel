@@ -1,27 +1,20 @@
-#![allow(non_upper_case_globals)]
-
 //! `st_hash`-compatible Rust API bindings for [`StHashMap`].
 //!
-//! [`StHashMap`]: crate::StHashMap
+//! [`StHashMap`]: strudel::StHashMap
 
 use core::ffi::c_void;
 use core::hash::Hasher;
 use core::mem;
 use core::ptr;
 use core::slice;
+use std::os::raw::c_int;
+
 use fnv::FnvHasher;
 
-mod hasher;
-mod primitives;
-mod typedefs;
-
-pub use hasher::{StBuildHasher, StHasher};
-pub use primitives::{st_data_t, st_hash_t, st_index_t};
-pub(crate) use typedefs::{
-    st_foreach_callback_func, st_hash_type, st_retval, st_update_callback_func, ExternHashMap,
-};
-
-use crate::ffi::st_table;
+use crate::bindings::{st_foreach_callback_func, st_hash_type, st_retval, st_update_callback_func};
+use crate::primitives::{st_data_t, st_index_t};
+use crate::st_table::ffi::st_table;
+use crate::st_table::StTable;
 
 const DEFAULT_CAPACITY: usize = 8;
 
@@ -36,7 +29,7 @@ const DEFAULT_CAPACITY: usize = 8;
 #[inline]
 #[must_use]
 pub fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
-    let table = ExternHashMap::with_capacity_and_hash_type(DEFAULT_CAPACITY, hash_type);
+    let table = StTable::with_capacity_and_hash_type(DEFAULT_CAPACITY, hash_type);
     st_table::into_raw(table.into())
 }
 
@@ -52,7 +45,7 @@ pub fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
 #[inline]
 #[must_use]
 pub fn st_init_table_with_size(hash_type: *const st_hash_type, size: st_index_t) -> *mut st_table {
-    let table = ExternHashMap::with_capacity_and_hash_type(size.into(), hash_type);
+    let table = StTable::with_capacity_and_hash_type(size.into(), hash_type);
     st_table::into_raw(table.into())
 }
 
@@ -73,11 +66,7 @@ pub fn st_init_table_with_size(hash_type: *const st_hash_type, size: st_index_t)
 /// `table` must be non-null and point to a valid `st_table` created by the
 /// `st_init_table` family of functions.
 #[inline]
-pub unsafe fn st_delete(
-    table: *mut st_table,
-    key: *mut st_data_t,
-    value: *mut st_data_t,
-) -> libc::c_int {
+pub unsafe fn st_delete(table: *mut st_table, key: *mut st_data_t, value: *mut st_data_t) -> c_int {
     let mut table = st_table::from_raw(table);
     let inner = table.as_inner_mut();
 
@@ -121,7 +110,7 @@ pub unsafe fn st_delete_safe(
     key: *mut st_data_t,
     value: *mut st_data_t,
     _never: *const st_data_t,
-) -> libc::c_int {
+) -> c_int {
     st_delete(table, key, value)
 }
 
@@ -140,11 +129,7 @@ pub unsafe fn st_delete_safe(
 /// `table` must be non-null and point to a valid `st_table` created by the
 /// `st_init_table` family of functions.
 #[inline]
-pub unsafe fn st_shift(
-    table: *mut st_table,
-    key: *mut st_data_t,
-    value: *mut st_data_t,
-) -> libc::c_int {
+pub unsafe fn st_shift(table: *mut st_table, key: *mut st_data_t, value: *mut st_data_t) -> c_int {
     let mut table = st_table::from_raw(table);
     let inner = table.as_inner_mut();
 
@@ -178,7 +163,7 @@ pub unsafe fn st_shift(
 /// `table` must be non-null and point to a valid `st_table` created by the
 /// `st_init_table` family of functions.
 #[inline]
-pub unsafe fn st_insert(table: *mut st_table, key: st_data_t, value: st_data_t) -> libc::c_int {
+pub unsafe fn st_insert(table: *mut st_table, key: st_data_t, value: st_data_t) -> c_int {
     let mut table = st_table::from_raw(table);
     let inner = table.as_inner_mut();
 
@@ -212,7 +197,7 @@ pub unsafe fn st_insert2(
     key: st_data_t,
     value: st_data_t,
     func: unsafe extern "C" fn(st_data_t) -> st_data_t,
-) -> libc::c_int {
+) -> c_int {
     let table_raw = table;
     let mut table = st_table::from_raw(table);
     let inner = table.as_inner_mut();
@@ -249,11 +234,7 @@ pub unsafe fn st_insert2(
 /// `table` must be non-null and point to a valid `st_table` created by the
 /// `st_init_table` family of functions.
 #[inline]
-pub unsafe fn st_lookup(
-    table: *mut st_table,
-    key: st_data_t,
-    value: *mut st_data_t,
-) -> libc::c_int {
+pub unsafe fn st_lookup(table: *mut st_table, key: st_data_t, value: *mut st_data_t) -> c_int {
     let mut table = st_table::from_raw(table);
     let inner = table.as_inner_mut();
 
@@ -281,11 +262,7 @@ pub unsafe fn st_lookup(
 /// `table` must be non-null and point to a valid `st_table` created by the
 /// `st_init_table` family of functions.
 #[inline]
-pub unsafe fn st_get_key(
-    table: *mut st_table,
-    key: st_data_t,
-    result: *mut st_data_t,
-) -> libc::c_int {
+pub unsafe fn st_get_key(table: *mut st_table, key: st_data_t, result: *mut st_data_t) -> c_int {
     let mut table = st_table::from_raw(table);
     let inner = table.as_inner_mut();
 
@@ -334,7 +311,7 @@ pub unsafe fn st_update(
     key: st_data_t,
     func: st_update_callback_func,
     arg: st_data_t,
-) -> libc::c_int {
+) -> c_int {
     use st_retval::{ST_CONTINUE, ST_DELETE};
 
     let table_raw = table;
@@ -353,7 +330,7 @@ pub unsafe fn st_update(
 
     // `func` might mutate this table, so make sure we don't alias the `Box`.
     drop(table);
-    let update = func(&mut key, &mut value, arg, existing as libc::c_int);
+    let update = func(&mut key, &mut value, arg, existing as c_int);
 
     if update == ST_CONTINUE {
         match (key, value) {
@@ -390,7 +367,7 @@ pub unsafe fn st_update(
     // other metadata into the FFI struct.
     drop(st_table::from_raw(table_raw));
 
-    existing as libc::c_int
+    existing as c_int
 }
 
 /// Traverse all entries in table `table` calling `func` with current entry key
@@ -421,7 +398,7 @@ pub unsafe fn st_foreach(
     table: *mut st_table,
     func: st_foreach_callback_func,
     arg: st_data_t,
-) -> libc::c_int {
+) -> c_int {
     use st_retval::{ST_CHECK, ST_CONTINUE, ST_DELETE, ST_STOP};
 
     let table_raw = table;
@@ -509,7 +486,7 @@ pub unsafe fn st_foreach_check(
     func: st_foreach_callback_func,
     arg: st_data_t,
     _never: st_data_t,
-) -> libc::c_int {
+) -> c_int {
     use st_retval::{ST_CHECK, ST_CONTINUE, ST_DELETE, ST_STOP};
 
     let table_raw = table;

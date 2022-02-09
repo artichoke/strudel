@@ -8,17 +8,17 @@
 //! These functions are callable from C by including `st.h` and linking in
 //! `libstrudel`.
 //!
-//! [`StHashMap`]: crate::StHashMap
+//! [`StHashMap`]: strudel::StHashMap
 
 use core::ffi::c_void;
+use std::os::raw::c_int;
 
-use crate::api::{
-    self, st_data_t, st_foreach_callback_func, st_hash_t, st_hash_type, st_index_t,
-    st_update_callback_func,
-};
-use crate::ffi::st_table;
+use crate::bindings::{st_foreach_callback_func, st_hash_type, st_update_callback_func};
+use crate::primitives::{st_data_t, st_hash_t, st_index_t};
+use crate::st_table::ffi::st_table;
 
-mod specialized_init;
+mod imp;
+mod init;
 
 /// # Header declaration
 ///
@@ -27,7 +27,7 @@ mod specialized_init;
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
-    api::st_init_table(hash_type)
+    imp::st_init_table(hash_type)
 }
 
 /// # Header declaration
@@ -40,7 +40,7 @@ unsafe extern "C" fn st_init_table_with_size(
     hash_type: *const st_hash_type,
     size: st_index_t,
 ) -> *mut st_table {
-    api::st_init_table_with_size(hash_type, size)
+    imp::st_init_table_with_size(hash_type, size)
 }
 
 /// # Header declaration
@@ -53,8 +53,8 @@ unsafe extern "C" fn st_delete(
     table: *mut st_table,
     key: *mut st_data_t,
     value: *mut st_data_t,
-) -> libc::c_int {
-    api::st_delete(table, key, value)
+) -> c_int {
+    imp::st_delete(table, key, value)
 }
 
 /// # Header declaration
@@ -68,8 +68,8 @@ unsafe extern "C" fn st_delete_safe(
     key: *mut st_data_t,
     value: *mut st_data_t,
     never: *const st_data_t,
-) -> libc::c_int {
-    api::st_delete_safe(table, key, value, never)
+) -> c_int {
+    imp::st_delete_safe(table, key, value, never)
 }
 
 /// # Header declaration
@@ -82,8 +82,8 @@ unsafe extern "C" fn st_shift(
     table: *mut st_table,
     key: *mut st_data_t,
     value: *mut st_data_t,
-) -> libc::c_int {
-    api::st_shift(table, key, value)
+) -> c_int {
+    imp::st_shift(table, key, value)
 }
 
 /// # Header declaration
@@ -92,12 +92,8 @@ unsafe extern "C" fn st_shift(
 /// int st_insert(st_table *, st_data_t, st_data_t);
 /// ```
 #[no_mangle]
-unsafe extern "C" fn st_insert(
-    table: *mut st_table,
-    key: st_data_t,
-    value: st_data_t,
-) -> libc::c_int {
-    api::st_insert(table, key, value)
+unsafe extern "C" fn st_insert(table: *mut st_table, key: st_data_t, value: st_data_t) -> c_int {
+    imp::st_insert(table, key, value)
 }
 
 /// # Header declaration
@@ -111,8 +107,8 @@ unsafe extern "C" fn st_insert2(
     key: st_data_t,
     value: st_data_t,
     func: unsafe extern "C" fn(st_data_t) -> st_data_t,
-) -> libc::c_int {
-    api::st_insert2(table, key, value, func)
+) -> c_int {
+    imp::st_insert2(table, key, value, func)
 }
 
 /// # Header declaration
@@ -125,8 +121,8 @@ unsafe extern "C" fn st_lookup(
     table: *mut st_table,
     key: st_data_t,
     value: *mut st_data_t,
-) -> libc::c_int {
-    api::st_lookup(table, key, value)
+) -> c_int {
+    imp::st_lookup(table, key, value)
 }
 
 /// # Header declaration
@@ -139,8 +135,8 @@ unsafe extern "C" fn st_get_key(
     table: *mut st_table,
     key: st_data_t,
     result: *mut st_data_t,
-) -> libc::c_int {
-    api::st_get_key(table, key, result)
+) -> c_int {
+    imp::st_get_key(table, key, result)
 }
 
 /// # Header declaration
@@ -154,8 +150,8 @@ unsafe extern "C" fn st_update(
     key: st_data_t,
     func: st_update_callback_func,
     arg: st_data_t,
-) -> libc::c_int {
-    api::st_update(table, key, func, arg)
+) -> c_int {
+    imp::st_update(table, key, func, arg)
 }
 
 /// # Header declaration
@@ -168,8 +164,8 @@ unsafe extern "C" fn st_foreach(
     table: *mut st_table,
     func: st_foreach_callback_func,
     arg: st_data_t,
-) -> libc::c_int {
-    api::st_foreach(table, func, arg)
+) -> c_int {
+    imp::st_foreach(table, func, arg)
 }
 
 /// # Header declaration
@@ -183,8 +179,8 @@ unsafe extern "C" fn st_foreach_check(
     func: st_foreach_callback_func,
     arg: st_data_t,
     never: st_data_t,
-) -> libc::c_int {
-    api::st_foreach_check(table, func, arg, never)
+) -> c_int {
+    imp::st_foreach_check(table, func, arg, never)
 }
 
 /// # Header declaration
@@ -198,7 +194,7 @@ unsafe extern "C" fn st_keys(
     keys: *mut st_data_t,
     size: st_index_t,
 ) -> st_index_t {
-    api::st_keys(table, keys, size)
+    imp::st_keys(table, keys, size)
 }
 
 /// # Header declaration
@@ -213,7 +209,7 @@ unsafe extern "C" fn st_keys_check(
     size: st_index_t,
     never: st_data_t,
 ) -> st_index_t {
-    api::st_keys_check(table, keys, size, never)
+    imp::st_keys_check(table, keys, size, never)
 }
 
 /// # Header declaration
@@ -227,7 +223,7 @@ unsafe extern "C" fn st_values(
     values: *mut st_data_t,
     size: st_index_t,
 ) -> st_index_t {
-    api::st_values(table, values, size)
+    imp::st_values(table, values, size)
 }
 
 /// # Header declaration
@@ -242,7 +238,7 @@ unsafe extern "C" fn st_values_check(
     size: st_index_t,
     never: st_data_t,
 ) -> st_index_t {
-    api::st_values_check(table, values, size, never)
+    imp::st_values_check(table, values, size, never)
 }
 
 /// # Header declaration
@@ -252,7 +248,7 @@ unsafe extern "C" fn st_values_check(
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_add_direct(table: *mut st_table, key: st_data_t, value: st_data_t) {
-    api::st_add_direct(table, key, value);
+    imp::st_add_direct(table, key, value);
 }
 
 /// # Header declaration
@@ -268,7 +264,7 @@ unsafe extern "C" fn st_add_direct_with_hash(
     hash: st_hash_t,
 ) {
     let _ = hash;
-    api::st_add_direct(table, key, value);
+    imp::st_add_direct(table, key, value);
 }
 
 /// # Header declaration
@@ -278,7 +274,7 @@ unsafe extern "C" fn st_add_direct_with_hash(
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_free_table(table: *mut st_table) {
-    api::st_free_table(table);
+    imp::st_free_table(table);
 }
 
 /// # Header declaration
@@ -288,7 +284,7 @@ unsafe extern "C" fn st_free_table(table: *mut st_table) {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_cleanup_safe(table: *mut st_table, never: st_data_t) {
-    api::st_cleanup_safe(table, never);
+    imp::st_cleanup_safe(table, never);
 }
 
 /// # Header declaration
@@ -298,7 +294,7 @@ unsafe extern "C" fn st_cleanup_safe(table: *mut st_table, never: st_data_t) {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_clear(table: *mut st_table) {
-    api::st_clear(table);
+    imp::st_clear(table);
 }
 
 /// # Header declaration
@@ -308,7 +304,7 @@ unsafe extern "C" fn st_clear(table: *mut st_table) {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_copy(table: *mut st_table) -> *mut st_table {
-    api::st_copy(table)
+    imp::st_copy(table)
 }
 
 /// # Header declaration
@@ -318,7 +314,7 @@ unsafe extern "C" fn st_copy(table: *mut st_table) -> *mut st_table {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_memsize(table: *const st_table) -> libc::size_t {
-    api::st_memsize(table)
+    imp::st_memsize(table)
 }
 
 /// # Header declaration
@@ -328,7 +324,7 @@ unsafe extern "C" fn st_memsize(table: *const st_table) -> libc::size_t {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_hash(ptr: *const c_void, len: libc::size_t, h: st_index_t) -> st_index_t {
-    api::st_hash(ptr, len, h)
+    imp::st_hash(ptr, len, h)
 }
 
 /// # Header declaration
@@ -338,7 +334,7 @@ unsafe extern "C" fn st_hash(ptr: *const c_void, len: libc::size_t, h: st_index_
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_hash_uint32(h: st_index_t, i: u32) -> st_index_t {
-    api::st_hash_uint32(h, i)
+    imp::st_hash_uint32(h, i)
 }
 
 /// # Header declaration
@@ -348,7 +344,7 @@ unsafe extern "C" fn st_hash_uint32(h: st_index_t, i: u32) -> st_index_t {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_hash_uint(h: st_index_t, i: st_index_t) -> st_index_t {
-    api::st_hash_uint(h, i)
+    imp::st_hash_uint(h, i)
 }
 
 /// # Header declaration
@@ -358,7 +354,7 @@ unsafe extern "C" fn st_hash_uint(h: st_index_t, i: st_index_t) -> st_index_t {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_hash_end(h: st_index_t) -> st_index_t {
-    api::st_hash_end(h)
+    imp::st_hash_end(h)
 }
 
 /// # Header declaration
@@ -368,7 +364,7 @@ unsafe extern "C" fn st_hash_end(h: st_index_t) -> st_index_t {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_hash_start(h: st_index_t) -> st_index_t {
-    api::st_hash_start(h)
+    imp::st_hash_start(h)
 }
 
 // void rb_hash_bulk_insert_into_st_table(long, const VALUE *, VALUE);

@@ -1,21 +1,24 @@
 use core::hash::{Hash, Hasher};
 
-use std::os::raw::c_int;
+use strudel::StHashMap;
 
-use crate::api::primitives::{st_data_t, st_index_t};
-use crate::api::StBuildHasher;
-use crate::StHashMap;
+use crate::bindings::{st_compare_func, st_hash_type};
+use crate::hasher::StBuildHasher;
+use crate::primitives::st_data_t;
+
+pub mod ffi;
+pub mod foreign;
 
 /// A wrapper around a raw `st_data_t` key that includes a vtable for equality
 /// comparisons.
 #[derive(Debug, Clone)]
-pub struct ExternKey {
+pub struct Key {
     record: st_data_t,
     eq: st_compare_func,
 }
 
-impl ExternKey {
-    /// Return a reference to the inner key.
+impl Key {
+    /// Return a reference to the inner key record.
     #[inline]
     #[must_use]
     pub fn inner(&self) -> &st_data_t {
@@ -23,37 +26,37 @@ impl ExternKey {
     }
 }
 
-impl From<ExternKey> for st_data_t {
+impl From<Key> for st_data_t {
     #[inline]
-    fn from(key: ExternKey) -> Self {
+    fn from(key: Key) -> Self {
         key.record
     }
 }
 
-impl PartialEq for ExternKey {
+impl PartialEq for Key {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         if self.record == other.record {
             return true;
         }
         let cmp = self.eq;
-        // Safety
+        // Safety:
         //
         // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
         unsafe { (cmp)(self.record, other.record) == 0 }
     }
 }
 
-impl PartialEq<&ExternKey> for ExternKey {
+impl PartialEq<&Key> for Key {
     #[inline]
     fn eq(&self, other: &&Self) -> bool {
         self == *other
     }
 }
 
-impl Eq for ExternKey {}
+impl Eq for Key {}
 
-impl Hash for ExternKey {
+impl Hash for Key {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
         state.write_usize(self.record.into());
@@ -66,14 +69,14 @@ impl Hash for ExternKey {
 /// `ExternStHashMap` stores pointers to its keys and values. It owns hasher and
 /// comaparator functions given at construction time to implement [`Hash`] and
 /// [`Eq`] for these opaque keys. See [`StHashMap::with_hash_type`].
-pub type ExternStHashMap = StHashMap<ExternKey, st_data_t, StBuildHasher>;
+pub type Table = StHashMap<Key, st_data_t, StBuildHasher>;
 
 #[derive(Debug, Clone)]
-pub struct ExternHashMap {
-    pub(crate) inner: ExternStHashMap,
+pub struct StTable {
+    pub(crate) inner: Table,
 }
 
-impl ExternHashMap {
+impl StTable {
     /// Creates an empty `StHashMap` which will use the given `st_hash_type` to
     /// hash keys.
     ///
@@ -82,9 +85,10 @@ impl ExternHashMap {
     /// A [`Hasher`] is constructed from an [`StBuildHasher`].
     #[inline]
     #[must_use]
+    #[allow(dead_code)]
     pub fn with_hash_type(hash_type: *const st_hash_type) -> Self {
         let hasher = StBuildHasher::from(hash_type);
-        let map = ExternStHashMap::with_hasher(hasher);
+        let map = Table::with_hasher(hasher);
         Self { inner: map }
     }
 
@@ -99,7 +103,7 @@ impl ExternHashMap {
     #[must_use]
     pub fn with_capacity_and_hash_type(capacity: usize, hash_type: *const st_hash_type) -> Self {
         let hasher = StBuildHasher::from(hash_type);
-        let map = ExternStHashMap::with_capacity_and_hasher(capacity, hasher);
+        let map = Table::with_capacity_and_hasher(capacity, hasher);
         Self { inner: map }
     }
 
@@ -107,12 +111,6 @@ impl ExternHashMap {
     #[must_use]
     pub fn len(&self) -> usize {
         self.inner.len()
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.inner.is_empty()
     }
 
     /// Wrapper around [`StHashMap::first`] that wraps a bare `st_data_t` in a
@@ -136,7 +134,7 @@ impl ExternHashMap {
         // `StHashMap` assumes `hash_type` has `'static` lifetime.
         // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
         let eq = unsafe { (*hash_type).compare };
-        let key = ExternKey { record: key, eq };
+        let key = Key { record: key, eq };
         self.inner.get(&key)
     }
 
@@ -152,7 +150,7 @@ impl ExternHashMap {
         // `StHashMap` assumes `hash_type` has `'static` lifetime.
         // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
         let eq = unsafe { (*hash_type).compare };
-        let key = ExternKey { record: key, eq };
+        let key = Key { record: key, eq };
         let (key, value) = self.inner.get_key_value(&key)?;
         Some((&key.record, value))
     }
@@ -169,7 +167,7 @@ impl ExternHashMap {
         // `StHashMap` assumes `hash_type` has `'static` lifetime.
         // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
         let eq = unsafe { (*hash_type).compare };
-        let key = ExternKey { record: key, eq };
+        let key = Key { record: key, eq };
         self.inner.insert(key, value)
     }
 
@@ -184,7 +182,7 @@ impl ExternHashMap {
         // `StHashMap` assumes `hash_type` has `'static` lifetime.
         // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
         let eq = unsafe { (*hash_type).compare };
-        let key = ExternKey { record: key, eq };
+        let key = Key { record: key, eq };
         self.inner.update(key, value);
     }
 
@@ -200,7 +198,7 @@ impl ExternHashMap {
         // `StHashMap` assumes `hash_type` has `'static` lifetime.
         // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
         let eq = unsafe { (*hash_type).compare };
-        let key = ExternKey { record: key, eq };
+        let key = Key { record: key, eq };
         self.inner.remove(&key)
     }
 
@@ -216,119 +214,8 @@ impl ExternHashMap {
         // `StHashMap` assumes `hash_type` has `'static` lifetime.
         // `StHashMap` assumes `cmp` is a valid non-NULL function pointer.
         let eq = unsafe { (*hash_type).compare };
-        let key = ExternKey { record: key, eq };
+        let key = Key { record: key, eq };
         let (key, value) = self.inner.remove_entry(&key)?;
         Some((key.into(), value))
     }
 }
-
-/// Equality comparator function for `StHash` keys.
-///
-/// # Header declaration
-///
-/// ```c
-/// typedef int st_compare_func(st_data_t, st_data_t);
-/// ```
-pub type st_compare_func = unsafe extern "C" fn(st_data_t, st_data_t) -> c_int;
-
-/// Hash function for `StHash` keys.
-///
-/// # Header declaration
-///
-/// ```c
-/// typedef st_index_t st_hash_func(st_data_t);
-/// ```
-pub type st_hash_func = unsafe extern "C" fn(st_data_t) -> st_index_t;
-
-/// Equality comparator and hash function used to build a [`StHashMap`] hasher.
-///
-/// These functions are `unsafe extern "C" fn` and expected to be supplied via
-/// FFI.
-///
-/// # Safety
-///
-/// `st_hash_type` are expected to have `'static` lifetime. This assumption is
-/// exploited by [`StHashMap`] and [`StBuildHasher`].
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct st_hash_type {
-    /// `st_compare_func`
-    ///
-    /// # Header declaration
-    ///
-    /// ```c
-    /// (*compare)(ANYARGS /*st_data_t, st_data_t*/); /* st_compare_func* */
-    /// ```
-    pub compare: st_compare_func,
-
-    /// `st_hash_func`
-    ///
-    /// # Header declaration
-    ///
-    /// ```c
-    /// st_index_t (*hash)(ANYARGS /*st_data_t*/);        /* st_hash_func* */
-    /// ```
-    pub hash: st_hash_func,
-}
-
-/// Return values from [`st_foreach_callback_func`] and
-/// [`st_update_callback_func`] callback function pointers.
-#[repr(C)]
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[allow(clippy::upper_case_acronyms)]
-pub enum st_retval {
-    /// Continue iteration.
-    ST_CONTINUE,
-
-    /// Stop iteration.
-    ST_STOP,
-
-    /// Delete current iteration `(key, value)` pair and continue iteration.
-    ST_DELETE,
-
-    /// Continue or stop iteration.
-    ///
-    /// This return value has slightly different behavior depending on API. See
-    /// [`st_foreach`] and [`st_foreach_check`].
-    ///
-    /// [`st_foreach`]: crate::api::st_foreach
-    /// [`st_foreach_check`]: crate::api::st_foreach_check
-    ST_CHECK,
-}
-
-impl PartialEq<i32> for st_retval {
-    fn eq(&self, other: &i32) -> bool {
-        *self as i32 == *other
-    }
-}
-
-impl PartialEq<st_retval> for i32 {
-    fn eq(&self, other: &st_retval) -> bool {
-        *self == *other as i32
-    }
-}
-
-/// [`st_update`] callback function.
-///
-/// # Header declaration
-///
-/// ```c
-/// typedef int st_update_callback_func(st_data_t *key, st_data_t *value, st_data_t arg, int existing);
-/// ```
-///
-/// [`st_update`]: crate::api::st_update
-pub type st_update_callback_func =
-    unsafe extern "C" fn(*mut st_data_t, *mut st_data_t, st_data_t, c_int) -> c_int;
-
-/// [`st_foreach`] and [`st_foreach_check`] callback function.
-///
-/// # Header declaration
-///
-/// ```c
-/// int (*)(ANYARGS)
-/// ```
-///
-/// [`st_foreach`]: crate::api::st_foreach
-/// [`st_foreach_check`]: crate::api::st_foreach_check
-pub type st_foreach_callback_func =
-    unsafe extern "C" fn(st_data_t, st_data_t, st_data_t, i32) -> i32;

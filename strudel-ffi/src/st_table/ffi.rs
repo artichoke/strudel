@@ -1,58 +1,11 @@
 //! FFI helpers.
 
 use core::fmt;
-use std::mem::ManuallyDrop;
 
-use crate::api::{st_hash_type, st_index_t, ExternHashMap};
-
-/// Wrapper around an `st_table` that is owned by a foreign caller.
-///
-/// This struct will repack metadata on drop but will not free the underlying
-/// table.
-#[derive(Debug, Clone)]
-pub struct ForeignOwned {
-    inner: ManuallyDrop<Box<st_table>>,
-}
-
-impl ForeignOwned {
-    unsafe fn new_from_raw(table: *mut st_table) -> Self {
-        let table = Box::from_raw(table);
-        let inner = ManuallyDrop::new(table);
-        Self { inner }
-    }
-
-    /// Retrieve a mutable, potentially aliased pointer to the inner `StHashMap`.
-    ///
-    /// This pointer is guaranteed to not be modified as long as `st_free_table`
-    /// is not called.
-    ///
-    /// # Safety
-    ///
-    /// Callers must not create mutable references from the returned pointer as
-    /// it is not guaranteed to be unaliased.
-    pub unsafe fn as_inner_mut(&mut self) -> *mut ExternHashMap {
-        self.inner.table
-    }
-
-    /// Return the inner owned `st_table`.
-    ///
-    /// # Safety
-    ///
-    /// Callers must ensure the table is not owned by foreign code so it is not
-    /// prematurely dropped.
-    #[must_use]
-    pub unsafe fn take(mut self) -> Box<st_table> {
-        ManuallyDrop::take(&mut self.inner)
-    }
-}
-
-impl Drop for ForeignOwned {
-    fn drop(&mut self) {
-        unsafe {
-            self.inner.repack();
-        }
-    }
-}
+use super::foreign::{Foreign, Repack};
+use super::StTable;
+use crate::bindings::st_hash_type;
+use crate::primitives::st_index_t;
 
 // These values enforced by test.
 #[cfg(target_pointer_width = "64")]
@@ -75,7 +28,7 @@ const PADDING_TO_END: usize = 16;
 /// [`StHashMap`]: crate::StHashMap
 #[repr(C)]
 pub struct st_table {
-    table: *mut ExternHashMap,
+    pub(super) table: *mut StTable,
     _padding: [u8; PADDING_TO_NUM_ENTRIES],
     type_: *const st_hash_type,
     num_entries: st_index_t,
@@ -86,6 +39,12 @@ impl Clone for st_table {
     fn clone(&self) -> Self {
         let inner = unsafe { (*self.table).clone() };
         inner.into()
+    }
+}
+
+impl Repack for st_table {
+    unsafe fn repack(&mut self) {
+        self.repack();
     }
 }
 
@@ -158,8 +117,8 @@ impl st_table {
     /// [`st_table::into_raw`] or [`st_table::boxed_into_raw`].
     #[inline]
     #[must_use]
-    pub unsafe fn from_raw(table: *mut Self) -> ForeignOwned {
-        ForeignOwned::new_from_raw(table)
+    pub unsafe fn from_raw(table: *mut Self) -> Foreign<Self> {
+        Foreign::new_from_raw(table)
     }
 }
 
@@ -176,9 +135,9 @@ impl fmt::Debug for st_table {
     }
 }
 
-impl From<ExternHashMap> for st_table {
+impl From<StTable> for st_table {
     #[inline]
-    fn from(table: ExternHashMap) -> Self {
+    fn from(table: StTable) -> Self {
         let num_entries = st_index_t::from(table.inner.len());
         let hash_type = table.inner.hasher().hash_type();
         let table = Box::new(table);
@@ -196,8 +155,10 @@ impl From<ExternHashMap> for st_table {
 #[cfg(test)]
 mod tests {
     use core::mem::size_of;
+    use std::os::raw::{c_uchar, c_uint};
 
-    use crate::api::{st_data_t, st_hash_t, st_hash_type, st_index_t};
+    use crate::bindings::st_hash_type;
+    use crate::primitives::{st_data_t, st_hash_t, st_index_t};
 
     /// `st_table` struct definition from C in `st.h`.
     ///
@@ -224,10 +185,10 @@ mod tests {
     /// ```
     #[repr(C)]
     pub struct st_table {
-        pub entry_power: libc::c_uchar,
-        pub bin_power: libc::c_uchar,
-        pub size_ind: libc::c_uchar,
-        pub rebuilds_num: libc::c_uint,
+        pub entry_power: c_uchar,
+        pub bin_power: c_uchar,
+        pub size_ind: c_uchar,
+        pub rebuilds_num: c_uint,
         pub type_: *const st_hash_type,
         pub num_entries: st_index_t,
         pub bins: *mut st_index_t,

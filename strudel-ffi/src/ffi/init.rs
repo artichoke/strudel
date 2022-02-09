@@ -1,12 +1,15 @@
 use core::hash::Hasher;
 use core::mem::transmute;
 use core::slice;
-use fnv::FnvHasher;
 use std::ffi::CStr;
+use std::os::raw::{c_char, c_int};
 
-use crate::api::{st_data_t, st_hash_type, st_index_t};
-use crate::capi::{st_init_table, st_init_table_with_size};
-use crate::ffi::st_table;
+use fnv::FnvHasher;
+
+use super::{st_init_table, st_init_table_with_size};
+use crate::bindings::st_hash_type;
+use crate::primitives::{st_data_t, st_index_t};
+use crate::st_table::ffi::st_table;
 
 /// # Header declaration
 ///
@@ -14,7 +17,7 @@ use crate::ffi::st_table;
 /// CONSTFUNC(int st_numcmp(st_data_t, st_data_t));
 /// ```
 #[no_mangle]
-unsafe extern "C" fn st_numcmp(x: st_data_t, y: st_data_t) -> libc::c_int {
+unsafe extern "C" fn st_numcmp(x: st_data_t, y: st_data_t) -> c_int {
     if x == y {
         0
     } else {
@@ -40,15 +43,6 @@ static st_hashtype_num: st_hash_type = st_hash_type {
 /// # Declaration
 ///
 /// ```c
-/// /* extern int strcmp(const char *, const char *); */
-/// ```
-unsafe extern "C" fn strcmp(x: st_data_t, y: st_data_t) -> libc::c_int {
-    libc::strcmp(x.as_const_c_char(), y.as_const_c_char())
-}
-
-/// # Declaration
-///
-/// ```c
 /// static st_index_t strhash(st_data_t);
 /// ```
 unsafe extern "C" fn strhash(arg: st_data_t) -> st_index_t {
@@ -59,7 +53,9 @@ unsafe extern "C" fn strhash(arg: st_data_t) -> st_index_t {
 }
 
 static type_strhash: st_hash_type = st_hash_type {
-    compare: strcmp,
+    compare: unsafe {
+        transmute(libc::strcmp as unsafe extern "C" fn(*const c_char, *const c_char) -> c_int)
+    },
     hash: strhash,
 };
 
