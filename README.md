@@ -29,8 +29,8 @@ Rust `std`.
 `StHashMap`, and `StHashSet` which builds on top of it, support in-place updates
 of hash keys. No mutable iterators are provided.
 
-The optional `api` and `capi` modules in `strudel` build on top of `StHashMap`
-to implement a compatible C API to `st_hash`. This API includes support for
+The `api` and `capi` modules in `strudel` build on top of `StHashMap` to
+implement a compatible C API to `st_hash`. This API includes support for
 iterating over a mutable map and in-place updates of `(key, value)` pairs. These
 features distinguish it from the [`HashMap`] in Rust `std`.
 
