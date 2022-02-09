@@ -111,4 +111,4 @@ pub type st_update_callback_func =
 /// [`st_foreach`]: crate::ffi::st_foreach
 /// [`st_foreach_check`]: crate::ffi::st_foreach_check
 pub type st_foreach_callback_func =
-    unsafe extern "C" fn(st_data_t, st_data_t, st_data_t, i32) -> i32;
+    unsafe extern "C" fn(st_data_t, st_data_t, st_data_t, c_int) -> c_int;
