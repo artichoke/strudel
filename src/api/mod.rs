@@ -1,11 +1,8 @@
 #![allow(non_upper_case_globals)]
 
-//! `st_hash`-compatible Rust API bindings for [`ExternStHashMap`].
+//! `st_hash`-compatible Rust API bindings for [`StHashMap`].
 //!
-//! These bindings require activating the **api** Cargo feature.
-//!
-//! For the C API bindings, see the `capi` module. The C bindings require
-//! activating the **capi** Cargo feature.
+//! [`StHashMap`]: crate::StHashMap
 
 use core::ffi::c_void;
 use core::hash::Hasher;
@@ -15,13 +12,16 @@ use core::slice;
 use fnv::FnvHasher;
 
 mod hasher;
+mod primitives;
 mod typedefs;
 
 pub use hasher::{StBuildHasher, StHasher};
-pub use typedefs::{
-    st_data_t, st_foreach_callback_func, st_hash_t, st_hash_type, st_index_t, st_retval, st_table,
-    st_update_callback_func, ExternStHashMap,
+pub use primitives::{st_data_t, st_hash_t, st_index_t};
+pub(crate) use typedefs::{
+    st_foreach_callback_func, st_hash_type, st_retval, st_update_callback_func, ExternHashMap,
 };
+
+use crate::ffi::st_table;
 
 const DEFAULT_CAPACITY: usize = 8;
 
@@ -36,7 +36,7 @@ const DEFAULT_CAPACITY: usize = 8;
 #[inline]
 #[must_use]
 pub fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
-    let table = ExternStHashMap::with_capacity_and_hash_type(DEFAULT_CAPACITY, hash_type);
+    let table = ExternHashMap::with_capacity_and_hash_type(DEFAULT_CAPACITY, hash_type);
     st_table::into_raw(table.into())
 }
 
@@ -52,7 +52,7 @@ pub fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
 #[inline]
 #[must_use]
 pub fn st_init_table_with_size(hash_type: *const st_hash_type, size: st_index_t) -> *mut st_table {
-    let table = ExternStHashMap::with_capacity_and_hash_type(size as usize, hash_type);
+    let table = ExternHashMap::with_capacity_and_hash_type(size.into(), hash_type);
     st_table::into_raw(table.into())
 }
 
@@ -79,7 +79,9 @@ pub unsafe fn st_delete(
     value: *mut st_data_t,
 ) -> libc::c_int {
     let mut table = st_table::from_raw(table);
-    let ret = if let Some((entry_key, entry_value)) = table.remove_entry_raw(*key) {
+    let inner = table.as_inner_mut();
+
+    if let Some((entry_key, entry_value)) = (*inner).remove_entry_raw(*key) {
         ptr::write(key, entry_key);
         if !value.is_null() {
             ptr::write(value, entry_value);
@@ -87,13 +89,10 @@ pub unsafe fn st_delete(
         1
     } else {
         if !value.is_null() {
-            ptr::write(value, 0);
+            ptr::write(value, 0_usize.into());
         }
         0
-    };
-    table.ensure_num_entries_is_consistent_after_writes();
-    mem::forget(table);
-    ret
+    }
 }
 
 /// The function and other functions with suffix '_safe' or '_check' are
@@ -147,21 +146,20 @@ pub unsafe fn st_shift(
     value: *mut st_data_t,
 ) -> libc::c_int {
     let mut table = st_table::from_raw(table);
-    if let Some((&first_key, _)) = table.first_raw() {
-        if let Some((entry_key, entry_value)) = table.remove_entry_raw(first_key) {
+    let inner = table.as_inner_mut();
+
+    if let Some((&first_key, _)) = (*inner).first_raw() {
+        if let Some((entry_key, entry_value)) = (*inner).remove_entry_raw(first_key) {
             ptr::write(key, entry_key);
             if !value.is_null() {
                 ptr::write(value, entry_value);
             }
-            table.ensure_num_entries_is_consistent_after_writes();
-            mem::forget(table);
             return 1;
         }
     }
     if !value.is_null() {
-        ptr::write(value, 0);
+        ptr::write(value, 0_usize.into());
     }
-    mem::forget(table);
     0
 }
 
@@ -182,14 +180,13 @@ pub unsafe fn st_shift(
 #[inline]
 pub unsafe fn st_insert(table: *mut st_table, key: st_data_t, value: st_data_t) -> libc::c_int {
     let mut table = st_table::from_raw(table);
-    let ret = if table.insert_raw(key, value).is_some() {
+    let inner = table.as_inner_mut();
+
+    if (*inner).insert_raw(key, value).is_some() {
         1
     } else {
-        table.ensure_num_entries_is_consistent_after_writes();
         0
-    };
-    mem::forget(table);
-    ret
+    }
 }
 
 /// Insert (FUNC(KEY), VALUE) into table TAB and return zero. If there is
@@ -216,23 +213,24 @@ pub unsafe fn st_insert2(
     value: st_data_t,
     func: unsafe extern "C" fn(st_data_t) -> st_data_t,
 ) -> libc::c_int {
+    let table_raw = table;
     let mut table = st_table::from_raw(table);
-    if table.get_raw(key).is_some() {
-        if table.insert_raw(key, value).is_none() {
-            table.ensure_num_entries_is_consistent_after_writes();
-        }
-        mem::forget(table);
+    let inner = table.as_inner_mut();
+
+    if (*inner).get_raw(key).is_some() {
+        let _ = (*inner).insert_raw(key, value);
         1
     } else {
-        let table = st_table::boxed_into_raw(table);
-        // `func` might mutate this table, so make sure we don't
-        // alias the `Box`.
+        // `func` might mutate this table, so make sure we don't alias the `Box`.
+        drop(table);
         let key = func(key);
-        let mut table = st_table::from_raw(table);
-        if table.insert_raw(key, value).is_none() {
-            table.ensure_num_entries_is_consistent_after_writes();
-        }
-        mem::forget(table);
+
+        let _ = (*inner).insert_raw(key, value);
+        // We can reuse `inner` because it is guaranteed to not change for the
+        // life of the table, but we reify the table so we can repack its size
+        // and other metadata into the FFI struct.
+        drop(st_table::from_raw(table_raw));
+
         0
     }
 }
@@ -256,17 +254,17 @@ pub unsafe fn st_lookup(
     key: st_data_t,
     value: *mut st_data_t,
 ) -> libc::c_int {
-    let table = st_table::from_raw(table);
-    let ret = if let Some(&entry_value) = table.get_raw(key) {
+    let mut table = st_table::from_raw(table);
+    let inner = table.as_inner_mut();
+
+    if let Some(&entry_value) = (*inner).get_raw(key) {
         if !value.is_null() {
             ptr::write(value, entry_value);
         }
         1
     } else {
         0
-    };
-    mem::forget(table);
-    ret
+    }
 }
 
 /// Find an entry with `key` in table `table`. Return non-zero if we found it.
@@ -288,17 +286,17 @@ pub unsafe fn st_get_key(
     key: st_data_t,
     result: *mut st_data_t,
 ) -> libc::c_int {
-    let table = st_table::from_raw(table);
-    let ret = if let Some((&entry_key, _)) = table.get_key_value_raw(key) {
+    let mut table = st_table::from_raw(table);
+    let inner = table.as_inner_mut();
+
+    if let Some((&entry_key, _)) = (*inner).get_key_value_raw(key) {
         if !result.is_null() {
             ptr::write(result, entry_key);
         }
         1
     } else {
         0
-    };
-    mem::forget(table);
-    ret
+    }
 }
 
 /// Find entry with `key` in table `table`, call `func` with the key and the
@@ -339,23 +337,29 @@ pub unsafe fn st_update(
 ) -> libc::c_int {
     use st_retval::{ST_CONTINUE, ST_DELETE};
 
+    let table_raw = table;
     let mut table = st_table::from_raw(table);
+    let inner = table.as_inner_mut();
 
     let (existing, mut key, mut value) =
-        if let Some((&entry_key, &entry_value)) = table.get_key_value_raw(key) {
+        if let Some((&entry_key, &entry_value)) = (*inner).get_key_value_raw(key) {
             (true, entry_key, entry_value)
         } else {
-            (false, key, 0)
+            (false, key, 0_usize.into())
         };
 
     let old_key = key;
     let old_value = value;
+
+    // `func` might mutate this table, so make sure we don't alias the `Box`.
+    drop(table);
     let update = func(&mut key, &mut value, arg, existing as libc::c_int);
+
     if update == ST_CONTINUE {
         match (key, value) {
             (key, value) if existing && key == old_key && value == old_value => {}
             (key, value) if key == old_key => {
-                let _ = table.insert_raw(key, value);
+                let _ = (*inner).insert_raw(key, value);
             }
             (key, value) => {
                 // In the MRI implementation, `st_add_direct_with_hash` is called in
@@ -374,14 +378,18 @@ pub unsafe fn st_update(
                 // ```c
                 // st_add_direct_with_hash(table, key, value, hash);
                 // ```
-                table.update_raw(key, value);
+                (*inner).update_raw(key, value);
             }
         }
     } else if update == ST_DELETE && existing {
-        let _ = table.remove_raw(old_key);
+        let _ = (*inner).remove_raw(old_key);
     }
-    table.ensure_num_entries_is_consistent_after_writes();
-    mem::forget(table);
+
+    // We can reuse `inner` above because it is guaranteed to not change for the
+    // life of the table, but we reify the table so we can repack its size and
+    // other metadata into the FFI struct.
+    drop(st_table::from_raw(table_raw));
+
     existing as libc::c_int
 }
 
@@ -416,38 +424,59 @@ pub unsafe fn st_foreach(
 ) -> libc::c_int {
     use st_retval::{ST_CHECK, ST_CONTINUE, ST_DELETE, ST_STOP};
 
+    let table_raw = table;
     let mut table = st_table::from_raw(table);
-    let mut insertion_ranks = table.insert_ranks_from(0);
+    let inner = table.as_inner_mut();
+
+    let mut insertion_ranks = (*inner).inner.insert_ranks_from(0);
     let mut last_seen_rank = 0;
+
+    // `func` might mutate this table, so make sure we don't alias the `Box`.
+    drop(table);
 
     loop {
         if let Some(rank) = insertion_ranks.next() {
             last_seen_rank = rank;
-            let nth = table
+            let nth = (*inner)
+                .inner
                 .get_nth(rank)
                 .map(|(key, &value)| (*key.inner(), value));
 
             if let Some((key, value)) = nth {
                 let retval = func(key, value, arg, 0);
+
                 match retval {
                     retval if ST_CONTINUE == retval => {}
                     retval if ST_CHECK == retval || ST_STOP == retval => return 0,
                     retval if ST_DELETE == retval => {
-                        let _ = table.remove_raw(key);
-                        table.ensure_num_entries_is_consistent_after_writes();
+                        let _ = (*inner).remove_raw(key);
+                        // We can reuse `inner` above because it is guaranteed
+                        // to not change for the life of the table, but we reify
+                        // the table so we can repack its size and other metadata
+                        // into the FFI struct.
+                        //
+                        // We must do this since we are looping and `func` may be
+                        // called multiple times.
+                        drop(st_table::from_raw(table_raw));
                     }
                     _ => {}
                 }
             }
         } else {
-            let current_max = table.max_insert_rank();
+            let current_max = (*inner).inner.max_insert_rank();
             if current_max <= last_seen_rank {
                 break;
             }
-            insertion_ranks = table.insert_ranks_from(last_seen_rank);
+            insertion_ranks = (*inner).inner.insert_ranks_from(last_seen_rank);
+            // We can reuse `inner` above because it is guaranteed to not change
+            // for the life of the table, but we reify the table so we can repack
+            // its size and other metadata into the FFI struct.
+            //
+            // We must do this since we are looping and `func` may be called
+            // multiple times.
+            drop(st_table::from_raw(table_raw));
         }
     }
-    mem::forget(table);
     0
 }
 
@@ -483,14 +512,21 @@ pub unsafe fn st_foreach_check(
 ) -> libc::c_int {
     use st_retval::{ST_CHECK, ST_CONTINUE, ST_DELETE, ST_STOP};
 
+    let table_raw = table;
     let mut table = st_table::from_raw(table);
-    let mut insertion_ranks = table.insert_ranks_from(0);
+    let inner = table.as_inner_mut();
+
+    let mut insertion_ranks = (*inner).inner.insert_ranks_from(0);
     let mut last_seen_rank = 0;
+
+    // `func` might mutate this table, so make sure we don't alias the `Box`.
+    drop(table);
 
     loop {
         if let Some(rank) = insertion_ranks.next() {
             last_seen_rank = rank;
-            let nth = table
+            let nth = (*inner)
+                .inner
                 .get_nth(rank)
                 .map(|(key, &value)| (*key.inner(), value));
 
@@ -500,21 +536,34 @@ pub unsafe fn st_foreach_check(
                     retval if ST_CONTINUE == retval || ST_CHECK == retval => {}
                     retval if ST_STOP == retval => return 0,
                     retval if ST_DELETE == retval => {
-                        let _ = table.remove_raw(key);
-                        table.ensure_num_entries_is_consistent_after_writes();
+                        let _ = (*inner).remove_raw(key);
+                        // We can reuse `inner` above because it is guaranteed
+                        // to not change for the life of the table, but we reify
+                        // the table so we can repack its size and other metadata
+                        // into the FFI struct.
+                        //
+                        // We must do this since we are looping and `func` may be
+                        // called multiple times.
+                        drop(st_table::from_raw(table_raw));
                     }
                     _ => {}
                 }
             }
         } else {
-            let current_max = table.max_insert_rank();
+            let current_max = (*inner).inner.max_insert_rank();
             if current_max <= last_seen_rank {
                 break;
             }
-            insertion_ranks = table.insert_ranks_from(last_seen_rank);
+            insertion_ranks = (*inner).inner.insert_ranks_from(last_seen_rank);
+            // We can reuse `inner` above because it is guaranteed to not change
+            // for the life of the table, but we reify the table so we can repack
+            // its size and other metadata into the FFI struct.
+            //
+            // We must do this since we are looping and `func` may be called
+            // multiple times.
+            drop(st_table::from_raw(table_raw));
         }
     }
-    mem::forget(table);
     0
 }
 
@@ -535,15 +584,17 @@ pub unsafe fn st_foreach_check(
 /// `keys` must be non-null and point to an array.
 #[inline]
 pub unsafe fn st_keys(table: *mut st_table, keys: *mut st_data_t, size: st_index_t) -> st_index_t {
-    let table = st_table::from_raw(table);
-    let keys = slice::from_raw_parts_mut(keys, size as usize);
+    let mut table = st_table::from_raw(table);
+    let inner = table.as_inner_mut();
+
+    let keys = slice::from_raw_parts_mut(keys, size.into());
     let mut count = 0;
-    for (counter, (slot, key)) in keys.iter_mut().zip(table.keys()).enumerate() {
+    for (counter, (slot, key)) in keys.iter_mut().zip((*inner).inner.keys()).enumerate() {
         ptr::write(slot, *key.inner());
         count = counter;
     }
     mem::forget(table);
-    count as st_index_t
+    count.into()
 }
 
 /// No-op. See comments for function [`st_delete_safe`].
@@ -591,15 +642,16 @@ pub unsafe fn st_values(
     values: *mut st_data_t,
     size: st_index_t,
 ) -> st_index_t {
-    let table = st_table::from_raw(table);
-    let keys = slice::from_raw_parts_mut(values, size as usize);
+    let mut table = st_table::from_raw(table);
+    let inner = table.as_inner_mut();
+
+    let keys = slice::from_raw_parts_mut(values, size.into());
     let mut count = 0;
-    for (counter, (slot, &value)) in keys.iter_mut().zip(table.values()).enumerate() {
+    for (counter, (slot, &value)) in keys.iter_mut().zip((*inner).inner.values()).enumerate() {
         ptr::write(slot, value);
         count = counter;
     }
-    mem::forget(table);
-    count as st_index_t
+    count.into()
 }
 
 /// No-op. See comments for function [`st_delete_safe`].
@@ -658,10 +710,9 @@ pub unsafe fn st_add_direct(table: *mut st_table, key: st_data_t, value: st_data
     // Unlike `st_update`, there is no semantic difference here because there
     // are no callbacks.
     let mut table = st_table::from_raw(table);
-    if table.insert_raw(key, value).is_none() {
-        table.ensure_num_entries_is_consistent_after_writes();
-    }
-    mem::forget(table);
+    let inner = table.as_inner_mut();
+
+    let _ = (*inner).insert_raw(key, value);
 }
 
 /// Free table `table` space.
@@ -679,6 +730,7 @@ pub unsafe fn st_add_direct(table: *mut st_table, key: st_data_t, value: st_data
 #[inline]
 pub unsafe fn st_free_table(table: *mut st_table) {
     let table = st_table::from_raw(table);
+    let table = table.take();
     drop(table);
 }
 
@@ -709,9 +761,9 @@ pub fn st_cleanup_safe(table: *mut st_table, _never: st_data_t) {
 #[inline]
 pub unsafe fn st_clear(table: *mut st_table) {
     let mut table = st_table::from_raw(table);
-    table.clear();
-    table.ensure_num_entries_is_consistent_after_writes();
-    mem::forget(table);
+    let inner = table.as_inner_mut();
+
+    (*inner).inner.clear();
 }
 
 /// Create and return a copy of table `old_table`.
@@ -730,8 +782,9 @@ pub unsafe fn st_clear(table: *mut st_table) {
 pub unsafe fn st_copy(old_table: *mut st_table) -> *mut st_table {
     let old_table = st_table::from_raw(old_table);
     let table = old_table.clone();
-    mem::forget(old_table);
-    st_table::into_raw(table.into())
+    drop(old_table);
+    let table = table.take();
+    st_table::boxed_into_raw(table)
 }
 
 /// Return byte size of memory allocted for table `table`.
@@ -755,10 +808,10 @@ pub unsafe fn st_copy(old_table: *mut st_table) -> *mut st_table {
 #[inline]
 #[must_use]
 pub unsafe fn st_memsize(table: *const st_table) -> libc::size_t {
-    let table = st_table::from_raw(table as *mut st_table);
-    let memsize = table.estimated_memsize();
-    mem::forget(table);
-    memsize as _
+    let mut table = st_table::from_raw(table as *mut st_table);
+    let inner = table.as_inner_mut();
+
+    (*inner).inner.estimated_memsize()
 }
 
 /// Hash a byte array with FNV.
@@ -775,10 +828,10 @@ pub unsafe fn st_memsize(table: *const st_table) -> libc::size_t {
 #[inline]
 #[must_use]
 pub unsafe fn st_hash(ptr: *const c_void, len: libc::size_t, h: st_index_t) -> st_index_t {
-    let mut hasher = FnvHasher::with_key(h as u64);
-    let data = slice::from_raw_parts(ptr.cast::<u8>(), len as usize);
+    let mut hasher = FnvHasher::with_key(h.into());
+    let data = slice::from_raw_parts(ptr.cast::<u8>(), len);
     hasher.write(data);
-    hasher.finish() as st_index_t
+    hasher.finish().into()
 }
 
 /// Hash one round of FNV with `h` as the initial state.
@@ -791,9 +844,9 @@ pub unsafe fn st_hash(ptr: *const c_void, len: libc::size_t, h: st_index_t) -> s
 #[inline]
 #[must_use]
 pub fn st_hash_uint32(h: st_index_t, i: u32) -> st_index_t {
-    let mut hasher = FnvHasher::with_key(h as u64);
+    let mut hasher = FnvHasher::with_key(h.into());
     hasher.write_u32(i);
-    hasher.finish() as st_index_t
+    hasher.finish().into()
 }
 
 /// Hash one round of FNV with `h` as the initial state.
@@ -806,9 +859,9 @@ pub fn st_hash_uint32(h: st_index_t, i: u32) -> st_index_t {
 #[inline]
 #[must_use]
 pub fn st_hash_uint(h: st_index_t, i: st_index_t) -> st_index_t {
-    let mut hasher = FnvHasher::with_key(h as u64);
-    hasher.write_u64(i as u64);
-    hasher.finish() as st_index_t
+    let mut hasher = FnvHasher::with_key(h.into());
+    hasher.write_usize(i.into());
+    hasher.finish().into()
 }
 
 /// Finalize FNV hash.
@@ -835,6 +888,6 @@ pub const fn st_hash_end(h: st_index_t) -> st_index_t {
 #[must_use]
 pub fn st_hash_start(h: st_index_t) -> st_index_t {
     let mut hasher = FnvHasher::default();
-    hasher.write_u64(h as u64);
-    hasher.finish() as st_index_t
+    hasher.write_usize(h.into());
+    hasher.finish().into()
 }

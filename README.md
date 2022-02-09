@@ -29,8 +29,8 @@ Rust `std`.
 `StHashMap`, and `StHashSet` which builds on top of it, support in-place updates
 of hash keys. No mutable iterators are provided.
 
-The optional `api` and `capi` modules in `strudel` build on top of `StHashMap`
-to implement a compatible C API to `st_hash`. This API includes support for
+The `api` and `capi` modules in `strudel` build on top of `StHashMap` to
+implement a compatible C API to `st_hash`. This API includes support for
 iterating over a mutable map and in-place updates of `(key, value)` pairs. These
 features distinguish it from the [`HashMap`] in Rust `std`.
 
@@ -43,18 +43,6 @@ Add this to your `Cargo.toml`:
 strudel = "1.0"
 ```
 
-## Crate features
-
-All features are enabled by default.
-
-- **api** - Enables a Rust API that closely mirrors the C API defined in
-  `ruby/st.h`. Disabling this feature drops the [`libc`] dependency.
-- **capi** - Enables a C API suitable for embedding `strudel` with FFI. Linking
-  in the `libstrudel` cdylib will implement the functions defined in
-  `ruby/st.h`. Disabling this feature drops the [`fnv`] dependency.
-- **capi-specialized-init** - Enables additional `st_init_table` C APIs with
-  known `st_hash_type`s for tables with numeric and string keys.
-
 ## Building Ruby with Strudel
 
 Strudel exports most of the symbols implemented by `st.c` in MRI 2.6.3. The
@@ -66,6 +54,14 @@ To build `miniruby` with Strudel, run:
 
 ```sh
 ./build.sh
+```
+
+`build.sh` requires autoconf 2.69. On macOS with Homebrew, this can be done
+with:
+
+```sh
+brew install autoconf@2.69
+PATH="/usr/local/opt/autoconf@2.69/bin:$PATH" ./build.sh
 ```
 
 The resulting Ruby is in `./build/ruby-strudel-build-root/miniruby`. `miniruby`
@@ -106,5 +102,3 @@ The `st_hash` implementation in Ruby includes the following notice:
   https://github.com/python/cpython/blob/v3.8.4/Objects/dictobject.c#L1-L110
 [`hashmap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
 [`vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html
-[`libc`]: https://crates.io/crates/libc
-[`fnv`]: https://crates.io/crates/fnv

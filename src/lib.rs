@@ -132,32 +132,16 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 //! iterating over a mutable map and in-place updates of `(key, value)` pairs. These
 //! features distinguish it from the [`HashMap`] in Rust `std`.
 //!
-//! ## Crate features
-//!
-//! All features are enabled by default.
-//!
-//! - **api** - Enables a Rust API that closely mirrors the C API defined in
-//!   `ruby/st.h`. Disabling this feature drops the [`libc`] dependency.
-//! - **capi** - Enables a C API suitable for embedding `strudel` with FFI. Linking
-//!   in the `libstrudel` cdylib will implement the functions defined in
-//!   `ruby/st.h`. Disabling this feature drops the [`fnv`] dependency.
-//! - **capi-specialized-init** - Enables additional `st_init_table` C APIs with
-//!   known `st_hash_type`s for tables with numeric and string keys.
-//!
 //! [ruby]: https://github.com/ruby/ruby
 //! [st.c]: https://github.com/ruby/ruby/blob/v2_6_3/st.c
 //! [hash]: https://ruby-doc.org/core-2.6.3/Hash.html
 //! [`hashmap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
-//! [`libc`]: https://crates.io/crates/libc
-//! [`fnv`]: https://crates.io/crates/fnv
 
 mod st;
 
-#[cfg(feature = "api")]
 pub mod api;
-
-#[cfg(feature = "capi")]
 pub mod capi;
+pub mod ffi;
 
 pub use st::map::StHashMap;
 pub use st::set::StHashSet;

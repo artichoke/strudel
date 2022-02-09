@@ -1,6 +1,6 @@
 #![allow(non_upper_case_globals)]
 
-//! `st_hash`-compatible C API bindings for [`ExternStHashMap`].
+//! `st_hash`-compatible C API bindings for [`StHashMap`].
 //!
 //! These bindings require activating the **capi** Cargo feature.
 //!
@@ -8,16 +8,16 @@
 //! These functions are callable from C by including `st.h` and linking in
 //! `libstrudel`.
 //!
-//! [`ExternStHashMap`]: crate::api::ExternStHashMap
+//! [`StHashMap`]: crate::StHashMap
 
 use core::ffi::c_void;
 
 use crate::api::{
-    self, st_data_t, st_foreach_callback_func, st_hash_t, st_hash_type, st_index_t, st_table,
+    self, st_data_t, st_foreach_callback_func, st_hash_t, st_hash_type, st_index_t,
     st_update_callback_func,
 };
+use crate::ffi::st_table;
 
-#[cfg(feature = "capi-specialized-init")]
 mod specialized_init;
 
 /// # Header declaration
@@ -27,9 +27,6 @@ mod specialized_init;
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_init_table(hash_type: *const st_hash_type) -> *mut st_table {
-    #[cfg(feature = "debug")]
-    dbg!("st_init_table");
-
     api::st_init_table(hash_type)
 }
 
@@ -43,9 +40,6 @@ unsafe extern "C" fn st_init_table_with_size(
     hash_type: *const st_hash_type,
     size: st_index_t,
 ) -> *mut st_table {
-    #[cfg(feature = "debug")]
-    dbg!("st_init_table_with_size");
-
     api::st_init_table_with_size(hash_type, size)
 }
 
@@ -60,9 +54,6 @@ unsafe extern "C" fn st_delete(
     key: *mut st_data_t,
     value: *mut st_data_t,
 ) -> libc::c_int {
-    #[cfg(feature = "debug")]
-    dbg!("st_delete");
-
     api::st_delete(table, key, value)
 }
 
@@ -78,9 +69,6 @@ unsafe extern "C" fn st_delete_safe(
     value: *mut st_data_t,
     never: *const st_data_t,
 ) -> libc::c_int {
-    #[cfg(feature = "debug")]
-    dbg!("st_delete_safe");
-
     api::st_delete_safe(table, key, value, never)
 }
 
@@ -95,9 +83,6 @@ unsafe extern "C" fn st_shift(
     key: *mut st_data_t,
     value: *mut st_data_t,
 ) -> libc::c_int {
-    #[cfg(feature = "debug")]
-    dbg!("st_shift");
-
     api::st_shift(table, key, value)
 }
 
@@ -112,9 +97,6 @@ unsafe extern "C" fn st_insert(
     key: st_data_t,
     value: st_data_t,
 ) -> libc::c_int {
-    #[cfg(feature = "debug")]
-    dbg!("st_insert");
-
     api::st_insert(table, key, value)
 }
 
@@ -130,9 +112,6 @@ unsafe extern "C" fn st_insert2(
     value: st_data_t,
     func: unsafe extern "C" fn(st_data_t) -> st_data_t,
 ) -> libc::c_int {
-    #[cfg(feature = "debug")]
-    dbg!("st_insert2");
-
     api::st_insert2(table, key, value, func)
 }
 
@@ -147,9 +126,6 @@ unsafe extern "C" fn st_lookup(
     key: st_data_t,
     value: *mut st_data_t,
 ) -> libc::c_int {
-    #[cfg(feature = "debug")]
-    dbg!("st_lookup");
-
     api::st_lookup(table, key, value)
 }
 
@@ -164,9 +140,6 @@ unsafe extern "C" fn st_get_key(
     key: st_data_t,
     result: *mut st_data_t,
 ) -> libc::c_int {
-    #[cfg(feature = "debug")]
-    dbg!("st_get_key");
-
     api::st_get_key(table, key, result)
 }
 
@@ -182,9 +155,6 @@ unsafe extern "C" fn st_update(
     func: st_update_callback_func,
     arg: st_data_t,
 ) -> libc::c_int {
-    #[cfg(feature = "debug")]
-    dbg!("st_update");
-
     api::st_update(table, key, func, arg)
 }
 
@@ -199,9 +169,6 @@ unsafe extern "C" fn st_foreach(
     func: st_foreach_callback_func,
     arg: st_data_t,
 ) -> libc::c_int {
-    #[cfg(feature = "debug")]
-    dbg!("st_foreach");
-
     api::st_foreach(table, func, arg)
 }
 
@@ -217,9 +184,6 @@ unsafe extern "C" fn st_foreach_check(
     arg: st_data_t,
     never: st_data_t,
 ) -> libc::c_int {
-    #[cfg(feature = "debug")]
-    dbg!("st_foreach_check");
-
     api::st_foreach_check(table, func, arg, never)
 }
 
@@ -234,9 +198,6 @@ unsafe extern "C" fn st_keys(
     keys: *mut st_data_t,
     size: st_index_t,
 ) -> st_index_t {
-    #[cfg(feature = "debug")]
-    dbg!("st_keys");
-
     api::st_keys(table, keys, size)
 }
 
@@ -252,9 +213,6 @@ unsafe extern "C" fn st_keys_check(
     size: st_index_t,
     never: st_data_t,
 ) -> st_index_t {
-    #[cfg(feature = "debug")]
-    dbg!("st_keys_check");
-
     api::st_keys_check(table, keys, size, never)
 }
 
@@ -269,9 +227,6 @@ unsafe extern "C" fn st_values(
     values: *mut st_data_t,
     size: st_index_t,
 ) -> st_index_t {
-    #[cfg(feature = "debug")]
-    dbg!("st_values");
-
     api::st_values(table, values, size)
 }
 
@@ -287,9 +242,6 @@ unsafe extern "C" fn st_values_check(
     size: st_index_t,
     never: st_data_t,
 ) -> st_index_t {
-    #[cfg(feature = "debug")]
-    dbg!("st_values_check");
-
     api::st_values_check(table, values, size, never)
 }
 
@@ -300,9 +252,6 @@ unsafe extern "C" fn st_values_check(
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_add_direct(table: *mut st_table, key: st_data_t, value: st_data_t) {
-    #[cfg(feature = "debug")]
-    dbg!("st_add_direct");
-
     api::st_add_direct(table, key, value);
 }
 
@@ -319,9 +268,6 @@ unsafe extern "C" fn st_add_direct_with_hash(
     hash: st_hash_t,
 ) {
     let _ = hash;
-    #[cfg(feature = "debug")]
-    dbg!("st_add_direct_with_hash");
-
     api::st_add_direct(table, key, value);
 }
 
@@ -332,9 +278,6 @@ unsafe extern "C" fn st_add_direct_with_hash(
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_free_table(table: *mut st_table) {
-    #[cfg(feature = "debug")]
-    dbg!("st_free_table");
-
     api::st_free_table(table);
 }
 
@@ -345,9 +288,6 @@ unsafe extern "C" fn st_free_table(table: *mut st_table) {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_cleanup_safe(table: *mut st_table, never: st_data_t) {
-    #[cfg(feature = "debug")]
-    dbg!("st_cleanup_safe");
-
     api::st_cleanup_safe(table, never);
 }
 
@@ -358,9 +298,6 @@ unsafe extern "C" fn st_cleanup_safe(table: *mut st_table, never: st_data_t) {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_clear(table: *mut st_table) {
-    #[cfg(feature = "debug")]
-    dbg!("St_clear");
-
     api::st_clear(table);
 }
 
@@ -371,9 +308,6 @@ unsafe extern "C" fn st_clear(table: *mut st_table) {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_copy(table: *mut st_table) -> *mut st_table {
-    #[cfg(feature = "debug")]
-    dbg!("st_copy");
-
     api::st_copy(table)
 }
 
@@ -384,9 +318,6 @@ unsafe extern "C" fn st_copy(table: *mut st_table) -> *mut st_table {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_memsize(table: *const st_table) -> libc::size_t {
-    #[cfg(feature = "debug")]
-    dbg!("st_memsize");
-
     api::st_memsize(table)
 }
 
@@ -397,9 +328,6 @@ unsafe extern "C" fn st_memsize(table: *const st_table) -> libc::size_t {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_hash(ptr: *const c_void, len: libc::size_t, h: st_index_t) -> st_index_t {
-    #[cfg(feature = "debug")]
-    dbg!("st_hash");
-
     api::st_hash(ptr, len, h)
 }
 
@@ -410,9 +338,6 @@ unsafe extern "C" fn st_hash(ptr: *const c_void, len: libc::size_t, h: st_index_
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_hash_uint32(h: st_index_t, i: u32) -> st_index_t {
-    #[cfg(feature = "debug")]
-    dbg!("st_hash_uint32");
-
     api::st_hash_uint32(h, i)
 }
 
@@ -423,9 +348,6 @@ unsafe extern "C" fn st_hash_uint32(h: st_index_t, i: u32) -> st_index_t {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_hash_uint(h: st_index_t, i: st_index_t) -> st_index_t {
-    #[cfg(feature = "debug")]
-    dbg!("st_hash_uint");
-
     api::st_hash_uint(h, i)
 }
 
@@ -436,9 +358,6 @@ unsafe extern "C" fn st_hash_uint(h: st_index_t, i: st_index_t) -> st_index_t {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_hash_end(h: st_index_t) -> st_index_t {
-    #[cfg(feature = "debug")]
-    dbg!("st_hash_end");
-
     api::st_hash_end(h)
 }
 
@@ -449,9 +368,6 @@ unsafe extern "C" fn st_hash_end(h: st_index_t) -> st_index_t {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_hash_start(h: st_index_t) -> st_index_t {
-    #[cfg(feature = "debug")]
-    dbg!("st_hash_start");
-
     api::st_hash_start(h)
 }
 

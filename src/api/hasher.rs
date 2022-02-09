@@ -1,7 +1,8 @@
 use core::hash::{BuildHasher, Hasher};
 use core::mem::size_of;
 
-use crate::api::typedefs::{st_hash_t, st_hash_type};
+use crate::api::primitives::st_hash_t;
+use crate::api::typedefs::st_hash_type;
 
 /// `StBuildHasher` is the default state for `ExternStHashMap`s.
 ///
@@ -38,7 +39,7 @@ impl BuildHasher for StBuildHasher {
     fn build_hasher(&self) -> Self::Hasher {
         Self::Hasher {
             hash_type: self.hash_type,
-            state: 0,
+            state: 0_usize.into(),
         }
     }
 }
@@ -50,7 +51,7 @@ impl BuildHasher for Box<StBuildHasher> {
     fn build_hasher(&self) -> Self::Hasher {
         Self::Hasher {
             hash_type: self.hash_type,
-            state: 0,
+            state: 0_usize.into(),
         }
     }
 }
@@ -68,16 +69,18 @@ impl StHasher {
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn add_to_hash(&mut self, i: st_hash_t) {
         // `StHasher` should only be called with one round.
-        debug_assert!(self.state == 0);
+        debug_assert!(usize::from(self.state) == 0_usize);
+
         // Safety:
         //
         // `StHasher` assumes the `*const st_hash_type` pointer has `'static`
         // lifetime.
         // `StHasher` assumes that the `hash` function pointer is non-NULL.
-        self.state += unsafe {
+        let hash_val = unsafe {
             let hash = (*self.hash_type).hash;
-            (hash)(i)
+            (hash)(usize::from(i).into())
         };
+        self.state = st_hash_t::from(usize::from(hash_val) + usize::from(self.state));
     }
 
     /// Return the underlying equality comparator and hash function used to
@@ -107,39 +110,45 @@ impl Hasher for StHasher {
 
     #[inline]
     fn write_u8(&mut self, i: u8) {
-        self.add_to_hash(i as st_hash_t);
+        let i = i as usize;
+        self.add_to_hash(i.into());
     }
 
     #[inline]
     fn write_u16(&mut self, i: u16) {
-        self.add_to_hash(i as st_hash_t);
+        let i = i as usize;
+        self.add_to_hash(i.into());
     }
 
     #[inline]
     fn write_u32(&mut self, i: u32) {
-        self.add_to_hash(i as st_hash_t);
+        let i = i as usize;
+        self.add_to_hash(i.into());
     }
 
     #[inline]
     #[cfg(target_pointer_width = "32")]
     fn write_u64(&mut self, i: u64) {
-        self.add_to_hash(i as st_hash_t);
-        self.add_to_hash((i >> 32) as st_hash_t);
+        let d = i as usize;
+        self.add_to_hash(d.into());
+        let d = (i >> 32) as usize;
+        self.add_to_hash(d.into());
     }
 
     #[inline]
     #[cfg(target_pointer_width = "64")]
     fn write_u64(&mut self, i: u64) {
-        self.add_to_hash(i as st_hash_t);
+        let i = i as usize;
+        self.add_to_hash(i.into());
     }
 
     #[inline]
     fn write_usize(&mut self, i: usize) {
-        self.add_to_hash(i as st_hash_t);
+        self.add_to_hash(i.into());
     }
 
     #[inline]
     fn finish(&self) -> u64 {
-        self.state as u64
+        usize::from(self.state) as u64
     }
 }
