@@ -1,7 +1,9 @@
+#![warn(unsafe_op_in_unsafe_fn)]
+
 use core::hash::{BuildHasher, Hasher};
 use core::mem::size_of;
 
-use crate::api::primitives::st_hash_t;
+use crate::api::primitives::st_data_t;
 use crate::api::typedefs::st_hash_type;
 
 /// `StBuildHasher` is the default state for `ExternStHashMap`s.
@@ -39,7 +41,7 @@ impl BuildHasher for StBuildHasher {
     fn build_hasher(&self) -> Self::Hasher {
         Self::Hasher {
             hash_type: self.hash_type,
-            state: 0_usize.into(),
+            state: 0,
         }
     }
 }
@@ -51,7 +53,7 @@ impl BuildHasher for Box<StBuildHasher> {
     fn build_hasher(&self) -> Self::Hasher {
         Self::Hasher {
             hash_type: self.hash_type,
-            state: 0_usize.into(),
+            state: 0,
         }
     }
 }
@@ -61,15 +63,14 @@ impl BuildHasher for Box<StBuildHasher> {
 #[allow(clippy::module_name_repetitions)]
 pub struct StHasher {
     hash_type: *const st_hash_type,
-    state: st_hash_t,
+    state: u64,
 }
 
 impl StHasher {
     #[inline]
-    #[allow(clippy::not_unsafe_ptr_arg_deref)]
-    fn add_to_hash(&mut self, i: st_hash_t) {
+    unsafe fn add_to_hash(&mut self, i: st_data_t) {
         // `StHasher` should only be called with one round.
-        debug_assert!(usize::from(self.state) == 0_usize);
+        debug_assert!(self.state == 0);
 
         // Safety:
         //
@@ -78,9 +79,9 @@ impl StHasher {
         // `StHasher` assumes that the `hash` function pointer is non-NULL.
         let hash_val = unsafe {
             let hash = (*self.hash_type).hash;
-            (hash)(usize::from(i).into())
+            (hash)(i)
         };
-        self.state = st_hash_t::from(usize::from(hash_val) + usize::from(self.state));
+        self.state += u64::from(hash_val);
     }
 
     /// Return the underlying equality comparator and hash function used to
@@ -95,60 +96,74 @@ impl StHasher {
 impl Hasher for StHasher {
     #[inline]
     fn write(&mut self, bytes: &[u8]) {
-        let mut iter = bytes.chunks_exact(size_of::<st_hash_t>());
-        let mut buf = [0_u8; size_of::<st_hash_t>()];
+        let mut iter = bytes.chunks_exact(size_of::<st_data_t>());
+        let mut buf = [0_u8; size_of::<st_data_t>()];
         for chunk in &mut iter {
             buf.copy_from_slice(chunk);
-            let i = st_hash_t::from_ne_bytes(buf);
-            self.add_to_hash(i);
+
+            let i = st_data_t::from_ne_bytes(buf);
+            unsafe {
+                self.add_to_hash(i);
+            }
         }
-        buf = [0_u8; size_of::<st_hash_t>()];
-        buf[..iter.remainder().len()].copy_from_slice(iter.remainder());
-        let i = st_hash_t::from_ne_bytes(buf);
-        self.add_to_hash(i);
+
+        let remainder = iter.remainder();
+        if !remainder.is_empty() {
+            buf = [0_u8; size_of::<st_data_t>()];
+            buf[..remainder.len()].copy_from_slice(remainder);
+
+            let i = st_data_t::from_ne_bytes(buf);
+            unsafe {
+                self.add_to_hash(i);
+            }
+        }
     }
 
     #[inline]
     fn write_u8(&mut self, i: u8) {
         let i = i as usize;
-        self.add_to_hash(i.into());
+        unsafe {
+            self.add_to_hash(i.into());
+        }
     }
 
     #[inline]
     fn write_u16(&mut self, i: u16) {
         let i = i as usize;
-        self.add_to_hash(i.into());
+        unsafe {
+            self.add_to_hash(i.into());
+        }
     }
 
     #[inline]
     fn write_u32(&mut self, i: u32) {
         let i = i as usize;
-        self.add_to_hash(i.into());
+        unsafe {
+            self.add_to_hash(i.into());
+        }
     }
 
     #[inline]
-    #[cfg(target_pointer_width = "32")]
     fn write_u64(&mut self, i: u64) {
-        let d = i as usize;
-        self.add_to_hash(d.into());
-        let d = (i >> 32) as usize;
-        self.add_to_hash(d.into());
-    }
-
-    #[inline]
-    #[cfg(target_pointer_width = "64")]
-    fn write_u64(&mut self, i: u64) {
-        let i = i as usize;
-        self.add_to_hash(i.into());
+        if cfg!(target_pointer_width = "32") {
+            self.write(&i.to_ne_bytes());
+        } else if cfg!(target_pointer_width = "64") {
+            let i = i as usize;
+            unsafe {
+                self.add_to_hash(i.into());
+            }
+        }
     }
 
     #[inline]
     fn write_usize(&mut self, i: usize) {
-        self.add_to_hash(i.into());
+        unsafe {
+            self.add_to_hash(i.into());
+        }
     }
 
     #[inline]
     fn finish(&self) -> u64 {
-        usize::from(self.state) as u64
+        self.state
     }
 }

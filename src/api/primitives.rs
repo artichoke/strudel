@@ -43,6 +43,17 @@ impl st_data_t {
     pub unsafe fn as_const_c_char(&self) -> *const libc::c_char {
         self.inner as *const _
     }
+
+    /// Create a native endian integer value from its memory representation as a
+    /// byte array in native endianness.
+    ///
+    /// **Note**: This function takes an array of length 2, 4 or 8 bytes
+    /// depending on the target pointer size.
+    #[inline]
+    #[must_use]
+    pub fn from_ne_bytes(bytes: [u8; size_of::<st_index_t>()]) -> Self {
+        usize::from_ne_bytes(bytes).into()
+    }
 }
 
 impl From<usize> for st_data_t {
@@ -88,6 +99,19 @@ pub struct st_index_t {
 // typedef char st_check_for_sizeof_st_index_t[SIZEOF_VOIDP == (int)sizeof(st_index_t) ? 1 : -1];
 // ```
 const _: () = [()][(size_of::<usize>() == size_of::<st_index_t>()) as usize - 1];
+
+impl st_index_t {
+    /// Create a native endian integer value from its memory representation as a
+    /// byte array in native endianness.
+    ///
+    /// **Note**: This function takes an array of length 2, 4 or 8 bytes
+    /// depending on the target pointer size.
+    #[inline]
+    #[must_use]
+    pub fn from_ne_bytes(bytes: [u8; size_of::<st_index_t>()]) -> Self {
+        usize::from_ne_bytes(bytes).into()
+    }
+}
 
 impl From<st_data_t> for st_index_t {
     #[inline]
