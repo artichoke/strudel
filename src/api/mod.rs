@@ -1,8 +1,8 @@
 #![allow(non_upper_case_globals)]
 
-//! `st_hash`-compatible Rust API bindings for [`ExternHashMap`].
+//! `st_hash`-compatible Rust API bindings for [`StHashMap`].
 //!
-//! For the C API bindings, see the `capi` module.
+//! [`StHashMap`]: crate::StHashMap
 
 use core::ffi::c_void;
 use core::hash::Hasher;

@@ -65,14 +65,14 @@ const PADDING_TO_NUM_ENTRIES: usize = 4;
 #[cfg(target_pointer_width = "32")]
 const PADDING_TO_END: usize = 16;
 
-/// C struct wrapper around an [`ExternStHashMap`].
+/// C struct wrapper around an [`StHashMap`].
 ///
 /// This wrapper is FFI compatible with the C definition for access to the
 /// `hash->type` and `hash->num_entries` struct fields.
 ///
 /// This wrapper has the same `size_of` the C definition.
 ///
-/// `st_table` `deref`s and `deref_mut`s to [`ExternStHashMap`]
+/// [`StHashMap`]: crate::StHashMap
 #[repr(C)]
 pub struct st_table {
     table: *mut ExternHashMap,
@@ -99,6 +99,8 @@ impl st_table {
     /// # Safety
     ///
     /// Callers must not invalidate other in-use pointers.
+    ///
+    /// [`StHashMap`]: crate::StHashMap
     #[inline]
     pub unsafe fn repack(&mut self) {
         let len = (*self.table).len();
