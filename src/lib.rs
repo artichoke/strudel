@@ -139,10 +139,6 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 
 mod st;
 
-pub mod api;
-pub mod capi;
-pub mod ffi;
-
 pub use st::map::StHashMap;
 pub use st::set::StHashSet;
 
