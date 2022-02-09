@@ -15,9 +15,6 @@ include = [
   "README.md"
 ]
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
 fnv = "1"
 libc = "0.2"
