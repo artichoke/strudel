@@ -129,10 +129,10 @@ impl Hasher for StHasher {
     #[inline]
     #[cfg(target_pointer_width = "32")]
     fn write_u64(&mut self, i: u64) {
-        let i = i as usize;
-        self.add_to_hash(i.into());
-        let i = (i >> 32) as usize;
-        self.add_to_hash(i.into());
+        let d = i as usize;
+        self.add_to_hash(d.into());
+        let d = (i >> 32) as usize;
+        self.add_to_hash(d.into());
     }
 
     #[inline]
