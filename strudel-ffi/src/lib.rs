@@ -114,6 +114,12 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 #![warn(rust_2018_idioms)]
 #![warn(unused_qualifications)]
 #![warn(variant_size_differences)]
+// Enable feature callouts in generated documentation:
+// https://doc.rust-lang.org/beta/unstable-book/language-features/doc-cfg.html
+//
+// This approach is borrowed from tokio.
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_alias))]
 
 mod bindings;
 mod ffi;
