@@ -9,13 +9,7 @@ readme = "README.md"
 license = "MIT"
 keywords = ["hash", "hashtable", "ffi", "port"]
 categories = ["api-bindings", "data-structures", "external-ffi-bindings"]
-include = [
-  "**/*.rs",
-  "LICENSE",
-  "README.md"
-]
-
-[dependencies]
+include = ["src/**/*", "LICENSE", "README.md"]
 
 [workspace]
 members = [
@@ -25,3 +19,12 @@ members = [
 [profile.release]
 codegen-units = 1
 lto = true
+
+[dependencies]
+
+[package.metadata.docs.rs]
+# This sets the default target to `x86_64-unknown-linux-gnu` and only builds
+# that target. `strudel` has the same API and code on all targets.
+default-target = "x86_64-unknown-linux-gnu"
+targets = []
+rustdoc-args = ["--cfg", "docsrs"]

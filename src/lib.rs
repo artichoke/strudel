@@ -112,7 +112,12 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 #![warn(rust_2018_idioms)]
 #![warn(unused_qualifications)]
 #![warn(variant_size_differences)]
-#![allow(non_camel_case_types)]
+// Enable feature callouts in generated documentation:
+// https://doc.rust-lang.org/beta/unstable-book/language-features/doc-cfg.html
+//
+// This approach is borrowed from tokio.
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_alias))]
 
 //! Insertion-ordered hash table suitable for embedding via FFI.
 //!
