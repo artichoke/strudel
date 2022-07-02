@@ -193,7 +193,7 @@ impl<'a, K, V> DoubleEndedIterator for Values<'a, K, V> {
 #[derive(Debug, Clone)]
 pub struct InsertRanks(pub(crate) Range<usize>);
 
-impl<'a> Iterator for InsertRanks {
+impl Iterator for InsertRanks {
     type Item = usize;
 
     #[inline]
@@ -227,11 +227,11 @@ impl<'a> Iterator for InsertRanks {
     }
 }
 
-impl<'a> FusedIterator for InsertRanks {}
+impl FusedIterator for InsertRanks {}
 
-impl<'a> ExactSizeIterator for InsertRanks {}
+impl ExactSizeIterator for InsertRanks {}
 
-impl<'a> DoubleEndedIterator for InsertRanks {
+impl DoubleEndedIterator for InsertRanks {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.next_back()
     }
