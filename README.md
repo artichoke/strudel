@@ -93,8 +93,17 @@ NOTE: Strudel cannot build a full Ruby due to bugs in the implementation of the
 
 `strudel` is licensed under the [MIT License](LICENSE) (c) Ryan Lopopolo.
 
-`strudel` is based on `st.h` and `st.c` from [Ruby]. See [`COPYING`](COPYING).
-These sources are vendored in [`ruby`](ruby) source directory.
+This repository includes a vendored copy of [`st.h`] and [`st.c`] from Ruby
+2.6.3, which is licensed under the [Ruby license] or [BSD 2-clause license]. See
+[`vendor/README.md`] for more details. These sources are not distributed on
+[crates.io].
+
+[`st.h`]: vendor/ruby-2.6.3/st.h
+[`st.c`]: vendor/ruby-2.6.3/st.c
+[ruby license]: vendor/ruby-2.6.3/COPYING
+[bsd 2-clause license]: vendor/ruby-2.6.3/BSDL
+[`vendor/readme.md`]: vendor/README.md
+[crates.io]: https://crates.io/
 
 The `st_hash` implementation in Ruby includes the following notice:
 
@@ -105,5 +114,3 @@ The `st_hash` implementation in Ruby includes the following notice:
    The hash table data strutures were redesigned and the package was
    rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 ```
-
-[ruby]: https://github.com/ruby/ruby
