@@ -14,17 +14,27 @@ Status: Work in progress.
 
 Strudel was conceived as a drop-in replacement for `st_hash`, a hash map
 implemented in C originally written by Peter Moore @ UCB and used in [Ruby]'s
-[implementation][st.c] of the [`Hash`][hash] core class.
+[implementation][`st.c`] of the [`Hash`][hash] core class.
+
+[ruby]: https://github.com/ruby/ruby
+[hash]: https://ruby-doc.org/core-2.6.3/Hash.html
 
 This crate is an exercise in implementing an insertion-ordered hash map in Rust
 that cannot use the built-in `Hasher` infrastructure. The implementation uses
 [Ruby's `Hash` backend][sthash-notes] and [Python's dict][pydict-notes] as prior
 art.
 
+[sthash-notes]: https://github.com/ruby/ruby/blob/v2_6_3/st.c#L1-L101
+[pydict-notes]:
+  https://github.com/python/cpython/blob/v3.8.4/Objects/dictobject.c#L1-L110
+
 `StHashMap` is designed to implement the `st_hash` C API and be FFI-friendly.
 
 `StHashMap` is built on top of the high performance [`HashMap`] and [`Vec`] in
 Rust `std`.
+
+[`hashmap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
+[`vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html
 
 `StHashMap`, and `StHashSet` which builds on top of it, support in-place updates
 of hash keys. No mutable iterators are provided.
@@ -46,9 +56,11 @@ strudel = "1.0"
 ## Building Ruby with Strudel
 
 Strudel exports most of the symbols implemented by `st.c` in MRI 2.6.3. The
-[included patch](strudelify-mri.patch) and some
-[`configure` arguments](build.sh) can build the bootstrapping phase of MRI 2.6.3
-with Strudel as the hash backend.
+[included patch] and some [`configure` arguments] can build the bootstrapping
+phase of MRI 2.6.3 with Strudel as the hash backend.
+
+[included patch]: strudelify-mri.patch
+[`configure` arguments]: build.sh
 
 To build `miniruby` with Strudel, run:
 
@@ -95,10 +107,3 @@ The `st_hash` implementation in Ruby includes the following notice:
 ```
 
 [ruby]: https://github.com/ruby/ruby
-[st.c]: https://github.com/ruby/ruby/blob/v2_6_3/st.c
-[hash]: https://ruby-doc.org/core-2.6.3/Hash.html
-[sthash-notes]: https://github.com/ruby/ruby/blob/v2_6_3/st.c#L1-L101
-[pydict-notes]:
-  https://github.com/python/cpython/blob/v3.8.4/Objects/dictobject.c#L1-L110
-[`hashmap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
-[`vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html
