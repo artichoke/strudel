@@ -28,16 +28,17 @@ art.
 [pydict-notes]:
   https://github.com/python/cpython/blob/v3.8.4/Objects/dictobject.c#L1-L110
 
-`StHashMap` is designed to implement the `st_hash` C API and be FFI-friendly.
+This crate exports two types:
 
-`StHashMap` is built on top of the high performance [`HashMap`] and [`Vec`] in
-Rust `std`.
+- `StHashMap` is a hash map built on top of the high performance [`HashMap`] and
+  [`Vec`] in Rust `std`. It is designed to implement the `st_hash` C API and be
+  FFI-friendly. This map supports in-place updates of hash keys. No mutable
+  iterators are provided.
+- `StHashSet` is a set that wraps an `StHashMap` like `HashSet` does in `std`.
 
 [`hashmap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
 [`vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html
-
-`StHashMap`, and `StHashSet` which builds on top of it, support in-place updates
-of hash keys. No mutable iterators are provided.
+[`hashse`]: https://doc.rust-lang.org/std/collections/struct.HashSet.html
 
 The `api` and `capi` modules in `strudel` build on top of `StHashMap` to
 implement a compatible C API to `st_hash`. This API includes support for
