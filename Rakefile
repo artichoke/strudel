@@ -105,7 +105,7 @@ namespace :release do
     f.exclude('node_modules/**/*')
     f.exclude('**/build/**/*')
     f.exclude('**/target/**/*')
-    f.exclude('**/vendor/**/*')
+    f.exclude('**/vendor/*/**/*')
     f.include('*.md')
     f.include('**/vendor/*.md')
   end
