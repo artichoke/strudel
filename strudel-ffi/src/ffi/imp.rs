@@ -167,11 +167,7 @@ pub unsafe fn st_insert(table: *mut st_table, key: st_data_t, value: st_data_t) 
     let mut table = st_table::from_raw(table);
     let inner = table.as_inner_mut();
 
-    if (*inner).insert_raw(key, value).is_some() {
-        1
-    } else {
-        0
-    }
+    (*inner).insert_raw(key, value).is_some().into()
 }
 
 /// Insert (FUNC(KEY), VALUE) into table TAB and return zero. If there is
