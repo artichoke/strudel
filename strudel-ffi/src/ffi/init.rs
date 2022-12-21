@@ -18,11 +18,7 @@ use crate::st_table::ffi::st_table;
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_numcmp(x: st_data_t, y: st_data_t) -> c_int {
-    if x == y {
-        0
-    } else {
-        1
-    }
+    c_int::from(x != y)
 }
 
 /// # Header declaration
@@ -172,8 +168,8 @@ unsafe extern "C" fn st_locale_insensitive_strncasecmp(
     s2: st_data_t,
     n: libc::size_t,
 ) -> libc::c_int {
-    let s1 = slice::from_raw_parts(s1.as_const_c_char(), n as usize);
-    let s2 = slice::from_raw_parts(s2.as_const_c_char(), n as usize);
+    let s1 = slice::from_raw_parts(s1.as_const_c_char(), n);
+    let s2 = slice::from_raw_parts(s2.as_const_c_char(), n);
 
     for (&left, &right) in s1.iter().zip(s2.iter()) {
         match (transmute(left), transmute(right)) {
