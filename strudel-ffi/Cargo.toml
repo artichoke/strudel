@@ -21,7 +21,7 @@ libc = "0.2.118"
 strudel = { version = "=1.0.0", path = ".." }
 
 [dev-dependencies]
-memoffset = "0.7.1"
+memoffset = "0.8.0"
 
 [package.metadata.docs.rs]
 # This sets the default target to `x86_64-unknown-linux-gnu` and only builds
