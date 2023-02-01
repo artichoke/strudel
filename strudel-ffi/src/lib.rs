@@ -105,7 +105,7 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 #![warn(clippy::cargo)]
 #![allow(clippy::cast_lossless)]
 #![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::let_underscore_drop)]
+#![allow(let_underscore_drop)]
 #![allow(unknown_lints)]
 #![warn(missing_debug_implementations)]
 // #![warn(missing_docs)]
