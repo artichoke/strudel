@@ -1,4 +1,5 @@
 ---
+require: rubocop-rake
 AllCops:
   NewCops: enable
   TargetRubyVersion: 3.2
