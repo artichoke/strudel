@@ -5,6 +5,9 @@
     },
     {
       "pattern": "^https://docs.rs/strudel$"
+    },
+    {
+      "pattern": "^https://twitter.com/artichokeruby"
     }
   ],
   "replacementPatterns": [],
