@@ -106,6 +106,7 @@ rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 #![allow(clippy::cast_lossless)]
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::let_underscore_untyped)]
+#![allow(clippy::unnecessary_box_returns)]
 #![allow(let_underscore_drop)]
 #![allow(unknown_lints)]
 #![warn(missing_debug_implementations)]
