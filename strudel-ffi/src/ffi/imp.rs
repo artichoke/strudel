@@ -780,8 +780,8 @@ pub unsafe fn st_copy(old_table: *mut st_table) -> *mut st_table {
 /// `st_init_table` family of functions.
 #[inline]
 #[must_use]
-pub unsafe fn st_memsize(table: *const st_table) -> libc::size_t {
-    let mut table = st_table::from_raw(table as *mut st_table);
+pub unsafe fn st_memsize(table: *mut st_table) -> libc::size_t {
+    let mut table = st_table::from_raw(table);
     let inner = table.as_inner_mut();
 
     (*inner).inner.estimated_memsize()

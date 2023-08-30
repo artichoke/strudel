@@ -314,7 +314,7 @@ unsafe extern "C" fn st_copy(table: *mut st_table) -> *mut st_table {
 /// ```
 #[no_mangle]
 unsafe extern "C" fn st_memsize(table: *const st_table) -> libc::size_t {
-    imp::st_memsize(table)
+    imp::st_memsize(table.cast_mut())
 }
 
 /// # Header declaration
