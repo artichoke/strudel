@@ -67,7 +67,7 @@ impl<T> Iterator for IntoIter<T> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|(elem, _)| elem)
+        self.0.next().map(|(elem, ())| elem)
     }
 
     #[inline]
@@ -82,17 +82,17 @@ impl<T> Iterator for IntoIter<T> {
 
     #[inline]
     fn last(self) -> Option<Self::Item> {
-        self.0.last().map(|(elem, _)| elem)
+        self.0.last().map(|(elem, ())| elem)
     }
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        self.0.nth(n).map(|(elem, _)| elem)
+        self.0.nth(n).map(|(elem, ())| elem)
     }
 
     #[inline]
     fn collect<B: FromIterator<Self::Item>>(self) -> B {
-        self.0.map(|(elem, _)| elem).collect()
+        self.0.map(|(elem, ())| elem).collect()
     }
 }
 
@@ -102,11 +102,11 @@ impl<T> ExactSizeIterator for IntoIter<T> {}
 
 impl<T> DoubleEndedIterator for IntoIter<T> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.0.next_back().map(|(elem, _)| elem)
+        self.0.next_back().map(|(elem, ())| elem)
     }
 
     fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
-        self.0.nth_back(n).map(|(elem, _)| elem)
+        self.0.nth_back(n).map(|(elem, ())| elem)
     }
 }
 
