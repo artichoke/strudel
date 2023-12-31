@@ -320,7 +320,7 @@ impl<T, S> StHashSet<T, S> {
     #[inline]
     #[must_use]
     pub fn get_nth(&self, n: usize) -> Option<&T> {
-        self.map.get_nth(n).map(|(elem, _)| elem)
+        self.map.get_nth(n).map(|(elem, ())| elem)
     }
 
     /// Insertion counter for the [first](StHashSet::first) element in the set.
@@ -544,7 +544,7 @@ where
     #[inline]
     #[must_use]
     pub fn get(&self, element: &T) -> Option<&T> {
-        let (element, _) = self.map.get_key_value(element)?;
+        let (element, ()) = self.map.get_key_value(element)?;
         Some(element)
     }
 }
