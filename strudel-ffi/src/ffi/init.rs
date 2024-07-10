@@ -50,7 +50,10 @@ unsafe extern "C" fn strhash(arg: st_data_t) -> st_index_t {
 
 static type_strhash: st_hash_type = st_hash_type {
     compare: unsafe {
-        transmute(libc::strcmp as unsafe extern "C" fn(*const c_char, *const c_char) -> c_int)
+        transmute::<
+            unsafe extern "C" fn(*const c_char, *const c_char) -> c_int,
+            unsafe extern "C" fn(st_data_t, st_data_t) -> c_int,
+        >(libc::strcmp as _)
     },
     hash: strhash,
 };
@@ -172,7 +175,7 @@ unsafe extern "C" fn st_locale_insensitive_strncasecmp(
     let s2 = slice::from_raw_parts(s2.as_const_c_char(), n);
 
     for (&left, &right) in s1.iter().zip(s2.iter()) {
-        match (transmute(left), transmute(right)) {
+        match (transmute::<i8, u8>(left), transmute::<i8, u8>(right)) {
             (b'\0', b'\0') => return 0,
             (_, b'\0') => return 1,
             (b'\0', _) => return -1,
