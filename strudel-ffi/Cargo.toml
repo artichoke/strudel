@@ -1,8 +1,9 @@
 [package]
 name = "strudel-ffi"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Ryan Lopopolo <rjl@hyperbo.la>"]
-edition = "2018"
+edition = "2021"
+rust-version = "1.65.0"
 description = "Rust port of the st_hash C library"
 repository = "https://github.com/artichoke/strudel"
 readme = "README.md"
@@ -18,7 +19,7 @@ name = "strudel_st"
 [dependencies]
 fnv = "1.0.7"
 libc = "0.2.118"
-strudel = { version = "=1.0.0", path = ".." }
+strudel = { version = "=1.1.0", path = ".." }
 
 [dev-dependencies]
 memoffset = "0.9.0"

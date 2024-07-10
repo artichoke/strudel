@@ -2,12 +2,11 @@
 //!
 //! [`StHashMap`]: strudel::StHashMap
 
-use core::ffi::c_void;
+use core::ffi::{c_int, c_void};
 use core::hash::Hasher;
 use core::mem;
 use core::ptr;
 use core::slice;
-use std::os::raw::c_int;
 
 use fnv::FnvHasher;
 

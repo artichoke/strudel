@@ -10,8 +10,7 @@
 //!
 //! [`StHashMap`]: strudel::StHashMap
 
-use core::ffi::c_void;
-use std::os::raw::c_int;
+use core::ffi::{c_int, c_void};
 
 use crate::bindings::{st_foreach_callback_func, st_hash_type, st_update_callback_func};
 use crate::primitives::{st_data_t, st_hash_t, st_index_t};
