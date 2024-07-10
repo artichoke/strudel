@@ -1,8 +1,8 @@
+use core::ffi::{c_char, c_int, CStr};
 use core::hash::Hasher;
+use core::iter;
 use core::mem::transmute;
 use core::slice;
-use std::ffi::CStr;
-use std::os::raw::{c_char, c_int};
 
 use fnv::FnvHasher;
 
@@ -171,11 +171,11 @@ unsafe extern "C" fn st_locale_insensitive_strncasecmp(
     s2: st_data_t,
     n: libc::size_t,
 ) -> libc::c_int {
-    let s1 = slice::from_raw_parts(s1.as_const_c_char(), n);
-    let s2 = slice::from_raw_parts(s2.as_const_c_char(), n);
+    let s1 = slice::from_raw_parts(s1.as_const_c_char().cast::<u8>(), n);
+    let s2 = slice::from_raw_parts(s2.as_const_c_char().cast::<u8>(), n);
 
-    for (&left, &right) in s1.iter().zip(s2.iter()) {
-        match (transmute::<i8, u8>(left), transmute::<i8, u8>(right)) {
+    for (&left, &right) in iter::zip(s1, s2) {
+        match (left, right) {
             (b'\0', b'\0') => return 0,
             (_, b'\0') => return 1,
             (b'\0', _) => return -1,

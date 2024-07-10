@@ -1,4 +1,4 @@
-use std::os::raw::c_int;
+use core::ffi::c_int;
 
 use crate::primitives::{st_data_t, st_index_t};
 

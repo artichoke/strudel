@@ -154,8 +154,8 @@ impl From<StTable> for st_table {
 
 #[cfg(test)]
 mod tests {
+    use core::ffi::{c_uchar, c_uint};
     use core::mem::size_of;
-    use std::os::raw::{c_uchar, c_uint};
 
     use crate::bindings::st_hash_type;
     use crate::primitives::{st_data_t, st_hash_t, st_index_t};

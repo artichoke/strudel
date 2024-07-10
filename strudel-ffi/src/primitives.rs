@@ -1,5 +1,5 @@
+use core::ffi::c_char;
 use core::mem::size_of;
-use std::os::raw::c_char;
 
 /// A type-safe typedef for data stored in the hashmap.
 ///
