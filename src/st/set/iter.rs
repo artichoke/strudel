@@ -42,11 +42,11 @@ impl<'a, T> Iterator for Iter<'a, T> {
     }
 }
 
-impl<'a, T> FusedIterator for Iter<'a, T> {}
+impl<T> FusedIterator for Iter<'_, T> {}
 
-impl<'a, T> ExactSizeIterator for Iter<'a, T> {}
+impl<T> ExactSizeIterator for Iter<'_, T> {}
 
-impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
+impl<T> DoubleEndedIterator for Iter<'_, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.next_back()
     }

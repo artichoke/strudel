@@ -30,9 +30,9 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
     }
 }
 
-impl<'a, K, V> FusedIterator for Iter<'a, K, V> {}
+impl<K, V> FusedIterator for Iter<'_, K, V> {}
 
-impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
+impl<K, V> DoubleEndedIterator for Iter<'_, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
         loop {
             match self.0.next_back() {
@@ -123,9 +123,9 @@ impl<'a, K, V> Iterator for Keys<'a, K, V> {
     }
 }
 
-impl<'a, K, V> FusedIterator for Keys<'a, K, V> {}
+impl<K, V> FusedIterator for Keys<'_, K, V> {}
 
-impl<'a, K, V> DoubleEndedIterator for Keys<'a, K, V> {
+impl<K, V> DoubleEndedIterator for Keys<'_, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.next_back().map(|(key, _)| key)
     }
@@ -174,9 +174,9 @@ impl<'a, K, V> Iterator for Values<'a, K, V> {
     }
 }
 
-impl<'a, K, V> FusedIterator for Values<'a, K, V> {}
+impl<K, V> FusedIterator for Values<'_, K, V> {}
 
-impl<'a, K, V> DoubleEndedIterator for Values<'a, K, V> {
+impl<K, V> DoubleEndedIterator for Values<'_, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.next_back().map(|(_, value)| value)
     }
