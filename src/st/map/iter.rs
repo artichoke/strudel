@@ -17,9 +17,13 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.0.next() {
-                None => return None,
-                Some(InsertionEntry::Dead) => continue,
-                Some(InsertionEntry::Alive(key, value)) => return Some((key, value)),
+                None => {
+                    return None;
+                }
+                Some(InsertionEntry::Dead) => {}
+                Some(InsertionEntry::Alive(key, value)) => {
+                    return Some((key, value));
+                }
             }
         }
     }
@@ -36,9 +40,13 @@ impl<K, V> DoubleEndedIterator for Iter<'_, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
         loop {
             match self.0.next_back() {
-                None => return None,
-                Some(InsertionEntry::Dead) => continue,
-                Some(InsertionEntry::Alive(key, value)) => return Some((key, value)),
+                None => {
+                    return None;
+                }
+                Some(InsertionEntry::Dead) => {}
+                Some(InsertionEntry::Alive(key, value)) => {
+                    return Some((key, value));
+                }
             }
         }
     }
@@ -57,9 +65,13 @@ impl<K, V> Iterator for IntoIter<K, V> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.0.next() {
-                None => return None,
-                Some(InsertionEntry::Dead) => continue,
-                Some(InsertionEntry::Alive(key, value)) => return Some((key, value)),
+                None => {
+                    return None;
+                }
+                Some(InsertionEntry::Dead) => {}
+                Some(InsertionEntry::Alive(key, value)) => {
+                    return Some((key, value));
+                }
             }
         }
     }
@@ -76,9 +88,13 @@ impl<K, V> DoubleEndedIterator for IntoIter<K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
         loop {
             match self.0.next_back() {
-                None => return None,
-                Some(InsertionEntry::Dead) => continue,
-                Some(InsertionEntry::Alive(key, value)) => return Some((key, value)),
+                None => {
+                    return None;
+                }
+                Some(InsertionEntry::Dead) => {}
+                Some(InsertionEntry::Alive(key, value)) => {
+                    return Some((key, value));
+                }
             }
         }
     }
@@ -108,8 +124,8 @@ impl<'a, K, V> Iterator for Keys<'a, K, V> {
     }
 
     #[inline]
-    fn last(self) -> Option<Self::Item> {
-        self.0.last().map(|(key, _)| key)
+    fn last(mut self) -> Option<Self::Item> {
+        self.0.next_back().map(|(key, _)| key)
     }
 
     #[inline]
@@ -159,8 +175,8 @@ impl<'a, K, V> Iterator for Values<'a, K, V> {
     }
 
     #[inline]
-    fn last(self) -> Option<Self::Item> {
-        self.0.last().map(|(_, value)| value)
+    fn last(mut self) -> Option<Self::Item> {
+        self.0.next_back().map(|(_, value)| value)
     }
 
     #[inline]

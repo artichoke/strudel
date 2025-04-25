@@ -463,7 +463,7 @@ impl<K, V, S> StHashMap<K, V, S> {
     #[inline]
     #[must_use]
     pub fn last(&self) -> Option<(&K, &V)> {
-        self.iter().last()
+        self.iter().next_back()
     }
 
     /// Returns the nth key-value pair in the map. The key in this pair is

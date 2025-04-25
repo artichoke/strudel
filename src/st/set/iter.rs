@@ -81,8 +81,8 @@ impl<T> Iterator for IntoIter<T> {
     }
 
     #[inline]
-    fn last(self) -> Option<Self::Item> {
-        self.0.last().map(|(elem, ())| elem)
+    fn last(mut self) -> Option<Self::Item> {
+        self.0.next_back().map(|(elem, ())| elem)
     }
 
     #[inline]
