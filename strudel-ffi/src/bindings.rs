@@ -30,7 +30,7 @@ pub type st_hash_func = unsafe extern "C" fn(st_data_t) -> st_index_t;
 /// `st_hash_type` are expected to have `'static` lifetime. This assumption is
 /// exploited by [`StHashMap`] and [`StBuildHasher`].
 #[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy)]
 pub struct st_hash_type {
     /// `st_compare_func`
     ///
