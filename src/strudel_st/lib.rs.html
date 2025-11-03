@@ -1,0 +1,131 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `strudel-ffi/src/lib.rs`."><title>lib.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="strudel_st" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0-nightly (b15a874aa 2025-11-02)" data-channel="nightly" data-search-js="search-5c29b3b5.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="../../static.files/src-script-813739b1.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">strudel_st/</div>lib.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="comment">/* This is a public domain general purpose hash table package
+<a href=#2 id=2 data-nosnippet>2</a>originally written by Peter Moore @ UCB.
+<a href=#3 id=3 data-nosnippet>3</a>
+<a href=#4 id=4 data-nosnippet>4</a>The hash table data structures were redesigned and the package was
+<a href=#5 id=5 data-nosnippet>5</a>rewritten by Vladimir Makarov &lt;vmakarov@redhat.com&gt;.  */
+<a href=#6 id=6 data-nosnippet>6</a>
+<a href=#7 id=7 data-nosnippet>7</a>/* The original package implemented classic bucket-based hash tables
+<a href=#8 id=8 data-nosnippet>8</a>   with entries doubly linked for an access by their insertion order.
+<a href=#9 id=9 data-nosnippet>9</a>   To decrease pointer chasing and as a consequence to improve a data
+<a href=#10 id=10 data-nosnippet>10</a>   locality the current implementation is based on storing entries in
+<a href=#11 id=11 data-nosnippet>11</a>   an array and using hash tables with open addressing.  The current
+<a href=#12 id=12 data-nosnippet>12</a>   entries are more compact in comparison with the original ones and
+<a href=#13 id=13 data-nosnippet>13</a>   this also improves the data locality.
+<a href=#14 id=14 data-nosnippet>14</a>
+<a href=#15 id=15 data-nosnippet>15</a>   The hash table has two arrays called *bins* and *entries*.
+<a href=#16 id=16 data-nosnippet>16</a>
+<a href=#17 id=17 data-nosnippet>17</a>     bins:
+<a href=#18 id=18 data-nosnippet>18</a>    -------
+<a href=#19 id=19 data-nosnippet>19</a>   |       |                  entries array:
+<a href=#20 id=20 data-nosnippet>20</a>   |-------|            --------------------------------
+<a href=#21 id=21 data-nosnippet>21</a>   | index |           |      | entry:  |        |      |
+<a href=#22 id=22 data-nosnippet>22</a>   |-------|           |      |         |        |      |
+<a href=#23 id=23 data-nosnippet>23</a>   | ...   |           | ...  | hash    |  ...   | ...  |
+<a href=#24 id=24 data-nosnippet>24</a>   |-------|           |      | key     |        |      |
+<a href=#25 id=25 data-nosnippet>25</a>   | empty |           |      | record  |        |      |
+<a href=#26 id=26 data-nosnippet>26</a>   |-------|            --------------------------------
+<a href=#27 id=27 data-nosnippet>27</a>   | ...   |                   ^                  ^
+<a href=#28 id=28 data-nosnippet>28</a>   |-------|                   |_ entries start   |_ entries bound
+<a href=#29 id=29 data-nosnippet>29</a>   |deleted|
+<a href=#30 id=30 data-nosnippet>30</a>    -------
+<a href=#31 id=31 data-nosnippet>31</a>
+<a href=#32 id=32 data-nosnippet>32</a>   o The entry array contains table entries in the same order as they
+<a href=#33 id=33 data-nosnippet>33</a>     were inserted.
+<a href=#34 id=34 data-nosnippet>34</a>
+<a href=#35 id=35 data-nosnippet>35</a>     When the first entry is deleted, a variable containing index of
+<a href=#36 id=36 data-nosnippet>36</a>     the current first entry (*entries start*) is changed.  In all
+<a href=#37 id=37 data-nosnippet>37</a>     other cases of the deletion, we just mark the entry as deleted by
+<a href=#38 id=38 data-nosnippet>38</a>     using a reserved hash value.
+<a href=#39 id=39 data-nosnippet>39</a>
+<a href=#40 id=40 data-nosnippet>40</a>     Such organization of the entry storage makes operations of the
+<a href=#41 id=41 data-nosnippet>41</a>     table shift and the entries traversal very fast.
+<a href=#42 id=42 data-nosnippet>42</a>
+<a href=#43 id=43 data-nosnippet>43</a>   o The bins provide access to the entries by their keys.  The
+<a href=#44 id=44 data-nosnippet>44</a>     key hash is mapped to a bin containing *index* of the
+<a href=#45 id=45 data-nosnippet>45</a>     corresponding entry in the entry array.
+<a href=#46 id=46 data-nosnippet>46</a>
+<a href=#47 id=47 data-nosnippet>47</a>     The bin array size is always power of two, it makes mapping very
+<a href=#48 id=48 data-nosnippet>48</a>     fast by using the corresponding lower bits of the hash.
+<a href=#49 id=49 data-nosnippet>49</a>     Generally it is not a good idea to ignore some part of the hash.
+<a href=#50 id=50 data-nosnippet>50</a>     But alternative approach is worse.  For example, we could use a
+<a href=#51 id=51 data-nosnippet>51</a>     modulo operation for mapping and a prime number for the size of
+<a href=#52 id=52 data-nosnippet>52</a>     the bin array.  Unfortunately, the modulo operation for big
+<a href=#53 id=53 data-nosnippet>53</a>     64-bit numbers are extremely slow (it takes more than 100 cycles
+<a href=#54 id=54 data-nosnippet>54</a>     on modern Intel CPUs).
+<a href=#55 id=55 data-nosnippet>55</a>
+<a href=#56 id=56 data-nosnippet>56</a>     Still other bits of the hash value are used when the mapping
+<a href=#57 id=57 data-nosnippet>57</a>     results in a collision.  In this case we use a secondary hash
+<a href=#58 id=58 data-nosnippet>58</a>     value which is a result of a function of the collision bin
+<a href=#59 id=59 data-nosnippet>59</a>     index and the original hash value.  The function choice
+<a href=#60 id=60 data-nosnippet>60</a>     guarantees that we can traverse all bins and finally find the
+<a href=#61 id=61 data-nosnippet>61</a>     corresponding bin as after several iterations the function
+<a href=#62 id=62 data-nosnippet>62</a>     becomes a full cycle linear congruential generator because it
+<a href=#63 id=63 data-nosnippet>63</a>     satisfies requirements of the Hull-Dobell theorem.
+<a href=#64 id=64 data-nosnippet>64</a>
+<a href=#65 id=65 data-nosnippet>65</a>     When an entry is removed from the table besides marking the
+<a href=#66 id=66 data-nosnippet>66</a>     hash in the corresponding entry described above, we also mark
+<a href=#67 id=67 data-nosnippet>67</a>     the bin by a special value in order to find entries which had
+<a href=#68 id=68 data-nosnippet>68</a>     a collision with the removed entries.
+<a href=#69 id=69 data-nosnippet>69</a>
+<a href=#70 id=70 data-nosnippet>70</a>     There are two reserved values for the bins.  One denotes an
+<a href=#71 id=71 data-nosnippet>71</a>     empty bin, another one denotes a bin for a deleted entry.
+<a href=#72 id=72 data-nosnippet>72</a>
+<a href=#73 id=73 data-nosnippet>73</a>   o The length of the bin array is at least two times more than the
+<a href=#74 id=74 data-nosnippet>74</a>     entry array length.  This keeps the table load factor healthy.
+<a href=#75 id=75 data-nosnippet>75</a>     The trigger of rebuilding the table is always a case when we can
+<a href=#76 id=76 data-nosnippet>76</a>     not insert an entry anymore at the entries bound.  We could
+<a href=#77 id=77 data-nosnippet>77</a>     change the entries bound too in case of deletion but than we need
+<a href=#78 id=78 data-nosnippet>78</a>     a special code to count bins with corresponding deleted entries
+<a href=#79 id=79 data-nosnippet>79</a>     and reset the bin values when there are too many bins
+<a href=#80 id=80 data-nosnippet>80</a>     corresponding deleted entries
+<a href=#81 id=81 data-nosnippet>81</a>
+<a href=#82 id=82 data-nosnippet>82</a>     Table rebuilding is done by creation of a new entry array and
+<a href=#83 id=83 data-nosnippet>83</a>     bins of an appropriate size.  We also try to reuse the arrays
+<a href=#84 id=84 data-nosnippet>84</a>     in some cases by compacting the array and removing deleted
+<a href=#85 id=85 data-nosnippet>85</a>     entries.
+<a href=#86 id=86 data-nosnippet>86</a>
+<a href=#87 id=87 data-nosnippet>87</a>   o To save memory very small tables have no allocated arrays
+<a href=#88 id=88 data-nosnippet>88</a>     bins.  We use a linear search for an access by a key.
+<a href=#89 id=89 data-nosnippet>89</a>
+<a href=#90 id=90 data-nosnippet>90</a>   o To save more memory we use 8-, 16-, 32- and 64- bit indexes in
+<a href=#91 id=91 data-nosnippet>91</a>     bins depending on the current hash table size.
+<a href=#92 id=92 data-nosnippet>92</a>
+<a href=#93 id=93 data-nosnippet>93</a>   o The implementation takes into account that the table can be
+<a href=#94 id=94 data-nosnippet>94</a>     rebuilt during hashing or comparison functions.  It can happen if
+<a href=#95 id=95 data-nosnippet>95</a>     the functions are implemented in Ruby and a thread switch occurs
+<a href=#96 id=96 data-nosnippet>96</a>     during their execution.
+<a href=#97 id=97 data-nosnippet>97</a>
+<a href=#98 id=98 data-nosnippet>98</a>   This implementation speeds up the Ruby hash table benchmarks in
+<a href=#99 id=99 data-nosnippet>99</a>   average by more 40% on Intel Haswell CPU.
+<a href=#100 id=100 data-nosnippet>100</a>
+<a href=#101 id=101 data-nosnippet>101</a>*/
+<a href=#102 id=102 data-nosnippet>102</a>
+<a href=#103 id=103 data-nosnippet>103</a></span><span class="attr">#![warn(clippy::all)]
+<a href=#104 id=104 data-nosnippet>104</a>#![warn(clippy::pedantic)]
+<a href=#105 id=105 data-nosnippet>105</a>#![warn(clippy::cargo)]
+<a href=#106 id=106 data-nosnippet>106</a>#![allow(clippy::cast_lossless)]
+<a href=#107 id=107 data-nosnippet>107</a>#![allow(clippy::cast_possible_truncation)]
+<a href=#108 id=108 data-nosnippet>108</a>#![allow(clippy::let_underscore_untyped)]
+<a href=#109 id=109 data-nosnippet>109</a>#![allow(clippy::unnecessary_box_returns)]
+<a href=#110 id=110 data-nosnippet>110</a>#![allow(let_underscore_drop)]
+<a href=#111 id=111 data-nosnippet>111</a>#![allow(unknown_lints)]
+<a href=#112 id=112 data-nosnippet>112</a>#![warn(missing_debug_implementations)]
+<a href=#113 id=113 data-nosnippet>113</a></span><span class="comment">// #![warn(missing_docs)]
+<a href=#114 id=114 data-nosnippet>114</a></span><span class="attr">#![allow(non_camel_case_types)]
+<a href=#115 id=115 data-nosnippet>115</a>#![allow(non_upper_case_globals)]
+<a href=#116 id=116 data-nosnippet>116</a>#![warn(rust_2018_idioms)]
+<a href=#117 id=117 data-nosnippet>117</a>#![warn(unused_qualifications)]
+<a href=#118 id=118 data-nosnippet>118</a>#![warn(variant_size_differences)]
+<a href=#119 id=119 data-nosnippet>119</a></span><span class="comment">// Enable feature callouts in generated documentation:
+<a href=#120 id=120 data-nosnippet>120</a>// https://doc.rust-lang.org/beta/unstable-book/language-features/doc-cfg.html
+<a href=#121 id=121 data-nosnippet>121</a>//
+<a href=#122 id=122 data-nosnippet>122</a>// This approach is borrowed from tokio.
+<a href=#123 id=123 data-nosnippet>123</a></span><span class="attr">#![cfg_attr(docsrs, feature(doc_cfg))]
+<a href=#124 id=124 data-nosnippet>124</a>#![cfg_attr(docsrs, feature(doc_alias))]
+<a href=#125 id=125 data-nosnippet>125</a>
+<a href=#126 id=126 data-nosnippet>126</a></span><span class="kw">mod </span>bindings;
+<a href=#127 id=127 data-nosnippet>127</a><span class="kw">mod </span>ffi;
+<a href=#128 id=128 data-nosnippet>128</a><span class="kw">mod </span>hasher;
+<a href=#129 id=129 data-nosnippet>129</a><span class="kw">mod </span>primitives;
+<a href=#130 id=130 data-nosnippet>130</a><span class="kw">mod </span>st_table;
+</code></pre></div></section></main></body></html>

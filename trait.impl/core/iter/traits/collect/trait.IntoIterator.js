@@ -1,0 +1,9 @@
+(function() {
+    var implementors = Object.fromEntries([["strudel",[["impl&lt;'a, K: 'a, V: 'a, S&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/iter/traits/collect/trait.IntoIterator.html\" title=\"trait core::iter::traits::collect::IntoIterator\">IntoIterator</a> for &amp;'a <a class=\"struct\" href=\"strudel/struct.StHashMap.html\" title=\"struct strudel::StHashMap\">StHashMap</a>&lt;K, V, S&gt;"],["impl&lt;'a, T, S&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/iter/traits/collect/trait.IntoIterator.html\" title=\"trait core::iter::traits::collect::IntoIterator\">IntoIterator</a> for &amp;'a <a class=\"struct\" href=\"strudel/struct.StHashSet.html\" title=\"struct strudel::StHashSet\">StHashSet</a>&lt;T, S&gt;"],["impl&lt;K, V, S&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/iter/traits/collect/trait.IntoIterator.html\" title=\"trait core::iter::traits::collect::IntoIterator\">IntoIterator</a> for <a class=\"struct\" href=\"strudel/struct.StHashMap.html\" title=\"struct strudel::StHashMap\">StHashMap</a>&lt;K, V, S&gt;"],["impl&lt;T, S&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/iter/traits/collect/trait.IntoIterator.html\" title=\"trait core::iter::traits::collect::IntoIterator\">IntoIterator</a> for <a class=\"struct\" href=\"strudel/struct.StHashSet.html\" title=\"struct strudel::StHashSet\">StHashSet</a>&lt;T, S&gt;"]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":57,"fragment_lengths":[1385]}
